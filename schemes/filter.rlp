@@ -1,0 +1,114 @@
+Filter port scheme for REBOL
+
+    Purpose: {
+        Implements filter://, a port scheme that allows filtering a stream of data thru
+        a function.
+    }
+    Author: "Gabriele Santilli"
+    File: %filter.r
+    License: "(C) 2008 Qtask, Inc. All rights reserved."
+    Version: 1.0.0
+
+===Introduction
+
+===Overview
+
+    -main-:
+    ; not using net-install because this is not really a net protocol
+    system/schemes: make system/schemes [
+        filter: make system/standard/port [
+            scheme: 'filter
+            handler: make Root-Protocol [
+                -support-functions-
+                
+                init: func [port spec] [
+                    -init-tee-
+                ]
+                open: func [port] [
+                    -open-tee-
+                ]
+                close: func [port] [
+                    -close-tee-
+                ]
+                write: func [port data] [
+                    -write-tee-
+                ]
+                read: func [port data] [
+                    -read-tee-
+                ]
+                update: func [port] [
+                    -update-tee-
+                ]
+            ]
+        ]
+    ]
+
+===Implementation
+
+---Initialize the filter port |port| from |spec|
+
+    -init-tee-:
+    if url? spec [
+        ; assume that user gave us a function name
+        spec: to word! skip spec 7
+        port: make port [function: get spec block-length: none]
+    ]
+    port/url: spec
+    unless all [in port 'function any-function? get in port 'function] [
+        net-error "You must specify a function for filtering"
+    ]
+    unless in port 'block-length [
+        port: make port [block-length: none]
+    ]
+
+---Open the filter port |port|
+
+    -open-tee-:
+    port/locals: context [
+        inbuf: make binary! 1024
+        outbuf: make binary! 1024
+    ]
+
+---Close the filter port |port|
+
+    -close-tee-:
+    port/locals: none
+
+---Write |data| into the input buffer, filter it to the output buffer if we have enough data
+
+    -write-tee-:
+    either integer? port/block-length [
+        insert tail port/locals/inbuf data
+        insert tail port/locals/outbuf filter-block port/locals/inbuf get in port 'function port/block-length
+    ] [
+        insert tail port/locals/outbuf port/function copy data
+    ]
+    length? data
+
+
+---Put the contents of the output buffer into |data| and clear the output buffer
+
+    -read-tee-:
+    insert tail data port/locals/outbuf
+    also length? port/locals/outbuf clear port/locals/outbuf
+
+---Filter remaining data (even if we have less than |block-length|)
+
+    -update-tee-:
+    unless empty? port/locals/inbuf [
+        insert tail port/locals/outbuf port/function port/locals/inbuf
+        clear port/locals/inbuf
+    ]
+
+---Support functions
+
+    -support-functions-:
+    filter-block: func [data f block-length /local len] [
+        len: length? data
+        either len >= block-length [
+            len: len - (len // block-length)
+            f take/part data len
+        ] [
+            #{}
+        ]
+    ]
