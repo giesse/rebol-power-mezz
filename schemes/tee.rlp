@@ -82,15 +82,16 @@
 ---Write |data| into the buffer and to |port/sub-port|
 
     -write-tee-:
-    insert tail port/locals/buffer data
+    insert/part tail port/locals/buffer data port/state/num
     ; it will obviously not work for pass-thru ports
-    write-io port/sub-port data length? data
+    write-io port/sub-port data port/state/num
 
 ---Put the contents of the buffer into |data| and clear the buffer
 
     -read-tee-:
-    insert tail data port/locals/buffer
-    also length? port/locals/buffer clear port/locals/buffer
+    insert/part tail data port/locals/buffer port/state/num
+    remove/part port/locals/buffer port/state/num
+    port/state/num
 
 ---Update |port/sub-port|
 

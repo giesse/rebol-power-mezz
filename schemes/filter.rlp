@@ -78,19 +78,20 @@ Filter port scheme for REBOL
 
     -write-tee-:
     either integer? port/block-length [
-        insert tail port/locals/inbuf data
+        insert/part tail port/locals/inbuf data port/state/num
         insert tail port/locals/outbuf filter-block port/locals/inbuf get in port 'function port/block-length
     ] [
-        insert tail port/locals/outbuf port/function copy data
+        insert tail port/locals/outbuf port/function copy/part data port/state/num
     ]
-    length? data
+    port/state/num
 
 
 ---Put the contents of the output buffer into |data| and clear the output buffer
 
     -read-tee-:
-    insert tail data port/locals/outbuf
-    also length? port/locals/outbuf clear port/locals/outbuf
+    insert/part tail data port/locals/outbuf port/state/num
+    remove/part port/locals/outbuf port/state/num
+    port/state/num
 
 ---Filter remaining data (even if we have less than |block-length|)
 
