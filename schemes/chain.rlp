@@ -1,0 +1,97 @@
+Chain port scheme for REBOL
+
+    Purpose: {
+        Implements chain://, a port scheme that allows chaining other (filter) ports together
+        so that they are seen as a single port.
+    }
+    Author: "Gabriele Santilli"
+    File: %chain.r
+    License: "(C) 2008 Qtask, Inc. All rights reserved."
+    Version: 1.0.0
+
+===Introduction
+
+===Overview
+
+    -main-:
+    ; not using net-install because this is not really a net protocol
+    system/schemes: make system/schemes [
+        chain: make system/standard/port [
+            scheme: 'chain
+            handler: make Root-Protocol [
+                -support-functions-
+                
+                init: func [port spec] [
+                    -init-chain-
+                ]
+                open: func [port] [
+                    -open-chain-
+                ]
+                close: func [port] [
+                    -close-chain-
+                ]
+                write: func [port data] [
+                    -write-chain-
+                ]
+                read: func [port data] [
+                    -read-chain-
+                ]
+                update: func [port] [
+                    -update-chain-
+                ]
+            ]
+        ]
+    ]
+
+===Implementation
+
+---Initialize the chain port |port| from |spec|
+
+    -init-chain-:
+    if url? spec [
+        net-error "Cannot make a chain port from url!"
+    ]
+    port/url: spec
+    unless all [block? port/sub-port 2 < length? port/sub-port] [
+        net-error "You must specify a list of ports to stream the data through"
+    ]
+
+---Open the chain port |port| (do nothing)
+
+    -open-chain-:
+    port
+
+---Close the chain port |port| (do nothing)
+
+    -close-chain-:
+    port
+
+---Stream |data| through the list of ports
+
+    -write-chain-:
+    write-io port/sub-port/1 data port/state/num
+    propagate-data port/sub-port
+    port/state/num
+
+
+---Read from the last port in the list
+
+    -read-chain-:
+    read-io last port/sub-port data port/state-num
+
+---Update all the ports in the list
+
+    -update-chain-:
+    system/words/update port/sub-port/1
+    propagate-data/all port/sub-port
+
+---Support functions
+
+    -support-functions-:
+    propagate-data: func [ports /all] [
+        while [not tail? next ports] [
+            insert ports/2 copy ports/1
+            if all [system/words/update ports/2]
+            ports: next ports
+        ]
+    ]

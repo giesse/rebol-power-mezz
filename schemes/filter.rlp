@@ -22,22 +22,22 @@ Filter port scheme for REBOL
                 -support-functions-
                 
                 init: func [port spec] [
-                    -init-tee-
+                    -init-filter-
                 ]
                 open: func [port] [
-                    -open-tee-
+                    -open-filter-
                 ]
                 close: func [port] [
-                    -close-tee-
+                    -close-filter-
                 ]
                 write: func [port data] [
-                    -write-tee-
+                    -write-filter-
                 ]
                 read: func [port data] [
-                    -read-tee-
+                    -read-filter-
                 ]
                 update: func [port] [
-                    -update-tee-
+                    -update-filter-
                 ]
             ]
         ]
@@ -47,7 +47,7 @@ Filter port scheme for REBOL
 
 ---Initialize the filter port |port| from |spec|
 
-    -init-tee-:
+    -init-filter-:
     if url? spec [
         ; assume that user gave us a function name
         spec: to word! skip spec 7
@@ -63,7 +63,7 @@ Filter port scheme for REBOL
 
 ---Open the filter port |port|
 
-    -open-tee-:
+    -open-filter-:
     port/locals: context [
         inbuf: make binary! 1024
         outbuf: make binary! 1024
@@ -71,12 +71,12 @@ Filter port scheme for REBOL
 
 ---Close the filter port |port|
 
-    -close-tee-:
+    -close-filter-:
     port/locals: none
 
 ---Write |data| into the input buffer, filter it to the output buffer if we have enough data
 
-    -write-tee-:
+    -write-filter-:
     either integer? port/block-length [
         insert/part tail port/locals/inbuf data port/state/num
         insert tail port/locals/outbuf filter-block port/locals/inbuf get in port 'function port/block-length
@@ -88,14 +88,14 @@ Filter port scheme for REBOL
 
 ---Put the contents of the output buffer into |data| and clear the output buffer
 
-    -read-tee-:
+    -read-filter-:
     insert/part tail data port/locals/outbuf port/state/num
     remove/part port/locals/outbuf port/state/num
     port/state/num
 
 ---Filter remaining data (even if we have less than |block-length|)
 
-    -update-tee-:
+    -update-filter-:
     unless empty? port/locals/inbuf [
         insert tail port/locals/outbuf port/function port/locals/inbuf
         clear port/locals/inbuf
