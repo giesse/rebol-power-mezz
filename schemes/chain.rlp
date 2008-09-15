@@ -14,34 +14,28 @@ Chain port scheme for REBOL
 ===Overview
 
     -main-:
-    ; not using net-install because this is not really a net protocol
-    system/schemes: make system/schemes [
-        chain: make system/standard/port [
-            scheme: 'chain
-            handler: make Root-Protocol [
-                -support-functions-
-                
-                init: func [port spec] [
-                    -init-chain-
-                ]
-                open: func [port] [
-                    -open-chain-
-                ]
-                close: func [port] [
-                    -close-chain-
-                ]
-                write: func [port data] [
-                    -write-chain-
-                ]
-                read: func [port data] [
-                    -read-chain-
-                ]
-                update: func [port] [
-                    -update-chain-
-                ]
-            ]
+    net-utils/net-install 'chain make Root-Protocol [
+        -support-functions-
+        
+        init: func [port spec] [
+            -init-chain-
         ]
-    ]
+        open: func [port] [
+            -open-chain-
+        ]
+        close: func [port] [
+            -close-chain-
+        ]
+        write: func [port data] [
+            -write-chain-
+        ]
+        read: func [port data] [
+            -read-chain-
+        ]
+        update: func [port] [
+            -update-chain-
+        ]
+    ] 80
 
 ===Implementation
 
