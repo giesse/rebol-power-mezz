@@ -13,6 +13,8 @@ The PIPE function
 
 ===Overview
 
+Warning: /skip may not work.
+
     -main-:
     pipe: func [
         "Create a pipe between two ports and stream all data from source to dest" [catch]

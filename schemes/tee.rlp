@@ -14,32 +14,26 @@
 ===Overview
 
     -main-:
-    ; not using net-install because this is not really a net protocol
-    system/schemes: make system/schemes [
-        tee: make system/standard/port [
-            scheme: 'tee
-            handler: make Root-Protocol [
-                init: func [port spec] [
-                    -init-tee-
-                ]
-                open: func [port] [
-                    -open-tee-
-                ]
-                close: func [port] [
-                    -close-tee-
-                ]
-                write: func [port data] [
-                    -write-tee-
-                ]
-                read: func [port data] [
-                    -read-tee-
-                ]
-                update: func [port] [
-                    -update-tee-
-                ]
-            ]
+    net-utils/net-install 'tee make Root-Protocol [
+        init: func [port spec] [
+            -init-tee-
         ]
-    ]
+        open: func [port] [
+            -open-tee-
+        ]
+        close: func [port] [
+            -close-tee-
+        ]
+        write: func [port data] [
+            -write-tee-
+        ]
+        read: func [port data /local -read-locals-] [
+            -read-tee-
+        ]
+        update: func [port] [
+            -update-tee-
+        ]
+    ] 80
 
 ===Implementation
 
@@ -68,12 +62,13 @@
         port/locals/close?: yes
         port/sub-port: system/words/open/binary/direct/write/new port/sub-port
     ]
+    port/state/flags: port/state/flags or system/standard/port-flags/direct
 
 ---Close the tee port |port|
 
     -close-tee-:
     if port/locals/close? [
-        close port/sub-port
+        system/words/close port/sub-port
         ; allow reopening it easily
         port/sub-port: join port/sub-port/path port/sub-port/target
     ]
@@ -89,11 +84,17 @@
 ---Put the contents of the buffer into |data| and clear the buffer
 
     -read-tee-:
-    insert/part tail data port/locals/buffer port/state/num
-    remove/part port/locals/buffer port/state/num
-    port/state/num
+    len: min length? port/locals/buffer port/state/num
+    insert/part tail data port/locals/buffer len
+    remove/part port/locals/buffer len
+    len
+
++++|read|'s locals
+
+    -read-locals-:
+    len
 
 ---Update |port/sub-port|
 
     -update-tee-:
-    attempt [update port/sub-port]
+    attempt [system/words/update port/sub-port]
