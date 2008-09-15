@@ -36,7 +36,7 @@ The PIPE function
     unless chunk-size > 0 [throw make error! compose [script invalid-arg (join chunk-size " (chunk-size must be greater than zero)")]]
     if length [source: system/words/skip source length]
     condition: either size [
-        [size >= 0]
+        [size > 0]
     ] [
         [data: copy/part source chunk-size]
     ]
