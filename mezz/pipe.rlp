@@ -1,0 +1,72 @@
+The PIPE function
+
+    Purpose: {
+        Defines the PIPE function that works as a pipe between two ports, streaming data
+        from the first to the second.
+    }
+    Author: "Gabriele Santilli"
+    File: %pipe.r
+    License: "(C) 2008 Qtask, Inc. All rights reserved."
+    Version: 1.0.0
+
+===Introduction
+
+===Overview
+
+    -main-:
+    pipe: func [
+        "Create a pipe between two ports and stream all data from source to dest" [catch]
+        source [port!]
+        dest [port!]
+        /thru filter [port!]
+        /part size [integer!]
+        /skip length [integer!]
+        /with chunk-size [integer!]
+
+        /local -pipe-locals-
+    ] [
+        -pipe-
+    ]
+
+===Stream all data from |source| to |dest|, filtering thru |filter|, etc.
+
+    -pipe-:
+    chunk-size: any [chunk-size 256 * 1024] ; default 256k
+    unless any [not size size > 0] [throw make error! compose [script invalid-arg (join size " (size must be greater than zero)")]]
+    unless chunk-size > 0 [throw make error! compose [script invalid-arg (join chunk-size " (chunk-size must be greater than zero)")]]
+    if length [source: system/words/skip source length]
+    condition: either size [
+        [size >= 0]
+    ] [
+        [data: copy/part source chunk-size]
+    ]
+    body: compose [
+        (either size [
+            [
+                data: copy/part source min size chunk-size
+                either data [size: size - length? data] [break]
+            ]
+        ] [
+            [ ]
+        ])
+        (either filter [
+            [
+                insert filter data
+                if data: copy filter [insert dest data]
+            ]
+        ] [
+            [
+                insert dest data
+            ]
+        ])
+    ]
+    while condition body
+    if filter [
+        update filter
+        if data: copy filter [insert dest data]
+    ]
+
+---|pipe|'s locals
+
+    -pipe-locals-:
+    condition body data
