@@ -14,74 +14,70 @@ Filter port scheme for REBOL
 ===Overview
 
     -main-:
-    ; not using net-install because this is not really a net protocol
-    system/schemes: make system/schemes [
-        filter: make system/standard/port [
-            scheme: 'filter
-            handler: make Root-Protocol [
-                -support-functions-
-                
-                init: func [port spec] [
-                    -init-filter-
-                ]
-                open: func [port] [
-                    -open-filter-
-                ]
-                close: func [port] [
-                    -close-filter-
-                ]
-                write: func [port data] [
-                    -write-filter-
-                ]
-                read: func [port data] [
-                    -read-filter-
-                ]
-                update: func [port] [
-                    -update-filter-
-                ]
-            ]
+    net-utils/net-install 'filter make Root-Protocol [
+        -support-functions-
+        
+        init: func [port spec] [
+            -init-filter-
         ]
-    ]
+        open: func [port] [
+            -open-filter-
+        ]
+        close: func [port] [
+            -close-filter-
+        ]
+        write: func [port data] [
+            -write-filter-
+        ]
+        read: func [port data] [
+            -read-filter-
+        ]
+        update: func [port] [
+            -update-filter-
+        ]
+    ] 80
 
 ===Implementation
 
 ---Initialize the filter port |port| from |spec|
 
     -init-filter-:
-    if url? spec [
+    port/locals: context [
+        function: block-length: inbuf: outbuf: none
+    ]
+    either url? spec [
         ; assume that user gave us a function name
         spec: to word! skip spec 7
-        port: make port [function: get spec block-length: none]
+        port/locals/function: get spec
+    ] [
+        port/locals: make port/locals spec
     ]
     port/url: spec
-    unless all [in port 'function any-function? get in port 'function] [
+    unless any-function? get in port/locals 'function [
         net-error "You must specify a function for filtering"
-    ]
-    unless in port 'block-length [
-        port: make port [block-length: none]
     ]
 
 ---Open the filter port |port|
 
     -open-filter-:
-    port/locals: context [
-        inbuf: make binary! 1024
-        outbuf: make binary! 1024
-    ]
+    port/locals/inbuf: make binary! 1024
+    port/locals/outbuf: make binary! 1024
+    port/state/flags: port/state/flags or system/standard/port-flags/direct
 
 ---Close the filter port |port|
 
     -close-filter-:
-    port/locals: none
+    port/locals/inbuf: none
+    port/locals/outbuf: none
 
 ---Write |data| into the input buffer, filter it to the output buffer if we have enough data
 
     -write-filter-:
-    either integer? port/block-length [
+    either integer? port/locals/block-length [
         insert/part tail port/locals/inbuf data port/state/num
-        insert tail port/locals/outbuf filter-block port/locals/inbuf get in port 'function port/block-length
+        filter-block port/locals/outbuf port/locals/inbuf get in port/locals 'function port/locals/block-length
     ] [
-        insert tail port/locals/outbuf port/function copy/part data port/state/num
+        insert tail port/locals/outbuf port/locals/function copy/part data port/state/num
     ]
     port/state/num
 
@@ -89,27 +85,37 @@ Filter port scheme for REBOL
 ---Put the contents of the output buffer into |data| and clear the output buffer
 
     -read-filter-:
-    insert/part tail data port/locals/outbuf port/state/num
-    remove/part port/locals/outbuf port/state/num
-    port/state/num
+    read-data data port/locals/outbuf port/state/num
 
 ---Filter remaining data (even if we have less than |block-length|)
 
     -update-filter-:
     unless empty? port/locals/inbuf [
-        insert tail port/locals/outbuf port/function port/locals/inbuf
+        insert tail port/locals/outbuf port/locals/function port/locals/inbuf
         clear port/locals/inbuf
     ]
 
 ---Support functions
 
     -support-functions-:
-    filter-block: func [data f block-length /local len] [
-        len: length? data
-        either len >= block-length [
-            len: len - (len // block-length)
-            f take/part data len
+    filter-block: func [output data f block-length /local len] [
+        either block-length > 0 [
+            len: length? data
+            if len >= block-length [
+                len: len - (len // block-length)
+                insert tail output f take/part data len
+            ]
         ] [
-            #{}
+            ; < 0 means that we want blocks of EXACTLY block-length bytes
+            block-length: negate block-length
+            while [block-length <= length? data] [
+                insert tail output f take/part data block-length
+            ]
         ]
+    ]
+    read-data: func [output input len] [
+        len: min len length? input
+        insert/part tail output input len
+        remove/part input len
+        len
     ]
