@@ -46,14 +46,14 @@ Chain port scheme for REBOL
         net-error "Cannot make a chain port from url!"
     ]
     port/url: spec
-    unless all [block? port/sub-port 2 < length? port/sub-port] [
+    unless all [block? port/sub-port 1 < length? port/sub-port] [
         net-error "You must specify a list of ports to stream the data through"
     ]
 
----Open the chain port |port| (do nothing)
+---Open the chain port |port|
 
     -open-chain-:
-    port
+    port/state/flags: port/state/flags or system/standard/port-flags/direct
 
 ---Close the chain port |port| (do nothing)
 
@@ -71,7 +71,7 @@ Chain port scheme for REBOL
 ---Read from the last port in the list
 
     -read-chain-:
-    read-io last port/sub-port data port/state-num
+    read-io last port/sub-port data port/state/num
 
 ---Update all the ports in the list
 
