@@ -53,8 +53,9 @@ Warning: /skip may not work.
         ])
         (either filter [
             [
+                ; done this way to work around crypt:// problem
+                if filtered: copy filter [insert dest filtered]
                 insert filter data
-                if data: copy filter [insert dest data]
             ]
         ] [
             [
@@ -67,8 +68,9 @@ Warning: /skip may not work.
         update filter
         if data: copy filter [insert dest data]
     ]
+    attempt [update dest]
 
 ---|pipe|'s locals
 
     -pipe-locals-:
-    condition body data
+    condition body data filtered

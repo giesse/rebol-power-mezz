@@ -63,8 +63,7 @@ Chain port scheme for REBOL
 ---Stream |data| through the list of ports
 
     -write-chain-:
-    write-io port/sub-port/1 data port/state/num
-    propagate-data port/sub-port
+    propagate-data port/sub-port copy/part data port/state/num
     port/state/num
 
 
@@ -76,16 +75,22 @@ Chain port scheme for REBOL
 ---Update all the ports in the list
 
     -update-chain-:
-    system/words/update port/sub-port/1
-    propagate-data/all port/sub-port
+    update-all port/sub-port
 
 ---Support functions
 
     -support-functions-:
-    propagate-data: func [ports /all] [
+    propagate-data: func [ports data /local filtered] [
         while [not tail? next ports] [
-            insert ports/2 copy ports/1
-            if all [system/words/update ports/2]
+            if filtered: copy ports/1 [insert ports/2 filtered]
+            insert ports/1 data
+            ports: next ports
+        ]
+    ]
+    update-all: func [ports /local data] [
+        while [not tail? next ports] [
+            system/words/update ports/1
+            if data: copy ports/1 [insert ports/2 data]
             ports: next ports
         ]
     ]
