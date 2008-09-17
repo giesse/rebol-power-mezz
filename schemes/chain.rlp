@@ -82,15 +82,21 @@ Chain port scheme for REBOL
     -support-functions-:
     propagate-data: func [ports data /local filtered] [
         while [not tail? next ports] [
-            if filtered: copy ports/1 [insert ports/2 filtered]
-            insert ports/1 data
+            if filtered: copy ports/1 [
+                insert ports/2 filtered
+            ]
             ports: next ports
         ]
+        ports: head ports
+        insert ports/1 data
     ]
     update-all: func [ports /local data] [
         while [not tail? next ports] [
             system/words/update ports/1
-            if data: copy ports/1 [insert ports/2 data]
+            if data: copy ports/1 [
+                insert ports/2 data
+            ]
             ports: next ports
         ]
+        system/words/update ports/1
     ]

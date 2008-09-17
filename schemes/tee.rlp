@@ -80,6 +80,7 @@
     insert/part tail port/locals/buffer data port/state/num
     ; it will obviously not work for pass-thru ports
     write-io port/sub-port data port/state/num
+    port/state/num
 
 ---Put the contents of the buffer into |data| and clear the buffer
 
