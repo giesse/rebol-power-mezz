@@ -11,7 +11,21 @@ Filter port scheme for REBOL
 
 ===Introduction
 
+This port scheme allows creating a "filter" port that applies a function to a data stream.
+The function should accept |binary!| or |string!| as input and return |binary!| or |string!|
+as output. (We recommend always using this port in |/binary| mode.) You can control the size
+of the data chunks that your function will be called on.
+
 ===Overview
+
+We define the |filter://| scheme in the usual way; although this is not really a network protocol,
+REBOL does not like it if we don't use |net-install|. The specified port id does not matter (any
+random number will do).
+
+Since we're writing a non pass-thru port, we only have to define |read| and |write|, and REBOL
+will map |insert|, |copy|, |pick| etc. to them internally; REBOL will also do any line termination
+conversion, however we recommend only using |/binary| ports for filtering. This scheme has not
+been tested without |/binary|.
 
     -main-:
     net-utils/net-install 'filter make Root-Protocol [
@@ -37,27 +51,70 @@ Filter port scheme for REBOL
         ]
     ] 80
 
+===Usage examples
+
+The following example will create a port that converts its input to base64:
+
+    -examples-:
+    enbase-port: open/binary [scheme: 'filter function: :enbase block-length: 3]
+
+We specified using the |enbase| function on the data chunks, and |block-length: 3| means that the
+function will only be called on chunks whose size is a multiple of 3 bytes. (The last chunk in the stream
+is an exception in that it may be not a multiple of 3, since no automatic padding is done.)
+
+It is also possible to be more strict with the block length:
+
+    -examples-:
+    enbase-port: open/binary [scheme: 'filter function: :enbase block-length: -54]
+
+In this case |enbase| will be called with chunks that are *exactly* 54 bytes long. (Again, the last chunk
+is an exception and can be any length, lesser or equal to 54.) We recommend not using small numbers here (like
+in this example), because if you have a large stream it will be slow to call your function many times
+on small chunks (instead of a few times on large chunks).
+
+If you don't care about the size of the chunks, you don't need to specify |block-length|:
+
+    -examples-:
+    my-port: open/binary [scheme: 'filter function: :my-function]
+
+In this case your function is going to be called as soon as new data is inserted to the port. The above can
+also be written as:
+
+    -examples-:
+    my-port: open/binary filter://my-function
+
+provided that |my-function| is defined in the global context.
+
 ===Implementation
 
+The implementation of the port scheme is relatively trivial.
+
 ---Initialize the filter port |port| from |spec|
+
+The |init| function is used to initialize the port (called when you |make| it). The user will
+need to specify a function and, optionally, a block length. See |-examples-| for more details.
 
     -init-filter-:
     port/locals: context [
         function: block-length: inbuf: outbuf: none
     ]
+    port/url: spec
     either url? spec [
         ; assume that user gave us a function name
-        spec: to word! skip spec 7
+        parse spec ["filter:" 0 2 #"/" spec:]
+        spec: to word! spec
         port/locals/function: get spec
     ] [
         port/locals: make port/locals spec
     ]
-    port/url: spec
     unless any-function? get in port/locals 'function [
         net-error "You must specify a function for filtering"
     ]
 
 ---Open the filter port |port|
+
+On |open|, we create the input and output buffers, and force |/direct| mode (since we are a "filter"
+kind of port).
 
     -open-filter-:
     port/locals/inbuf: make binary! 1024
@@ -66,11 +123,17 @@ Filter port scheme for REBOL
 
 ---Close the filter port |port|
 
+When closing we just set the buffers to |none| in order to allow memory to be reclaimed.
+
     -close-filter-:
     port/locals/inbuf: none
     port/locals/outbuf: none
 
 ---Write |data| into the input buffer, filter it to the output buffer if we have enough data
+
+|write| is where most of the work happens. If a |block-length| has been specified, we call the |filter-block|
+function (see |-support-functions-|). Otherwise, we just call the provided function with the data that has
+been written and store the result in the output buffer. We return the number of bytes actually written.
 
     -write-filter-:
     either integer? port/locals/block-length [
@@ -84,10 +147,15 @@ Filter port scheme for REBOL
 
 ---Put the contents of the output buffer into |data| and clear the output buffer
 
+On |read| we just call |read-data|; see |-support-functions-|.
+
     -read-filter-:
     read-data data port/locals/outbuf port/state/num
 
 ---Filter remaining data (even if we have less than |block-length|)
+
+On |update|, we filter any data that we still have in the input buffer (regardless of its length and the block length),
+and store the results in the output buffer.
 
     -update-filter-:
     unless empty? port/locals/inbuf [
@@ -96,6 +164,14 @@ Filter port scheme for REBOL
     ]
 
 ---Support functions
+
+The |filter-block| function is used to call the provided function |f| on |data| taking
+into account |block-length|. If |block-length| is positive, as long as we have more than
+|block-length| bytes in the input buffer (|data|), we call |f| with a multiple of |block-length|
+bytes taken from |data|, and store the result in the |output| buffer.
+
+If |block-length| is negative, we split |data| into pieces of |- block-length| bytes and call
+|f| on each piece, storing the result in |output|.
 
     -support-functions-:
     filter-block: func [output data f block-length /local len] [
@@ -113,6 +189,11 @@ Filter port scheme for REBOL
             ]
         ]
     ]
+
+|read-data| just copies data from |input| to |output|, never copying more than |len| bytes.
+Copied data is removed from |input|. The number of bytes actually copied is returned.
+
+    -support-functions-:
     read-data: func [output input len] [
         len: min len length? input
         insert/part tail output input len
