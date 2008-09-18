@@ -11,7 +11,24 @@ Chain port scheme for REBOL
 
 ===Introduction
 
+This port scheme allows creating a "filter" port that is the combination of other
+"filter" ports. Data inserted to the chain port will be passed through all the ports
+in the chain in the order they are specified. This way you can do things like combine
+encryption with enbasing, or debasing and decryption, and have it work as a single port.
+
+This port scheme is the ideal complement to the |pipe| function, because with it you
+can filter your data using a combination of different ports.
+
 ===Overview
+
+We define the |chain://| scheme in the usual way; although this is not really a network protocol,
+REBOL does not like it if we don't use |net-install|. The specified port id does not matter (any
+random number will do).
+
+Since we're writing a non pass-thru port, we only have to define |read| and |write|, and REBOL
+will map |insert|, |copy|, |pick| etc. to them internally; REBOL will also do any line termination
+conversion, however we recommend only using |/binary| ports for filtering. This scheme has not
+been tested without |/binary|.
 
     -main-:
     net-utils/net-install 'chain make Root-Protocol [
@@ -37,9 +54,33 @@ Chain port scheme for REBOL
         ]
     ] 80
 
+===Usage examples
+
+The following example will create a port that is the combination of |port1|, |port2| and |port3|. Data
+is filtered through |port1|, then |port2| and finally through |port3|.
+
+    -examples-:
+    chain: open/binary [scheme: 'chain sub-port: [port1 port2 port3]]
+
+For example, if |port1| did compression, |port2| encryption and |port3| enbasing, your data stream
+would be compressed, then encrypted and finally enbased. This is equivalend to do the three operations
+in sequence - you read the file, compress it, encrypt it, then enbase it - except that this way you do
+it incrementally without having to read the file into memory. If you're using the |pipe| function,
+you would just use:
+
+    -examples-:
+    pipe/thru %source-file %dest-file chain
+
+to get |%source-file| processed and stored into |%dest-file|.
+
 ===Implementation
 
+The implementation of the port scheme is relatively trivial.
+
 ---Initialize the chain port |port| from |spec|
+
+The |init| function is used to initialize the port (called when you |make| it). The user will
+need to pass a block of ports in the |sub-port| field. (See |-examples-|.)
 
     -init-chain-:
     if url? spec [
@@ -52,6 +93,9 @@ Chain port scheme for REBOL
 
 ---Open the chain port |port|
 
+The |open| function does not have much to do; we just force the |/direct| mode, since
+we are a "filter" kind of port.
+
     -open-chain-:
     port/state/flags: port/state/flags or system/standard/port-flags/direct
 
@@ -62,6 +106,9 @@ Chain port scheme for REBOL
 
 ---Stream |data| through the list of ports
 
+See |-support-functions-| for |propagate-data|. |port/state/num| holds the number of bytes to write
+from the |data| buffer. We return the number of bytes actually written.
+
     -write-chain-:
     propagate-data port/sub-port copy/part data port/state/num
     port/state/num
@@ -69,15 +116,28 @@ Chain port scheme for REBOL
 
 ---Read from the last port in the list
 
+Since we do all the filtering on write, when reading we just call |read-io| on the last port in
+the chain.
+
     -read-chain-:
     read-io last port/sub-port data port/state/num
 
 ---Update all the ports in the list
 
+See |-support-functions-| for |update-all|.
+
     -update-chain-:
     update-all port/sub-port
 
 ---Support functions
+
+The |propagate-data| is used to pass the data being written through all the ports in the list.
+We have to do this in a "strange" way in order to avoid calling |copy| on the ports before
+|update| when we are at the last chunk of data. So, we first copy any data that's available from
+the first port and insert it to the second, then we copy from the second port and insert to the
+third and so on; at the end, we insert the data being written into the first port. This way |data|
+has only been inserted into the first port and there is still the chance for the user to issue an
+update to signal that it is the last chunk of data.
 
     -support-functions-:
     propagate-data: func [ports data /local filtered] [
@@ -90,6 +150,13 @@ Chain port scheme for REBOL
         ports: head ports
         insert ports/1 data
     ]
+
+The |update-all| function updates all the ports in the list. We basically call |update| on the
+first port, then |copy| from it and if new data is available we insert that into the second port;
+then we call |update| on the second port and insert into the third, and so on. At the end we call
+|update| on the last port.
+
+    -support-functions-:
     update-all: func [ports /local data] [
         while [not tail? next ports] [
             system/words/update ports/1
