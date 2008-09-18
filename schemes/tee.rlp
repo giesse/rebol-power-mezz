@@ -11,7 +11,22 @@
 
 ===Introduction
 
+This port scheme allows creating a "filter" port that works like a "tee"; that is, it lets data
+pass through it, but it also copies it into another port. This basically allows creating a "bifurcation",
+often called a "tee" (because of the shape of the letter T). This is very useful in combination with
+the |chain://| scheme or the |pipe| function, as it allows creating complex filtering graphs for your
+data stream.
+
 ===Overview
+
+We define the |tee://| scheme in the usual way; although this is not really a network protocol,
+REBOL does not like it if we don't use |net-install|. The specified port id does not matter (any
+random number will do).
+
+Since we're writing a non pass-thru port, we only have to define |read| and |write|, and REBOL
+will map |insert|, |copy|, |pick| etc. to them internally; REBOL will also do any line termination
+conversion, however we recommend only using |/binary| ports for filtering. This scheme has not
+been tested without |/binary|.
 
     -main-:
     net-utils/net-install 'tee make Root-Protocol [
@@ -24,7 +39,7 @@
         close: func [port] [
             -close-tee-
         ]
-        write: func [port data] [
+        write: func [port data /local -write-locals-] [
             -write-tee-
         ]
         read: func [port data /local -read-locals-] [
@@ -35,23 +50,47 @@
         ]
     ] 80
 
+===Usage examples
+
+The following example will create a port that lets all data pass through unaltered, but
+also copies and inserts it into |my-port|.
+
+    -examples-:
+    tee: open/binary [scheme: 'tee sub-port: my-port]
+
+If you just want to copy to a file, you can specify it directly or use a |url!| like in the example below and the
+file will be opened for writing and closed automatically for you.
+
+    -examples-:
+    tee: open/binary [scheme: 'tee sub-port: %/path/to/file]
+    tee: open/binary tee:/path/to/file
+
 ===Implementation
+
+The implementation of the port scheme is relatively trivial.
 
 ---Initialize the tee port |port| from |spec|
 
+The |init| function is used to initialize the port (called when you |make| it). The user will
+neet to pass a port to write to in the |sub-port| field, or specify a file. (See |-examples-|.)
+
     -init-tee-:
+    port/url: spec
     if url? spec [
         ; assume that user wants to write to a file
         spec: to file! skip spec 4
         if find/match spec %// [remove spec]
         port/sub-port: spec
     ]
-    port/url: spec
     if none? port/sub-port [
         net-error "You must specify a sub port to write to"
     ]
 
 ---Open the tee port |port|
+
+The |open| function creates a buffer to store data into and, if a |file!| was provided, opens
+it in |/binary/direct/write/new| mode. We also force the |/direct| mode, since we are a "filter"
+kind of port.
 
     -open-tee-:
     port/locals: context [
@@ -66,6 +105,9 @@
 
 ---Close the tee port |port|
 
+On |close|, we need to close the file port if we had opened it; we also set |port/locals| to
+|none| to allow REBOL to reclaim memory.
+
     -close-tee-:
     if port/locals/close? [
         system/words/close port/sub-port
@@ -76,13 +118,22 @@
 
 ---Write |data| into the buffer and to |port/sub-port|
 
+On |write|, we write the data into the sub port, and also store it into our buffer.
+
     -write-tee-:
-    insert/part tail port/locals/buffer data port/state/num
-    ; it will obviously not work for pass-thru ports
-    write-io port/sub-port data port/state/num
-    port/state/num
+    len: write-io port/sub-port data port/state/num
+    insert/part tail port/locals/buffer data len
+    len
+
++++|write|'s locals
+
+    -write-locals-:
+    len
 
 ---Put the contents of the buffer into |data| and clear the buffer
+
+On |read|, we copy data from our buffer into |data|. We remove the copied data from
+|port/locals/buffer| and return the actual number of bytes copied.
 
     -read-tee-:
     len: min length? port/locals/buffer port/state/num
@@ -96,6 +147,8 @@
     len
 
 ---Update |port/sub-port|
+
+On |update|, we just call |update| on the sub port (we're using |attempt| because file ports don't like |update|).
 
     -update-tee-:
     attempt [system/words/update port/sub-port]
