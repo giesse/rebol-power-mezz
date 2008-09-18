@@ -120,8 +120,13 @@ On |close|, we need to close the file port if we had opened it; we also set |por
 
 On |write|, we write the data into the sub port, and also store it into our buffer.
 
+Note: we have a workaround here for a bug with |checksum://| ports. We'll remove this
+code once the bug has been fixed.
+
     -write-tee-:
-    len: write-io port/sub-port data port/state/num
+    set/any 'len write-io port/sub-port data port/state/num
+    ; checksum:// will return unset, so we always assume all data has been written
+    unless value? 'len [len: port/state/num]
     insert/part tail port/locals/buffer data len
     len
 
