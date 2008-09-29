@@ -1,0 +1,622 @@
+[X][HT]ML Parser
+
+    Purpose: {
+        Parses XML, XHTML and HTML.
+    }
+    Author: "Gabriele Santilli"
+    EMail: giesse@rebol.it
+    File: %ml-parser.r
+    Version: 1.0.0
+
+===Introduction
+
+Parsing XML, XHTML and HTML (as well as other variants) has increasingly become one
+of the most common tasks in programming. We present here a simple but robust *ML parser;
+since this is fairly low level and rather permissive with the input, it can be used
+in a very wide range of situations.
+
+===Overview
+
+The |parse-ml| function is rather low-level and will incrementally parse a *ML string and call
+the provided callback function with the data as it gets parsed. |callback| **must** take two arguments,
+a "command" and its data. (This is actually designed to fit well with the FSM dialect; it may
+appear a bit awkward because of that.) The command can be a |tag!|, or the blocks |[comment:]|,
+|[text:]| or |[whitespace:]|. In the |tag!| case, it can be in the form |<name>|, |<name/>| or
+|</name>|, respectively indicating a start tag, an empty tag, or an end tag. The "data" is the
+text string in the block case, while it is a block of attributes (as name/value pairs - names
+can be |word!| or |path!| values, depending on the presence of a namespace specification) in the
+tag case. (It is just |none| for end tags.)
+
+See |-load-markup-|
+for an example usage of |parse-ml|.
+
+|load-markup| is basically a replacement for |load/markup|. It will return a block with all
+the tags parsed and converted to |block!| or |tag!|. For an example, see |-examples-|.
+
+\note Note:
+
+The source |html| string is assumed to use the UTF-8 encoding. If your text uses any
+other encoding, you **must** convert it to UTF-8 before calling this function.
+
+/note
+
+    -main-:
+    context [
+        -parsing-rules-
+
+        set 'parse-ml func [
+            "Parse *ML text"
+            html [string!]
+            callback [any-function!]
+        ] [
+            -parse-html-
+        ]
+    ]
+
+    load-markup: func [
+        "LOAD/MARKUP replacement that parses tags and more"
+        html [string!]
+        /all "Include all whitespace"
+        /trim "TRIM/LINES all text"
+
+        /local -lm-locals-
+    ] [
+        -load-markup-
+    ]
+
+===Parse the |html| text
+
+We use |parse| on
+the source text, parsing tags, text and character entities,
+and send the parsed elements to the |callback| function given as argument.
+
+    -parse-html-:
+    cb: :callback
+    parse/all html html-rule
+
+===Use |parse-ml| to convert |html| to a block
+
+    -load-markup-:
+    result: copy [ ]
+    parse-ml html func [cmd data] [
+        either block? cmd [
+            switch first cmd [
+                comment: [
+                    ; just ignore comments
+                ]
+                text: [
+                    either string? last result [
+                        append last result data
+                    ] [
+                        append result data
+                    ]
+                ]
+                whitespace: [
+                    if all [
+                        either string? last result [
+                            append last result data
+                        ] [
+                            append result data
+                        ]
+                    ]
+                ]
+            ]
+        ] [
+            if system/words/all [trim string? last result] [system/words/trim/lines last result]
+            either block? data [
+                if trim [
+                    foreach [name value] data [
+                        if string? value [system/words/trim/lines value]
+                    ]
+                ]
+                insert data cmd
+                append/only result data
+            ] [
+                append result cmd
+            ]
+        ]
+    ]
+    if system/words/all [trim string? last result] [system/words/trim/lines last result]
+    result
+
+---|load-markup|'s locals
+
+    -lm-locals-:
+    result
+
+===Parsing rules
+
+We're using a simple parser. An HTML document is a sequence of comments, document type
+declarations, CDATA sections, XML processing instructions, *script* or *style* elements, 
+start tags, empty tags, end tags, and text. (The *script* and the *style* elements are
+parsed separately because their contents is actually CDATA.)
+
+    -parsing-rules-:
+    html-rule: [
+        some [
+            comment | declaration | cdata | proc |
+            script-style | end-tag | start-empty-tag | text
+        ]
+    ]
+
+Our rule for comments is a bit strict and may miss some comments that some browsers would
+still consider as such. We will improve it if we find problems in the future; it should be
+ok for XHTML documents.
+
+Doctype declarations are parsed with a simplified rule that could possibly break in some documents;
+we don't expect it to break with the usual declarations found in HTML documents though. Doctype
+declarations are simply ignored.
+
+CDATA sections are like normal text sections except that the |"<"| and |"&"| characters
+lose any special meaning; this means that text is passed on verbatim.
+
+    -parsing-rules-:
+    comment: [copy txt ["<!--" thru "-->"] (cb [comment:] txt)]
+    declaration: ["<!doctype" space thru #">"] ; simplified - may break
+    cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb [text:] txt)]
+
+|cb| is set to the callback function given by the user (see |-parse-html-|):
+
+    -parsing-rules-:
+    cb: none
+
+The following definitions are used in the rules for tags:
+
+    -parsing-rules-:
+    letter: charset [#"A" - #"Z" #"a" - #"z"]
+    letter*: union letter charset "_" ; "_:"
+    digit: charset "1234567890"
+    hexdigit: charset "1234567890abcdefABCDEF"
+    letter+: union union letter digit charset {.-_} ; {.-_:}
+    space: charset { ^/^-}
+    value-chars: union letter+ charset "/:@%#?,+&=;" ; very relaxed
+    text-char: complement charset "&< ^/^-"
+    name: [letter* any letter+]
+
+XML processing instructions are simply ignored (this also catches the XML declaration).
+
+    -parsing-rules-:
+    proc: ["<?" name thru "?>"]
+
+Start tags and empty tags are processed with the same rule. Start tags will send the
+|<tagname>| command to the callback function, while empty tags will send |<tagname/>|.
+Attributes parsing is somewhat relaxed, and should work with the commonly used markup. They
+are sent as a block of name/value pairs to the callback function, as the command's data.
+The |decode-entities| function is used to convert entities in the attribute values.
+Note we are also parsing the namespace for attribute names and creating a |path!|
+instead of a |word!| in that case.
+
+End tags are sent to the second stage as |</tagname>|.
+
+    -parsing-rules-:
+    start-empty-tag: [
+        #"<" 
+        copy nm [name opt [#":" name]] any space 
+        (attributes: make block! 16) any attribute 
+        ["/>" (cb head insert insert make tag! 3 + length? nm nm #"/" attributes) | #">" (cb to tag! nm attributes)]
+        |
+        #"<" (stage2 [text:] copy "<")
+    ]
+    attribute: [
+        [
+            copy attnmns name #":" copy attnmtxt name (
+                attnm: make path! reduce [to word! attnmns to word! attnmtxt]
+            )
+            |
+            copy attnmtxt name (attnm: to word! attnmtxt)
+        ] any space [
+            #"=" any space attr-value any space (
+                insert insert/only tail attributes attnm either attval [
+                    decode-entities attval
+                ] [
+                    copy ""
+                ]
+            )
+            |
+            none (insert insert/only tail attributes attnm attnmtxt)
+        ]
+    ]
+    attr-value: [#"^"" copy attval to #"^"" skip | #"'" copy attval to #"'" skip | copy attval any value-chars]
+    end-tag: ["</" copy nm [name opt [#":" name]] any space #">" (cb append copy </> nm none)]
+
+Script and style elements need to be parsed separately, because they're special
+in HTML 3.2 and 4.0/4.1, and the CDATA syntax of XHTML is not well supported by
+current browsers. We are trying to parse three cases here: the style or script text
+is escaped with |"/* <![CDATA[ */"| and |"/* ]]> */"| (XHTML way with comments
+to make it work with current browsers), it is hidden into a comment (not valid in
+XHTML but common practice in HTML), or it is just left unescaped (invalid in XHTML
+but valid in HTML). In the first case we try to remove the extra |"/*"| and |"*/"|
+from the text; in the second case we try to remove the common |"//"| comment before
+the closing |"-->"|; in the third case we just take everything up to |</script>| or
+|</style>|.
+
+    -parsing-rules-:
+    script-style: [
+        #"<" copy nm ["script" | "style"] any space
+        (attributes: make block! 16) any attribute
+        #">" (cb to tag! nm attributes nm: append copy </> nm)
+        [
+            any space "/*" any space "<![CDATA[" any space "*/" any space
+            copy txt to "]]>" 3 skip any space "*/" any space
+            nm (
+                trim/tail txt
+                if "/*" = skip tail txt -2 [
+                    clear skip tail txt -2
+                    trim/tail txt
+                ]
+                cb [text:] txt
+                cb nm none
+            )
+            |
+            any space "<!--" copy txt to "-->" 3 skip any space
+            nm (
+                trim/tail txt
+                if "//" = skip tail txt -2 [
+                    clear skip tail txt -2
+                    trim/tail txt
+                ]
+                cb [text:] txt
+                cb nm none
+            )
+            |
+            copy txt to nm nm (cb [text:] txt cb nm none)
+        ]
+    ]
+
+Text parsing handles character and named entities, as well as normal text. Text is sent
+to the callback as data for the |text:| command. Whitespace is sent separately with the
+|whitespace:| command, since for e.g. whitespace alone does not start a paragraph.
+
+    -parsing-rules-:
+    entity: [
+        #"&" [
+            copy nm name #";" (cb [text:] entity-to-char nm)
+            |
+            "#x" copy txt some hexdigit #";" (cb [text:] hex-to-utf8char txt)
+            |
+            #"#" copy txt some digit #";" (cb [text:] dec-to-utf8char txt)
+            |
+            none (cb [text:] copy "&")
+        ]
+    ]
+    text: [
+        some [
+            entity
+            |
+            copy txt some space (cb [whitespace:] txt)
+            |
+            copy txt some text-char (cb [text:] txt)
+        ]
+    ]
+
+We also need to make the words we are using as variables local to the context:
+
+    -parsing-rules-:
+    nm: none
+    attributes: [ ]
+    attnm: attnmtxt: attnmns: none
+    attval: none
+    txt: none
+
+---Entity conversion functions
+
+Both named entities and character entities need to be converted to UTF8 sequences.
+The three functions |entity-to-char|, |hex-to-utf8char| and |dec-to-utf8char| do the job.
+The latter two use |encode-utf8| to encode a Unicode character in UTF-8.
+
+The |decode-entities| function is used to replace entities with UTF-8 sequences in attribute
+values.
+
+    -parsing-rules-:
+    decode-entities: func [attribute /local txt mk1 mk2] [
+        parse/all attribute [
+            any [
+                to #"&" mk1: skip [
+                    copy txt name #";" mk2: :mk1 (change/part mk1 entity-to-char txt mk2)
+                    |
+                    "#x" copy txt some hexdigit #";" mk2: :mk1 (change/part mk1 hex-to-utf8char txt mk2)
+                    |
+                    #"#" copy txt some digit #";" mk2: :mk1 (change/part mk1 dec-to-utf8char txt mk2)
+                    |
+                    none
+                ]
+            ]
+        ] 
+        attribute
+    ]
+    entity-map: [
+        -entity-map-
+    ]
+    entity-to-char: func [name] [
+        any [select/case entity-map name ""]
+    ]
+    hex-to-utf8char: func [hex] [
+        encode-utf8 to integer! to issue! hex
+    ]
+    dec-to-utf8char: func [dec] [
+        encode-utf8 to integer! dec
+    ]
+    encode-utf8: func [char] [
+        if char <= 127 [
+            return to binary! reduce [char]
+        ]
+        if char <= 2047 [
+            return to binary! reduce [
+                char and 1984 / 64 + 192
+                char and 63 + 128
+            ]
+        ]
+        if char <= 65535 [
+            return to binary! reduce [
+                char and 61440 / 4096 + 224
+                char and 4032 / 64 + 128
+                char and 63 + 128
+            ]
+        ]
+        if char > 2097151 [return ""]
+        to binary! reduce [
+            char and 1835008 / 262144 + 240
+            char and 258048 / 4096 + 128
+            char and 4032 / 64 + 128
+            char and 63 + 128
+        ]
+    ]
+
+---Named entities map
+
+This is a map of all named entities to their UTF-8 encoded character value.
+
+    -entity-map-:
+    "quot" #{22} 
+    "amp" #{26} 
+    "lt" #{3C} 
+    "gt" #{3E} 
+    "nbsp" #{C2A0} 
+    "iexcl" #{C2A1} 
+    "cent" #{C2A2} 
+    "pound" #{C2A3} 
+    "curren" #{C2A4} 
+    "yen" #{C2A5} 
+    "brvbar" #{C2A6} 
+    "sect" #{C2A7} 
+    "uml" #{C2A8} 
+    "copy" #{C2A9} 
+    "ordf" #{C2AA} 
+    "laquo" #{C2AB} 
+    "not" #{C2AC} 
+    "shy" #{C2AD} 
+    "reg" #{C2AE} 
+    "macr" #{C2AF} 
+    "deg" #{C2B0} 
+    "plusmn" #{C2B1} 
+    "sup2" #{C2B2} 
+    "sup3" #{C2B3} 
+    "acute" #{C2B4} 
+    "micro" #{C2B5} 
+    "para" #{C2B6} 
+    "middot" #{C2B7} 
+    "cedil" #{C2B8} 
+    "sup1" #{C2B9} 
+    "ordm" #{C2BA} 
+    "raquo" #{C2BB} 
+    "frac14" #{C2BC} 
+    "frac12" #{C2BD} 
+    "frac34" #{C2BE} 
+    "iquest" #{C2BF} 
+    "Agrave" #{C380} 
+    "Aacute" #{C381} 
+    "Acirc" #{C382} 
+    "Atilde" #{C383} 
+    "Auml" #{C384} 
+    "Aring" #{C385} 
+    "AElig" #{C386} 
+    "Ccedil" #{C387} 
+    "Egrave" #{C388} 
+    "Eacute" #{C389} 
+    "Ecirc" #{C38A} 
+    "Euml" #{C38B} 
+    "Igrave" #{C38C} 
+    "Iacute" #{C38D} 
+    "Icirc" #{C38E} 
+    "Iuml" #{C38F} 
+    "ETH" #{C390} 
+    "Ntilde" #{C391} 
+    "Ograve" #{C392} 
+    "Oacute" #{C393} 
+    "Ocirc" #{C394} 
+    "Otilde" #{C395} 
+    "Ouml" #{C396} 
+    "times" #{C397} 
+    "Oslash" #{C398} 
+    "Ugrave" #{C399} 
+    "Uacute" #{C39A} 
+    "Ucirc" #{C39B} 
+    "Uuml" #{C39C} 
+    "Yacute" #{C39D} 
+    "THORN" #{C39E} 
+    "szlig" #{C39F} 
+    "agrave" #{C3A0} 
+    "aacute" #{C3A1} 
+    "acirc" #{C3A2} 
+    "atilde" #{C3A3} 
+    "auml" #{C3A4} 
+    "aring" #{C3A5} 
+    "aelig" #{C3A6} 
+    "ccedil" #{C3A7} 
+    "egrave" #{C3A8} 
+    "eacute" #{C3A9} 
+    "ecirc" #{C3AA} 
+    "euml" #{C3AB} 
+    "igrave" #{C3AC} 
+    "iacute" #{C3AD} 
+    "icirc" #{C3AE} 
+    "iuml" #{C3AF} 
+    "eth" #{C3B0} 
+    "ntilde" #{C3B1} 
+    "ograve" #{C3B2} 
+    "oacute" #{C3B3} 
+    "ocirc" #{C3B4} 
+    "otilde" #{C3B5} 
+    "ouml" #{C3B6} 
+    "divide" #{C3B7} 
+    "oslash" #{C3B8} 
+    "ugrave" #{C3B9} 
+    "uacute" #{C3BA} 
+    "ucirc" #{C3BB} 
+    "uuml" #{C3BC} 
+    "yacute" #{C3BD} 
+    "thorn" #{C3BE} 
+    "yuml" #{C3BF} 
+    "fnof" #{C692} 
+    "Alpha" #{CE91} 
+    "Beta" #{CE92} 
+    "Gamma" #{CE93} 
+    "Delta" #{CE94} 
+    "Epsilon" #{CE95} 
+    "Zeta" #{CE96} 
+    "Eta" #{CE97} 
+    "Theta" #{CE98} 
+    "Iota" #{CE99} 
+    "Kappa" #{CE9A} 
+    "Lambda" #{CE9B} 
+    "Mu" #{CE9C} 
+    "Nu" #{CE9D} 
+    "Xi" #{CE9E} 
+    "Omicron" #{CE9F} 
+    "Pi" #{CEA0} 
+    "Rho" #{CEA1} 
+    "Sigma" #{CEA3} 
+    "Tau" #{CEA4} 
+    "Upsilon" #{CEA5} 
+    "Phi" #{CEA6} 
+    "Chi" #{CEA7} 
+    "Psi" #{CEA8} 
+    "Omega" #{CEA9} 
+    "alpha" #{CEB1} 
+    "beta" #{CEB2} 
+    "gamma" #{CEB3} 
+    "delta" #{CEB4} 
+    "epsilon" #{CEB5} 
+    "zeta" #{CEB6} 
+    "eta" #{CEB7} 
+    "theta" #{CEB8} 
+    "iota" #{CEB9} 
+    "kappa" #{CEBA} 
+    "lambda" #{CEBB} 
+    "mu" #{CEBC} 
+    "nu" #{CEBD} 
+    "xi" #{CEBE} 
+    "omicron" #{CEBF} 
+    "pi" #{CF80} 
+    "rho" #{CF81} 
+    "sigmaf" #{CF82} 
+    "sigma" #{CF83} 
+    "tau" #{CF84} 
+    "upsilon" #{CF85} 
+    "phi" #{CF86} 
+    "chi" #{CF87} 
+    "psi" #{CF88} 
+    "omega" #{CF89} 
+    "thetasym" #{CF91} 
+    "upsih" #{CF92} 
+    "piv" #{CF96} 
+    "bull" #{E280A2} 
+    "hellip" #{E280A6} 
+    "prime" #{E280B2} 
+    "Prime" #{E280B3} 
+    "oline" #{E280BE} 
+    "frasl" #{E28184} 
+    "weierp" #{E28498} 
+    "image" #{E28491} 
+    "real" #{E2849C} 
+    "trade" #{E284A2} 
+    "alefsym" #{E284B5} 
+    "larr" #{E28690} 
+    "uarr" #{E28691} 
+    "rarr" #{E28692} 
+    "darr" #{E28693} 
+    "harr" #{E28694} 
+    "crarr" #{E286B5} 
+    "lArr" #{E28790} 
+    "uArr" #{E28791} 
+    "rArr" #{E28792} 
+    "dArr" #{E28793} 
+    "hArr" #{E28794} 
+    "forall" #{E28880} 
+    "part" #{E28882} 
+    "exist" #{E28883} 
+    "empty" #{E28885} 
+    "nabla" #{E28887} 
+    "isin" #{E28888} 
+    "notin" #{E28889} 
+    "ni" #{E2888B} 
+    "prod" #{E2888F} 
+    "sum" #{E28891} 
+    "minus" #{E28892} 
+    "lowast" #{E28897} 
+    "radic" #{E2889A} 
+    "prop" #{E2889D} 
+    "infin" #{E2889E} 
+    "ang" #{E288A0} 
+    "and" #{E288A7} 
+    "or" #{E288A8} 
+    "cap" #{E288A9} 
+    "cup" #{E288AA} 
+    "int" #{E288AB} 
+    "there4" #{E288B4} 
+    "sim" #{E288BC} 
+    "cong" #{E28985} 
+    "asymp" #{E28988} 
+    "ne" #{E289A0} 
+    "equiv" #{E289A1} 
+    "le" #{E289A4} 
+    "ge" #{E289A5} 
+    "sub" #{E28A82} 
+    "sup" #{E28A83} 
+    "nsub" #{E28A84} 
+    "sube" #{E28A86} 
+    "supe" #{E28A87} 
+    "oplus" #{E28A95} 
+    "otimes" #{E28A97} 
+    "perp" #{E28AA5} 
+    "sdot" #{E28B85} 
+    "lceil" #{E28C88} 
+    "rceil" #{E28C89} 
+    "lfloor" #{E28C8A} 
+    "rfloor" #{E28C8B} 
+    "lang" #{E28CA9} 
+    "rang" #{E28CAA} 
+    "loz" #{E2978A} 
+    "spades" #{E299A0} 
+    "clubs" #{E299A3} 
+    "hearts" #{E299A5} 
+    "diams" #{E299A6} 
+    "OElig" #{C592} 
+    "oelig" #{C593} 
+    "Scaron" #{C5A0} 
+    "scaron" #{C5A1} 
+    "Yuml" #{C5B8} 
+    "circ" #{CB86} 
+    "tilde" #{CB9C} 
+    "ensp" #{E28082} 
+    "emsp" #{E28083} 
+    "thinsp" #{E28089} 
+    "zwnj" #{E2808C} 
+    "zwj" #{E2808D} 
+    "lrm" #{E2808E} 
+    "rlm" #{E2808F} 
+    "ndash" #{E28093} 
+    "mdash" #{E28094} 
+    "lsquo" #{E28098} 
+    "rsquo" #{E28099} 
+    "sbquo" #{E2809A} 
+    "ldquo" #{E2809C} 
+    "rdquo" #{E2809D} 
+    "bdquo" #{E2809E} 
+    "dagger" #{E280A0} 
+    "Dagger" #{E280A1} 
+    "permil" #{E280B0} 
+    "lsaquo" #{E280B9} 
+    "rsaquo" #{E280BA} 
+    "euro" #{E282AC}
+
