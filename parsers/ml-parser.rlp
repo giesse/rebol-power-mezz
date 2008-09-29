@@ -56,8 +56,6 @@ other encoding, you **must** convert it to UTF-8 before calling this function.
     load-markup: func [
         "LOAD/MARKUP replacement that parses tags and more"
         html [string!]
-        /all "Include all whitespace"
-        /trim "TRIM/LINES all text"
 
         /local -lm-locals-
     ] [
@@ -76,6 +74,9 @@ and send the parsed elements to the |callback| function given as argument.
 
 ===Use |parse-ml| to convert |html| to a block
 
+We just supply a callback to |parse-ml| that collects everything into a block. Tags with attributes
+are appended as a block, and text strings are joined together as much as possible.
+
     -load-markup-:
     result: copy [ ]
     parse-ml html func [cmd data] [
@@ -84,31 +85,16 @@ and send the parsed elements to the |callback| function given as argument.
                 comment: [
                     ; just ignore comments
                 ]
-                text: [
-                    either string? last result [
+                text: whitespace: [
+                    either all [not empty? result string? last result] [
                         append last result data
                     ] [
                         append result data
                     ]
                 ]
-                whitespace: [
-                    if all [
-                        either string? last result [
-                            append last result data
-                        ] [
-                            append result data
-                        ]
-                    ]
-                ]
             ]
         ] [
-            if system/words/all [trim string? last result] [system/words/trim/lines last result]
             either block? data [
-                if trim [
-                    foreach [name value] data [
-                        if string? value [system/words/trim/lines value]
-                    ]
-                ]
                 insert data cmd
                 append/only result data
             ] [
@@ -116,13 +102,18 @@ and send the parsed elements to the |callback| function given as argument.
             ]
         ]
     ]
-    if system/words/all [trim string? last result] [system/words/trim/lines last result]
     result
 
 ---|load-markup|'s locals
 
     -lm-locals-:
     result
+
+===Example usage of |load-markup|
+
+    -examples-:
+    >> load-markup {Some <b>html</b>. See <a href="http://www.example.com">link</a>.}
+    == ["Some " [<b>] "html" </b> ". See " [<a> href "http://www.example.com"] "link" </a> "."]
 
 ===Parsing rules
 
@@ -328,7 +319,7 @@ values.
         -entity-map-
     ]
     entity-to-char: func [name] [
-        any [select/case entity-map name ""]
+        as-string any [select/case entity-map name ""]
     ]
     hex-to-utf8char: func [hex] [
         encode-utf8 to integer! to issue! hex
@@ -338,23 +329,23 @@ values.
     ]
     encode-utf8: func [char] [
         if char <= 127 [
-            return to binary! reduce [char]
+            return as-string to binary! reduce [char]
         ]
         if char <= 2047 [
-            return to binary! reduce [
+            return as-string to binary! reduce [
                 char and 1984 / 64 + 192
                 char and 63 + 128
             ]
         ]
         if char <= 65535 [
-            return to binary! reduce [
+            return as-string to binary! reduce [
                 char and 61440 / 4096 + 224
                 char and 4032 / 64 + 128
                 char and 63 + 128
             ]
         ]
         if char > 2097151 [return ""]
-        to binary! reduce [
+        as-string to binary! reduce [
             char and 1835008 / 262144 + 240
             char and 258048 / 4096 + 128
             char and 4032 / 64 + 128
