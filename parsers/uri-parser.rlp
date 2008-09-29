@@ -1,0 +1,459 @@
+RFC: A standards-compliant URI parser and tools for REBOL 3
+
+    Purpose: {
+        Defines the PARSE-URI function, that can parse both absolute
+        and relative URIs, and a number of URI tools.
+    }
+    Author: "Gabriele Santilli"
+    EMail: gabriele@rebol.com
+    File: %uri-parser.r
+    License: {
+        Copyright (c) 2006, Gabriele Santilli
+        All rights reserved.
+
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions
+        are met:
+
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer. 
+          
+        * Redistributions in binary form must reproduce the above
+          copyright notice, this list of conditions and the following
+          disclaimer in the documentation and/or other materials provided
+          with the distribution. 
+
+        * The name of Gabriele Santilli may not be used to endorse or
+          promote products derived from this software without specific
+          prior written permission.
+
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+        "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+        LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+        FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+        COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+        INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+        BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+        LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+        LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+        ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+        POSSIBILITY OF SUCH DAMAGE.
+    }
+    Date: 19-Jul-2006
+    Version: 1.3.0 ; majorv.minorv.status
+                   ; status: 0: unfinished; 1: testing; 2: stable
+    History: [
+        14-Jul-2006 1.1.0 "History start"
+        14-Jul-2006 1.2.0 "Implemented PARSE-URI"
+        19-Jul-2006 1.3.0 "Implemented FORM-URI"
+    ]
+
+===Introduction
+
+URL parsing code in REBOL 2, despite being quite good for the job it needs to do,
+has a number of problems and limitations:
+
+*it does not handle percent-encoding (since this is *incorrectly* handled by
+the |url!| datatype parser - see note below);
+
+*it only works on URLs, as they were intended to be used with REBOL ports: it
+does not handle the more generic URI syntax;
+
+*lacks support for IPv6 (since REBOL 2 does not support IPv6 anyway), which I hope
+can be added to REBOL 3.
+
+Also, REBOL 2 does not provide any tools for handling URIs, such as URI normalization,
+comparison, relative URI resolution and so on. I propose to improve the current code
+for use in REBOL 3.
+
+\note Design flaw in |url!| |load|'ing
+
+REBOL 2 has a design flaw in the way |url!| values are |load|'ed and |mold|'ed.
+|load| will decode *all* percent-encoded characters, while |mold| re-encodes only
+characters with an ASCII code less than 33. This is incorrect, and it makes it
+impossible to use URLs in some cases (the common example being a user name which
+contains a @ character). The standard states that "the components and subcomponents
+significant to the scheme-specific dereferencing process (if any) must be parsed
+and separated before the percent-encoded octets within those components can be
+safely decoded", with the exception of "percent-encoded octets corresponding to
+characters in the unreserved set, which can be decoded at any time".
+
+I propose that REBOL 3 should follow the rules in the standard specification.
+
+/note
+
+===Overview
+
+The |parse-uri| function takes a URI as input (relative URIs are accepted if the
+|/relative| refinement is used) and returns an object containing the |scheme|,
+|userinfo|, |host|, |port|, |path|, |query| and |fragment| elements of the URI. Note
+that only |path| is guaranteed to never be |none|, and is always a block of path
+segments; if it is an absolute path, then the first element of the block is the
+word |'root|; if a |host| is present, then the path is always absolute, so the |'root|
+word is omitted. Unless the |/only| refinement is used, the URI components are assumed
+to have the following usual syntax: |userinfo| is subdelimited by |":"| and gets
+parsed to a block of segments (usually, username and password), and |query| is
+subdelimited by |"&"| and |"="| and gets parsed to a block of blocks (in the form
+|[["name1" "value1"] ["name2" "value2"] ...]|); all segments are then percent-decoded.
+
+If the |/only| refinement is used, then no further decoding is done (percent-encoded
+characters are left encoded). This is to allow schemes that use different subdelimiters
+than the usual ones and thus need custom handling before percent-decoding etc.
+
+The |form-uri| function is the inverse of |parse-uri|. It takes an object like the
+one resulting from |parse-uri| as input and returns a |string!| (we don't use |url!|
+for the problem cited above, to avoid percent-encoding confusions). (You can also
+supply a |block!| like in |[scheme: "http" host: "www.rebol.com" ...]|.) You need to use
+the |/only| refinement if the components are already percent-encoded and should be left
+as they are; otherwise, |userinfo| (if not |none|) should be a block and its elements will be joined and
+separated by a |":"|, |query| (if not |none|) should be a block of name/value pairs like
+the one returned by |parse-uri| and it will be formed into a query using |"&"| and |"="| with
+each name and value percent-encoded, and the other components will be percent-encoded.
+Please note that |scheme| (if not |none|) **must** be a valid URI scheme name and that |port|
+(if not |none|) **must** only contain digits.
+
+Note that in the current implementation when |/only| is not used the components are
+percent-encoded in place, thus *the passed object is modified*.
+
+    -main-:
+    uri-parser: context [
+        -parse-rules-
+    ]
+
+    parse-uri: func [
+        "Parse a URI into its components"
+        uri [any-string!]
+        /relative "Allow relative URIs"
+        /only "Don't decode percent-encoded chars, userinfo and query"
+
+        /local -pu-locals-
+    ] uri-parser/parse-uri-body
+    
+    form-uri: func [
+        "Form an URI string from its components"
+        obj [object! block!] "URI components (scheme, userinfo, host, port, path, query, fragment)"
+        /only "Don't percent-encode fields"
+
+        /local -fu-locals-
+    ] [
+        -form-uri-
+    ]
+
+===Parse rules
+
+These rules are taken almost literally from the specification. I just adapted them
+to |parse| and relaxed them a bit to allow non-ascii chars that are not percent-encoded
+(so we can parse technically invalid but commonly used URLs and normalize them as valid
+URLs). Please see RFC3986 (http://www.gbiv.com/protocols/uri/rfc/rfc3986.html) for
+more details and an explanation of the rules.
+
+    -parse-rules-:
+    uri-rule: [copy seg scheme-rule ":" (scheme: seg) hier-part opt ["?" query-rule] opt ["#" fragment-rule]]
+
+    hier-part: ["//" authority path-abempty | path-absolute | path-rootless | none]
+
+    uri-reference: [uri-rule | relative-ref]
+
+    absolute-uri: [copy seg scheme-rule ":" (scheme: seg) hier-part opt ["?" query-rule]]
+
+    relative-ref: [relative-part opt ["?" query-rule] opt ["#" fragment-rule]]
+
+    relative-part: ["//" authority path-abempty | path-absolute | path-noscheme | none]
+
+    scheme-rule: [alpha any [alpha | digit |  "+" | "-" | "."]]
+
+    authority: [opt [copy seg userinfo-rule "@" (userinfo: seg)] host-rule opt [":" port-rule]]
+    userinfo-rule: [any [relaxed | pct-encoded | sub-delims | ":"]]
+    host-rule: [copy host [ip-literal | ipv4address | reg-name]]
+    port-rule: [copy port any digit]
+
+    ip-literal: ["[" [ipvfuture | ipv6address] "]"]
+
+    ipvfuture: ["v" some hexdigit "." some [unreserved | sub-delims | ":"]]
+
+    ipv6address: [
+                                       6 [h16 ":"] ls32
+        |                         "::" 5 [h16 ":"] ls32
+        | opt  h16                "::" 4 [h16 ":"] ls32
+        | opt [h16 opt [":" h16]] "::" 3 [h16 ":"] ls32
+        | opt [h16 1 2 [":" h16]] "::" 2 [h16 ":"] ls32
+        | opt [h16 1 3 [":" h16]] "::"    h16 ":"  ls32
+        | opt [h16 1 4 [":" h16]] "::"             ls32
+        | opt [h16 1 5 [":" h16]] "::"             h16
+        | opt [h16 1 6 [":" h16]] "::"
+    ]                                       
+
+    h16: [1 4 hexdigit]
+    ls32: [h16 ":" h16 | ipv4address]
+
+    ipv4address: [dec-octet "." dec-octet "." dec-octet "." dec-octet]
+
+    dec-octet: ["25" digit0-5 | "2" digit0-4 digit | "1" 2 digit | digit1-9 digit | digit]
+
+    reg-name: [any [unreserved | pct-encoded | sub-delims]]
+
+    path-abempty: [any ["/" segment (append path seg)]]
+    path-absolute: ["/" (append path 'root) opt [segment-nz (append path seg) any ["/" segment (append path seg)]]]
+    path-noscheme: [segment-nz-nc (append path seg) any ["/" segment (append path seg)]]
+    path-rootless: [segment-nz (append path seg) any ["/" segment (append path seg)]]
+
+    segment: [copy seg any pchar (seg: any [seg ""])]
+    segment-nz: [copy seg some pchar]
+    segment-nz-nc: [copy seg some [relaxed | pct-encoded | sub-delims | "@"]]
+
+    pchar: [relaxed | pct-encoded | sub-delims | ":" | "@"]
+
+    query-rule: [copy query any [pchar | "/" | "?"]]
+    fragment-rule: [copy fragment any [pchar | "/" | "?"]]
+
+    pct-encoded: ["%" 2 hexdigit]
+
+    alpha: charset [#"A" - #"Z" #"a" - #"z"]
+    digit: charset "0123456789"
+    digit0-5: charset "012345"
+    digit0-4: charset "01234"
+    digit1-9: charset "123456789"
+    hexdigit: charset "0123456789abcdefABCDEF"
+    unreserved: union alpha union digit charset "-._~"
+    gen-delims: charset ":/?#[]@"
+    sub-delims: charset "!$&'()*+,;="
+    reserved: union gen-delims sub-delims
+    relaxed: exclude complement reserved charset "%"
+
+---Words used by the rules
+
+The words used by the rules need to be made local to the |uri-parser| object.
+
+    -parse-rules-:
+    scheme: userinfo: host: port: seg: query: fragment: none
+    path: [ ]
+    vars: [scheme userinfo host port path query fragment]
+
+---|parse-uri|'s body
+
+The body block of |parse-uri| is kept inside |uri-parser| to have its words
+bound to its context. We initialize the words in |vars| to |none|, and |path|
+to an empty block. (A path is always present in an URI, but can be empty.)
+
+Depending on the use of the |/relative| refinement, we use the |uri-reference|
+or the |uri-rule| rule to parse the URI; if parsing is successfull, we return
+an object containing the words in |vars|. Unless the |/only| refinement is used,
+the |decode-fields| function is called to decode the URI fields (as described in
+|-main-|).
+
+    -parse-rules-:
+    decode-fields: func [obj /local -df-locals-] [
+        -decode-fields-
+    ]
+
+    parse-uri-body: [
+        set vars none
+        path: make block! 8
+        if parse/all uri either relative [uri-reference] [uri-rule] [
+            set obj: context [
+                scheme: userinfo: host: port: path: query: fragment: none
+            ] reduce vars
+            unless only [decode-fields obj]
+            obj
+        ]
+    ]
+
++++|parse-uri|'s locals
+
+    -pu-locals-:
+    obj
+
+---Decode |obj|'s fields into subfields
+
+Decoding the URI fields in the most common case (which is applied unless the
+|/only| refinement of |parse-uri| is used) means:
+
+*splitting |userinfo| into parts separated by |":"|, and |percent-decode| them;
+
+*decode the |host|;
+
+*decode each segment in the |path| (of course skipping |'root| if present);
+
+*split the query into |[name value]| pairs using |"&"| and |"="| as delimiters, and
+decode them;
+
+*decode the |fragment|.
+
+    -decode-fields-:
+    if obj/userinfo [
+        parse/all obj/userinfo [
+            (obj/userinfo: make block! 3)
+            any [
+                copy name to ":" skip (append obj/userinfo percent-decode any [name ""])
+            ]
+            copy name to end (append obj/userinfo percent-decode any [name ""])
+        ]
+    ]
+    if obj/host [percent-decode obj/host]
+    foreach segment obj/path [if string? segment [percent-decode segment]]
+    if obj/query [
+        parse/all obj/query [
+            (obj/query: make block! 16)
+            some [
+                copy name some query-chars [
+                    "=" copy val some query-chars
+                    |
+                    "=" (val: "")
+                    |
+                    (val: "")
+                ]
+                (append/only obj/query reduce [percent-decode name percent-decode val])
+                ["&" | end]
+                |
+                some ["&" | "="]
+            ]
+        ]
+    ]
+    if obj/fragment [percent-decode obj/fragment]
+
+We need a charset in the rule for decoding the |query|:
+
+    -parse-rules-:
+    query-chars: complement charset "&="
+
++++|decode-fields|' locals
+
+    -df-locals-:
+    name val
+
+===The |percent-decode| and |percent-encode| functions
+
+The functions are optimized for the common case of few percent-encoded
+characters per string (most usually zero), so they work in place.
+
+    -parse-rules-:
+    percent-decode: func [
+        string [any-string!]
+
+        /local here
+    ] [
+        parse/all string [
+            any [
+                thru "%" here: 2 hexdigit :here (
+                    change/part
+                        back here
+                        debase/base copy/part here 2 16
+                        skip here 2
+                )
+            ]
+        ]
+        string
+    ]
+    percent-encode: func [
+        string [any-string!]
+
+        /local here
+    ] [
+        parse/all string [
+            any [
+                some unreserved
+                |
+                here: skip (
+                    here: change/part
+                        here
+                        join "%" enbase/base copy/part here 1 16
+                        next here
+                ) :here
+            ]
+        ]
+        string
+    ]
+
+===Form an URI string from its components
+
+The code follows the pseudo-code in the specifications.
+
+    -form-uri-:
+    if block? obj [
+        obj: make context [
+            scheme: userinfo: host: port: path: query: fragment: none
+        ] obj
+    ]
+
+    unless only [
+        -encode-fields-
+    ]
+
+    result: make string! 256
+    
+    if obj/scheme [
+        insert insert result obj/scheme ":"
+    ]
+
+    if any [obj/userinfo obj/host obj/port] [
+        append result "//"
+        if obj/userinfo [
+            insert insert tail result obj/userinfo "@"
+        ]
+        if obj/host [
+            append result obj/host
+        ]
+        if obj/port [
+            insert insert tail result ":" obj/port
+        ]
+    ]
+
+    if not empty? obj/path [
+        path: obj/path
+        if not any [
+            obj/userinfo obj/host obj/port
+        ] [
+            if string? path/1 [append result path/1]
+            path: next path
+        ]
+        foreach segment path [
+            if string? segment [insert insert tail result "/" segment]
+        ]
+    ]
+
+    if obj/query [
+        insert insert tail result "?" obj/query
+    ]
+
+    if obj/fragment [
+        insert insert tail result "#" obj/fragment
+    ]
+
+    result
+
+---|form-uri|'s locals
+
+    -fu-locals-:
+    result path
+
+---Encode the URI's fields
+
+    -encode-fields-:
+    if all [block? obj/userinfo not empty? obj/userinfo] [
+        result: uri-parser/percent-encode copy obj/userinfo/1
+        foreach value next obj/userinfo [
+            insert insert tail result ":" uri-parser/percent-encode value
+        ]
+        obj/userinfo: result
+    ]
+    if obj/host [
+        ; ip-literal must not be encoded
+        unless parse/all obj/host uri-parser/ip-literal [
+            uri-parser/percent-encode obj/host
+        ]
+    ]
+    foreach segment obj/path [
+        if string? segment [uri-parser/percent-encode segment]
+    ]
+    if all [block? obj/query not empty? obj/query] [
+        result: uri-parser/percent-encode copy obj/query/1/1
+        insert insert tail result "=" uri-parser/percent-encode obj/query/1/2
+        foreach pair next obj/query [
+            repend result [
+                "&" uri-parser/percent-encode pair/1 "=" uri-parser/percent-encode pair/2
+            ]
+        ]
+        obj/query: result
+    ]
+    if obj/fragment [uri-parser/percent-encode obj/fragment]
