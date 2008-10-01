@@ -21,7 +21,8 @@ The |parse-ml| function is rather low-level and will incrementally parse a *ML s
 the provided callback function with the data as it gets parsed. |callback| **must** take two arguments,
 a "command" and its data. (This is actually designed to fit well with the FSM dialect; it may
 appear a bit awkward because of that.) The command can be a |tag!|, or the blocks |[comment:]|,
-|[text:]| or |[whitespace:]|. In the |tag!| case, it can be in the form |<name>|, |<name/>| or
+|[text:]|, |[whitespace:]|, |[declaration:]| or |[xml-proc:]|.
+In the |tag!| case, it can be in the form |<name>|, |<name/>| or
 |</name>|, respectively indicating a start tag, an empty tag, or an end tag. The "data" is the
 text string in the block case, while it is a block of attributes (as name/value pairs - names
 can be |word!| or |path!| values, depending on the presence of a namespace specification) in the
@@ -92,6 +93,10 @@ are appended as a block, and text strings are joined together as much as possibl
                         append result data
                     ]
                 ]
+                declaration: xml-proc: [
+                    ; append them as tags
+                    if tag? data: attempt [load data] [append result data]
+                ]
             ]
         ] [
             either block? data [
@@ -143,7 +148,7 @@ lose any special meaning; this means that text is passed on verbatim.
 
     -parsing-rules-:
     comment: [copy txt ["<!--" thru "-->"] (cb [comment:] txt)]
-    declaration: ["<!doctype" space thru #">"] ; simplified - may break
+    declaration: [copy txt ["<!doctype" space thru #">"] (cb [declaration:] txt] ; simplified - may break
     cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb [text:] txt)]
 
 |cb| is set to the callback function given by the user (see |-parse-html-|):
@@ -167,7 +172,7 @@ The following definitions are used in the rules for tags:
 XML processing instructions are simply ignored (this also catches the XML declaration).
 
     -parsing-rules-:
-    proc: ["<?" name thru "?>"]
+    proc: [copy txt ["<?" name thru "?>"] (cb [xml-proc:] txt)]
 
 Start tags and empty tags are processed with the same rule. Start tags will send the
 |<tagname>| command to the callback function, while empty tags will send |<tagname/>|.
@@ -610,4 +615,3 @@ This is a map of all named entities to their UTF-8 encoded character value.
     "lsaquo" #{E280B9} 
     "rsaquo" #{E280BA} 
     "euro" #{E282AC}
-
