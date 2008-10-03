@@ -1,0 +1,456 @@
+HTML Normalizer
+
+    Purpose: {
+        Normalizes a HTML tag stream (that is, balances start and end tags, fixes missing
+        end tags, and so on).
+    }
+    Author: "Gabriele Santilli"
+    File: %normalize-html.r
+    Version: 1.0.0
+
+===Introduction
+
+===Overview
+
+    -main-:
+    html-normalizer: context [
+        -stage2-
+        -low-level-api-
+
+        set 'normalize-html func [
+            "Normalize HTML text"
+            html [block!] "Result of LOAD-MARKUP"
+
+            /local -nh-locals-
+        ] [
+            -normalize-html-
+        ]
+    ]
+
+===Normalize the given |html| block
+
+    -normalize-html-:
+    result: make block! length? html
+    init func [cmd data] [
+        switch/default cmd [
+            text: whitespace: [
+                either all [not empty? result string? last result] [
+                    append last result data
+                ] [
+                    append result data
+                ]
+            ]
+            comment: declaration: xml-proc: [
+                append result data
+            ]
+        ] [
+            either block? data [
+                insert data cmd
+                append/only result data
+            ] [
+                append result cmd
+            ]
+        ]
+    ]
+    foreach element html [
+        switch type?/word element [
+            string! [
+                either parse/all element [any space] [
+                    process [whitespace:] element
+                ] [
+                    process [text:] element
+                ]
+            ]
+            block! [
+                process first element copy next element
+            ]
+            tag! [
+                parse/all element [
+                    "!--" (process [comment:] element)
+                    |
+                    "!doctype" (process [declaration:] element)
+                    !
+                    "?" (process [xml-proc:] element)
+                    |
+                    (process element none)
+                ]
+            ]
+        ]
+    ]
+    end
+    result
+
+---|normalize-html|'s locals
+
+    -nh-locals-
+    result
+
+===Lower level API (for incremental processing)
+
+    -low-level-api-:
+    init: func [
+        "Initialize HTML normalizer state machine"
+        callback [any-function!] "Callback used during processing"
+    ] [
+        -init-normalizer-
+    ]
+    process: func [
+        "Process a HTML tag"
+        command command-data
+    ] [
+        -process-command-
+    ]
+    end: func [
+        "Terminate HTML normalizer state machine"
+    ] [
+        -end-normalizer-
+    ]
+
+---Process a state machine command (eg. HTML tag)
+
+We use a FSM interperter; thus the |process| function just sets the words |cmd| and |data|
+(so that the state rules can reference them) and sends |cmd| as an event
+to the state machine.
+
+    -process-command-:
+    if block? command [command: first command]
+    cmd: command
+    data: command-data
+    fsm/event command
+
+---Initialize the state machine
+
+There are a number of things to initialize for the state machine, and some things to
+do for correct termination too. These two functions are used for this reason.
+
+We need to initialize the string buffer used by the |text-run| state, and the
+block and inline stacks; then we just initialize the FSM using |initial| as the
+initial state.
+
+    -init-normalizer-:
+    cb*: :callback
+    buffer: make string! 256
+    clear block-stack
+    clear inline-stack
+    fsm/init initial
+
+---Terminate the state machine
+
+On termination, we need to check if the |buffer| is non-empty,
+which means that we are still inside the |text-run| state (i.e. the document ended
+with just text) and we need to emit the buffer; then we just terminate the FSM
+(this sends it back to the initial state, so it takes care of closing all elements
+and so on).
+
+    -end-normalizer-:
+    if not empty? buffer [cb [text:] buffer]
+    fsm/end
+
+===Tag balancing state machine
+
+This state machine takes care of ensuring tag balancing, correct nesting, and overall
+well-formedness of the HTML stream. Some potentially harmful content is also removed here.
+
+    -stage2-:
+    fsm: make fsm! [ ]
+    cmd: data: cb*: none
+    cb: func [cmd data] [cb* either block? cmd [first cmd] [cmd] data]
+    
+    -stage2-states-
+    -stage2-functions-
+
+---FSM states
+
+In the initial state, we are waiting for the |<html>| tag. Since both the start
+and end tag for the *html* element are optional, we also emit a |<html>| tag as soon
+as we find anything that is not a comment or whitespace.
+
+    -stage2-states-:
+    initial: [
+        comment: (cb [comment:] data)
+        whitespace: (cb [whitespace:] data)
+        <html> (cb <html> data) in-html-prehead (cb </html> none)
+        default: (cb <html> none) continue in-html-prehead (cb </html> none)
+    ]
+
+After the intial state, we get inside the *html* element and waiting for
+a |<head>| tag to start the *head* element. Start and end tags are optional in this case
+too, so we automatically enter the *head* element if we find one of the listed tags.
+
+    -stage2-states-:
+    in-html-prehead: [
+        comment: (cb [comment:] data)
+        whitespace: (cb [whitespace:] data)
+        <head> (cb <head> none) in-head
+        <title> <isindex> <isindex/> <base> <base/> <script> <script/>
+        <style> <meta> <meta/> <link> <link/> <object> (cb <head> none) continue in-head
+        default: (foreach tag [<head> <title> </title> </head>] [cb tag none]) continue in-html-prebody
+    ]
+
+In this state, we are inside the *head* element. We need to process the listed tags,
+and end the element if we find anything else (except comments and whitespace of course).
+
+|<isindex>| is an HTML 3.2 thing that probably noone ever used; we're just ignoring
+it. We're also ignoring any |<meta/>| tag as it is not essential and we want to avoid
+|<meta http-equiv="...">| anyway. |<base/>| and |<link/>| tags are preserved (they will be checked and sanitized
+by the third stage), |<object>|'s and |<script>|'s are ignored, and |<style>| and |<title>| are
+preserved while ensuring balancing (see below).
+
+    -stage2-states-:
+    in-head: [
+        comment: (cb [comment:] data)
+        whitespace: (cb [whitespace:] data)
+        <head> ( ) ; ignore extra <head> open tag
+        </head> (cb </head> none) in-html-prebody
+        default: (cb </head> none) continue in-html-prebody
+        <title> (cb <title> none) in-title (cb </title> none)
+        <isindex> <isindex/> ( ) ; noone should be using this
+        <base> <base/> (cb <base/> data)
+        <script> in-script
+        <script/> ( ) ; just ignore
+        <style> (cb <style> data) in-style (cb </style> none)
+        <meta> <meta/> ( ) ;(cb <meta/> data)
+        <link> <link/> (cb <link/> data)
+        <object> in-hobject
+    ]
+
+These states are used by |in-head| to parse the *title*, *style*, *script* and
+*object* elements. (I'm not sure what an *object* in the *head* can be used for,
+maybe preloading plugins etc. I'm just ignoring it. Note that just ignoring everything
+up to a |</object>| is not really a good idea, so this needs to be improved.) Comments
+are not allowed in the title so we're ignoring them. We're also ignoring comments inside
+the *style* element, but this will need to be changed as documents may be using comments
+to hide the CSS from old user agents.
+
+    -stage2-states-:
+    in-title: [
+        comment: ( )
+        text: whitespace: continue text-run
+        </title> return
+        default: continue return
+    ]
+    in-script: [
+        comment: text: whitespace: ( )
+        </script> return
+        default: continue return
+    ]
+    in-hobject: [
+        ; ignore everything - problem
+        </object> return
+    ]
+    in-style: [
+        comment: ( )
+        text: whitespace: continue text-run
+        </style> return
+        default: continue return
+    ]
+
+The |text-run| state is used in a few places to reduce a sequence of |text:| and
+|whitespace:| events to a single |text:| event. |buffer| is assumed to have been
+initialized before starting to process input.
+
+    -stage2-states-:
+    buffer: make string! 256
+    text-run: [
+        text: whitespace: (append buffer data)
+        default: (cb [text:] buffer buffer: make string! 256) continue return
+    ]
+
+Here we are just after the *head* element, before the |<body>| start tag; since the start
+tag is optional, we need to start the *body* element anyway at anything except comments and
+whitespace after *head*.
+
+    -stage2-states-:
+    in-html-prebody: [
+        comment: (cb [comment:] data)
+        whitespace: (cb [whitespace:] data)
+        <body> (cb <body> data) in-block (close-all block-stack cb </body> none)
+        default: (cb <body> none) continue in-block (close-all block-stack cb </body> none)
+    ]
+
+Inside the *body*, content is processed by two states, |in-block| and |in-inline|. The first
+handles block level elements, while the second handles inline level elements. They are kept separate
+because inline level elements cannot contain block level elements. These two states ensure balancing
+of start and end tags for elements; the |open-tag| and |close-tag| functions (see |-stage2-functions-|)
+take care of ensuring correct nesting of elements, and enforcing rules such as that a *p* element
+cannot contain other *p* elements and so on.
+
+    -stage2-states-:
+    in-block: [
+        comment: (cb [comment:] data)
+        whitespace: (cb [whitespace:] data)
+        
+        <h1> <h2> <h3> <h4> <h5> <h6> <address> <p> <li> <dt> <dd>
+        <pre> <td> <th> <legend> <caption>
+            (open-tag block-stack cmd data) in-inline (close-all inline-stack)
+        
+        <ul> <ol> <dl> <div> <center>
+        <blockquote> <form> <fieldset> <table> <noscript>
+        <tr> <colgroup> <thead> <tfoot> <tbody> <ins> <del>
+            (open-tag block-stack cmd data)
+        
+        <isindex> <isindex/> ( ) ; noone should be using this
+        <iframe> </iframe> ( ) ; filter it out
+        <script> in-script ; filter it out
+        <script/> ( )
+        
+        <style> (cb <style> data) in-style (cb </style> none)
+
+        <hr> <hr/> (cb <hr/> none) 
+        <col> <col/> (cb <col/> data)
+        
+        </h1> </h2> </h3> </h4> </h5> </h6> </address> </p> </ul> </ol>
+        </li> </dl> </dt> </dd> </pre> </div> </center>
+        </blockquote> </form> </fieldset> </legend> </table> </noscript>
+        </tr> </td> </th> </caption> </colgroup> </thead>
+        </tfoot> </tbody> </ins> </del>
+            (close-tag block-stack cmd)
+        
+        </body> </html> ( ) ; ignored
+        
+        <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
+        <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
+        <a> <img> <img/> <applet> <font> <basefont> <basefont/> 
+        <br> <br/> <map> <input> <input/> <select> <textarea> <span>
+        <abbr> <acronym> <q> <label> text:
+            (open-tag block-stack <p> none) continue in-inline (close-all inline-stack)
+    ]
+    in-inline: [
+        comment: (cb [comment:] data)
+        
+        <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
+        <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
+        <a> <font> <map> <select> <textarea> <option> <button>
+        <optgroup> <label> <span>
+        <abbr> <acronym> <q> <ins> <del> <object>
+            (open-tag inline-stack cmd data)
+        
+        <applet> </applet> <param> </param> ( )
+        
+        </tt> </i> </b> </u> </strike> </s> </big> </small> </sub> </sup>
+        </em> </strong> </dfn> </code> </samp> </kbd> </var> </cite>
+        </a> </font> </map> </select> </textarea> </button> </option>
+        </optgroup> </label> </span>
+        </abbr> </acronym> </q> </object>
+        </ins> </del> ; should be treated specially, but noone uses them so...
+            (close-tag inline-stack cmd)
+        
+        <img> <img/> <basefont> <basefont/> <br> <br/> <area> <area/>
+        <input> <input/>
+            (cb either #"/" = last cmd [cmd] [append cmd "/"] data)
+        
+        text: whitespace: continue text-run
+        
+        default: continue return
+    ]
+
+---Functions used by the state machine
+
+We need to keep two stacks, one for block level elements and one for inline level elements;
+when closing an element which is not the topmost on the stack, all contained elements
+need to be closed too. Also, when exiting inline level to go back to block level, all inline
+elements need to be closed.
+
+Another thing we need to consider is the set of nesting rules; a *p* element cannot contain
+other *p* elements, a *form* element cannot contain other *form* elements, and so on. These
+rules are represented by the |nesting| block, which is a map from a start tag to a list
+of elements that need to be closed if they are open at the time the start tag is found; this
+is done by just passing each end tag to |close-tag|, since it does not close elements that are not
+open.
+
+There is a special case too: since the end tag for the *td* element is optional, a |<td>| needs
+to close any open *td* element, but only for the current table, i.e. it should not close it
+if that would mean closing a *table* element. (If you have nested tables, you can actually have
+a *td* inside another *td*.)
+
+    -stage2-functions-:
+    block-stack: [ ]
+    inline-stack: [ ]
+    nesting: [
+        <h1> <h2> <h3> <h4> <h5> <h6> <address>
+        <p> <ul> <ol> <dl> <pre> <dt> <dd>
+        <div> <center> <blockquote> <table> [
+            </h1> </h2> </h3> </h4> </h5> </h6> </address>
+            </p> </dt> </dd>
+        ]
+        <li> [
+            never [<ul> <ol>] </li> </h1> </h2> </h3> </h4> </h5>
+            </h6> </address> </p> </dt> </dd>
+        ]
+        <form> [</form>]
+        <tr> [never <table> </tr> </td> </th> </colgroup>]
+        <td> <th> [never <table> </td> </th>]
+        <thead> <tfoot> <tbody> [
+            never <table> </thead> </tfoot> </tbody> </tr>
+            </td> </th> </colgroup>
+        ]
+        <colgroup> [never <table> </colgroup>]
+        <a> [</a>]
+        <map> [</map>]
+        <option> [</option>]
+    ]
+
+Since the |nesting| block is a many to one map, we can't use the |select| native, but need
+to create our own special |select*| function.
+
+    -stage2-functions-:
+    select*: func [block value /local res] [
+        parse block [to value to block! set res block!]
+        res
+    ]
+
+The |open-tag| function first checks the nesting rules using |select*| and calling
+|close-tag| with each end tag in the block, as described above; then it pushes
+the start tag on the stack and sends it to the third stage.
+
+    -stage2-functions-:
+    open-tag: func [stack starttag attributes /local nestrules upto tag] [
+        if nestrules: select* nesting starttag [
+            parse nestrules [
+                some [
+                    'never [copy upto tag! | set upto into [some tag!]]
+                    |
+                    set tag tag! (close-tag/upto stack tag upto)
+                ]
+            ]
+        ]
+        insert tail stack starttag
+        cb starttag attributes
+    ]
+
+The |close-tag| function looks into the stack to see if the element the |endtag| is
+closing is actually open (i.e. it looks for the respective start tag in the stack),
+then if the |/upto| refinement has been used makes sure that |tag| does not appear
+in the stack after it. If all conditions are met, all elements contained into
+the element being closed are closed, by sending to the third stage the end tag for
+each of them. Then they are removed from the stack.
+
+    -stage2-functions-:
+    close-tag: func [stack endtag /upto tags /local pos] [
+        endtag: remove copy endtag
+        if pos: find/last stack endtag [
+            if tags [
+                foreach tag tags [
+                    if all [tag: find/last stack tag greater? index? tag index? pos] [
+                        exit
+                    ]
+                ]
+            ]
+            foreach tag head reverse copy pos [
+                cb head insert copy tag "/" none
+            ]
+            clear pos
+        ]
+    ]
+
+The |close-all| function is used to close all elements in the given stack. For
+example it is used to close all inline elements when going back to block level,
+and for closing all elements at the end of the document.
+
+    -stage2-functions-:
+    close-all: func [stack] [
+        foreach tag head reverse stack [
+            cb head insert copy tag "/" none
+        ]
+        clear stack
+    ]

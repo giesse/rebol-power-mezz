@@ -20,8 +20,8 @@ in a very wide range of situations.
 The |parse-ml| function is rather low-level and will incrementally parse a *ML string and call
 the provided callback function with the data as it gets parsed. |callback| **must** take two arguments,
 a "command" and its data. (This is actually designed to fit well with the FSM dialect; it may
-appear a bit awkward because of that.) The command can be a |tag!|, or the blocks |[comment:]|,
-|[text:]|, |[whitespace:]|, |[declaration:]| or |[xml-proc:]|.
+appear a bit awkward because of that.) The command can be a |tag!|, or the |set-word!|'s |comment:|,
+|text:|, |whitespace:|, |declaration:| or |xml-proc:|.
 In the |tag!| case, it can be in the form |<name>|, |<name/>| or
 |</name>|, respectively indicating a start tag, an empty tag, or an end tag. The "data" is the
 text string in the block case, while it is a block of attributes (as name/value pairs - names
@@ -70,7 +70,7 @@ the source text, parsing tags, text and character entities,
 and send the parsed elements to the |callback| function given as argument.
 
     -parse-html-:
-    cb: :callback
+    cb: func [cmd data] [callback either block? cmd [first cmd] [cmd] data]
     parse/all html html-rule
 
 ===Use |parse-ml| to convert |html| to a block
@@ -81,24 +81,20 @@ are appended as a block, and text strings are joined together as much as possibl
     -load-markup-:
     result: copy [ ]
     parse-ml html func [cmd data] [
-        either block? cmd [
-            switch first cmd [
-                comment: [
-                    ; just ignore comments
-                ]
-                text: whitespace: [
-                    either all [not empty? result string? last result] [
-                        append last result data
-                    ] [
-                        append result data
-                    ]
-                ]
-                declaration: xml-proc: [
-                    ; append them as tags
-                    if tag? data: attempt [load data] [append result data]
+        switch/default cmd [
+            text: whitespace: [
+                either all [not empty? result string? last result] [
+                    append last result data
+                ] [
+                    append result data
                 ]
             ]
+            comment: declaration: xml-proc: [
+                ; append them as tags
+                if tag? data: attempt [load data] [append result data]
+            ]
         ] [
+            ; cmd is tag!
             either block? data [
                 insert data cmd
                 append/only result data
