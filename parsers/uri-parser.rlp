@@ -441,29 +441,29 @@ The code follows the pseudo-code in the specifications.
 
     -encode-fields-:
     if all [block? obj/userinfo not empty? obj/userinfo] [
-        result: uri-parser/percent-encode copy obj/userinfo/1
+        result: percent-encode copy obj/userinfo/1
         foreach value next obj/userinfo [
-            insert insert tail result ":" uri-parser/percent-encode value
+            insert insert tail result ":" percent-encode value
         ]
         obj/userinfo: result
     ]
     if obj/host [
         ; ip-literal must not be encoded
-        unless parse/all obj/host uri-parser/ip-literal [
-            uri-parser/percent-encode obj/host
+        unless parse/all obj/host ip-literal [
+            percent-encode obj/host
         ]
     ]
     foreach segment obj/path [
-        if string? segment [uri-parser/percent-encode segment]
+        if string? segment [percent-encode segment]
     ]
     if all [block? obj/query not empty? obj/query] [
-        result: uri-parser/percent-encode copy obj/query/1/1
-        insert insert tail result "=" uri-parser/percent-encode obj/query/1/2
+        result: percent-encode copy obj/query/1/1
+        insert insert tail result "=" percent-encode obj/query/1/2
         foreach pair next obj/query [
             repend result [
-                "&" uri-parser/percent-encode pair/1 "=" uri-parser/percent-encode pair/2
+                "&" percent-encode pair/1 "=" percent-encode pair/2
             ]
         ]
         obj/query: result
     ]
-    if obj/fragment [uri-parser/percent-encode obj/fragment]
+    if obj/fragment [percent-encode obj/fragment]
