@@ -59,6 +59,7 @@ HTML Normalizer
             ]
         ]
     ]
+    space: charset { ^/^-}
     foreach element html [
         switch type?/word element [
             string! [
@@ -90,7 +91,7 @@ HTML Normalizer
 ---|normalize-html|'s locals
 
     -nh-locals-
-    result
+    result space
 
 ===Lower level API (for incremental processing)
 
