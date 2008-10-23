@@ -13,11 +13,18 @@ HTML Normalizer
 ===Overview
 
     -main-:
-    html-normalizer: context [
+    html-normalizer: module [
+        "HTML Normalizer"
+        "Normalizes a HTML tag stream (that is, balances start and end tags, fixes missing end tags, and so on)."
+        export [
+            normalize-html "Normalize HTML text"
+            -low-level-api-export-
+        ]
+    ] [
         -stage2-
         -low-level-api-
 
-        set 'normalize-html func [
+        normalize-html: func [
             "Normalize HTML text"
             html [block!] "Result of LOAD-MARKUP"
 
@@ -31,7 +38,7 @@ HTML Normalizer
 
     -normalize-html-:
     result: make block! length? html
-    init func [cmd data] [
+    init-normalizer func [cmd data] [
         switch/default cmd [
             text: whitespace: [
                 either all [not empty? result string? last result] [
@@ -56,28 +63,28 @@ HTML Normalizer
         switch type?/word element [
             string! [
                 either parse/all element [any space] [
-                    process [whitespace:] element
+                    process-tag [whitespace:] element
                 ] [
-                    process [text:] element
+                    process-tag [text:] element
                 ]
             ]
             block! [
-                process first element copy next element
+                process-tag first element copy next element
             ]
             tag! [
                 parse/all element [
-                    "!--" (process [comment:] element)
+                    "!--" (process-tag [comment:] element)
                     |
-                    "!doctype" (process [declaration:] element)
+                    "!doctype" (process-tag [declaration:] element)
                     !
-                    "?" (process [xml-proc:] element)
+                    "?" (process-tag [xml-proc:] element)
                     |
-                    (process element none)
+                    (process-tag element none)
                 ]
             ]
         ]
     ]
-    end
+    end-normalizer
     result
 
 ---|normalize-html|'s locals
@@ -88,23 +95,30 @@ HTML Normalizer
 ===Lower level API (for incremental processing)
 
     -low-level-api-:
-    init: func [
+    init-normalizer: func [
         "Initialize HTML normalizer state machine"
         callback [any-function!] "Callback used during processing"
     ] [
         -init-normalizer-
     ]
-    process: func [
+    process-tag: func [
         "Process a HTML tag"
         command command-data
     ] [
         -process-command-
     ]
-    end: func [
+    end-normalizer: func [
         "Terminate HTML normalizer state machine"
     ] [
         -end-normalizer-
     ]
+
+Export them:
+
+    -lowlevel-api-export-:
+    init-normalizer "Initialize HTML normalizer state machine"
+    process-tag "Process a HTML tag"
+    end-normalizer "Terminate HTML normalizer state machine"
 
 ---Process a state machine command (eg. HTML tag)
 
@@ -153,7 +167,6 @@ well-formedness of the HTML stream. Some potentially harmful content is also rem
 
     -stage2-:
     fsm: make fsm! [ ]
-    cmd: data: cb*: none
     cb: func [cmd data] [cb* either block? cmd [first cmd] [cmd] data]
     
     -stage2-states-
