@@ -115,7 +115,7 @@ HTML Normalizer
 
 Export them:
 
-    -lowlevel-api-export-:
+    -low-level-api-export-:
     init-normalizer "Initialize HTML normalizer state machine"
     process-tag "Process a HTML tag"
     end-normalizer "Terminate HTML normalizer state machine"
