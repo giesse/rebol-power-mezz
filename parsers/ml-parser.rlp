@@ -154,7 +154,7 @@ lose any special meaning; this means that text is passed on verbatim.
 
     -parsing-rules-:
     comment: [copy txt ["<!--" thru "-->"] (cb [comment:] txt)]
-    declaration: [copy txt ["<!doctype" space thru #">"] (cb [declaration:] txt] ; simplified - may break
+    declaration: [copy txt ["<!doctype" space thru #">"] (cb [declaration:] txt)] ; simplified - may break
     cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb [text:] txt)]
 
 where |cb| is set to the callback function given by the user (see |-parse-html-|).
