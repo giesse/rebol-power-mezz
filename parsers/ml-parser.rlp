@@ -42,26 +42,36 @@ other encoding, you **must** convert it to UTF-8 before calling this function.
 /note
 
     -main-:
-    context [
+    ml-parser: module [
+        "[X][HT]ML Parser"
+        "Parses XML, XHTML and HTML."
+        export [
+            parse-ml "Parse *ML text"
+        ]
+        global [
+            load-markup "Made global because it's a useful LOAD/MARKUP replacement"
+        ]
+    ] [
         -parsing-rules-
 
-        set 'parse-ml func [
+        parse-ml: func [
             "Parse *ML text"
             html [string!]
             callback [any-function!]
         ] [
             -parse-html-
         ]
+
+        load-markup: func [
+            "LOAD/MARKUP replacement that parses tags and more"
+            html [string!]
+
+            /local -lm-locals-
+        ] [
+            -load-markup-
+        ]
     ]
 
-    load-markup: func [
-        "LOAD/MARKUP replacement that parses tags and more"
-        html [string!]
-
-        /local -lm-locals-
-    ] [
-        -load-markup-
-    ]
 
 ===Parse the |html| text
 
@@ -147,10 +157,7 @@ lose any special meaning; this means that text is passed on verbatim.
     declaration: [copy txt ["<!doctype" space thru #">"] (cb [declaration:] txt] ; simplified - may break
     cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb [text:] txt)]
 
-|cb| is set to the callback function given by the user (see |-parse-html-|):
-
-    -parsing-rules-:
-    cb: none
+where |cb| is set to the callback function given by the user (see |-parse-html-|).
 
 The following definitions are used in the rules for tags:
 
