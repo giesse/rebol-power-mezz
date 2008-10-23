@@ -241,7 +241,7 @@ We create the local and export contexts using |make-context|, and bind
 the |body| to them.
 
     -bind-:
-    foreach ctx bind [export-ctx local-ctx] result [
+    foreach ctx bind [local-ctx export-ctx] result [
         either empty? get ctx [
             set ctx none
         ] [
