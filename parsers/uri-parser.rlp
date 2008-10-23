@@ -117,28 +117,38 @@ Note that in the current implementation when |/only| is not used the components 
 percent-encoded in place, thus *the passed object is modified*.
 
     -main-:
-    uri-parser: context [
-        -parse-rules-
-    ]
-
-    parse-uri: func [
-        "Parse a URI into its components"
-        uri [any-string!]
-        /relative "Allow relative URIs"
-        /only "Don't decode percent-encoded chars, userinfo and query"
-
-        /local -pu-locals-
-    ] uri-parser/parse-uri-body
-    
-    form-uri: func [
-        "Form an URI string from its components"
-        obj [object! block!] "URI components (scheme, userinfo, host, port, path, query, fragment)"
-        /only "Don't percent-encode fields"
-
-        /local -fu-locals-
+    uri-parser: module [
+        "Standard compliant URI parser"
+        {Defines the PARSE-URI function, that can parse both absolute and relative URIs, and a number of URI tools.}
+        export [
+            parse-uri "Parse a URI into its components"
+            form-uri "Form an URI string from its components"
+        ]
     ] [
-        -form-uri-
+        -parse-rules-
+
+        parse-uri: func [
+            "Parse a URI into its components"
+            uri [any-string!]
+            /relative "Allow relative URIs"
+            /only "Don't decode percent-encoded chars, userinfo and query"
+
+            /local -pu-locals-
+        ] [
+            -parse-uri-body-
+        ]
+        
+        form-uri: func [
+            "Form an URI string from its components"
+            obj [object! block!] "URI components (scheme, userinfo, host, port, path, query, fragment)"
+            /only "Don't percent-encode fields"
+
+            /local -fu-locals-
+        ] [
+            -form-uri-
+        ]
     ]
+
 
 ===Parse rules
 
@@ -232,8 +242,7 @@ The words used by the rules need to be made local to the |uri-parser| object.
 
 ---|parse-uri|'s body
 
-The body block of |parse-uri| is kept inside |uri-parser| to have its words
-bound to its context. We initialize the words in |vars| to |none|, and |path|
+We initialize the words in |vars| to |none|, and |path|
 to an empty block. (A path is always present in an URI, but can be empty.)
 
 Depending on the use of the |/relative| refinement, we use the |uri-reference|
@@ -242,21 +251,22 @@ an object containing the words in |vars|. Unless the |/only| refinement is used,
 the |decode-fields| function is called to decode the URI fields (as described in
 |-main-|).
 
+    -parse-uri-body-:
+    set vars none
+    path: make block! 8
+    if parse/all uri either relative [uri-reference] [uri-rule] [
+        set obj: context [
+            scheme: userinfo: host: port: path: query: fragment: none
+        ] reduce vars
+        unless only [decode-fields obj]
+        obj
+    ]
+
+The function is using:
+
     -parse-rules-:
     decode-fields: func [obj /local -df-locals-] [
         -decode-fields-
-    ]
-
-    parse-uri-body: [
-        set vars none
-        path: make block! 8
-        if parse/all uri either relative [uri-reference] [uri-rule] [
-            set obj: context [
-                scheme: userinfo: host: port: path: query: fragment: none
-            ] reduce vars
-            unless only [decode-fields obj]
-            obj
-        ]
     ]
 
 +++|parse-uri|'s locals
