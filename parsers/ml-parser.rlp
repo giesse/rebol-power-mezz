@@ -47,6 +47,7 @@ other encoding, you **must** convert it to UTF-8 before calling this function.
         "Parses XML, XHTML and HTML."
         export [
             parse-ml "Parse *ML text"
+            -other-exports-
         ]
         global [
             load-markup "Made global because it's a useful LOAD/MARKUP replacement"
@@ -296,6 +297,16 @@ We also need to make the words we are using as variables local to the context:
     attnm: attnmtxt: attnmns: none
     attval: none
     txt: none
+
+---Other things to export
+
+We are exporting a few parse rules and charsets that are often useful in other
+modules too.
+
+    -other-exports-:
+    name        "Parse rule for tag names"
+    digit       "Charset for digits"
+    hexdigit    "Charset for a hex digit"
 
 ---Entity conversion functions
 
