@@ -181,8 +181,7 @@ as we find anything that is not a comment or whitespace.
 
     -stage2-states-:
     initial: [
-        comment: (cb [comment:] data)
-        whitespace: (cb [whitespace:] data)
+        comment: whitespace: declaration: xml-proc: (cb cmd data)
         <html> (cb <html> data) in-html-prehead (cb </html> none)
         default: (cb <html> none) continue in-html-prehead (cb </html> none)
     ]

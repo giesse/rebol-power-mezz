@@ -347,6 +347,11 @@ values.
         encode-utf8 to integer! dec
     ]
 
+The |entity-map| is also useful to export.
+
+    -other-exports-:
+    entity-map  "List of all the named HTML entities"
+
 ---Named entities map
 
 This is a map of all named entities to their UTF-8 encoded character value.
