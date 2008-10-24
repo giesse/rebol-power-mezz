@@ -1,0 +1,804 @@
+HTML Filter
+
+    Purpose: {
+        Filters HTML text removing any potential security treat;
+        allows embedding some HTML coming from an untrusted source
+        in a web page without creating security holes for the web site.
+    }
+    Author: "Gabriele Santilli"
+    EMail: giesse@rebol.it
+    File: %filter-html.r
+    Version: 1.0.0
+
+===TODO
+
+*Fix <style> outside <head>
+
+===Introduction
+
+It is often desirable, for certain kinds of web sites (wikis, forums, blogs, and so on),
+to allow advanced users to customize any text input using HTML tags; in some cases,
+where the site allows users to publish new pages or edit existing content, allowing
+users to edit the HTML directly is even more desirable. However, if you can't trust the
+users, allowing HTML means opening up to a number of vulnerabilities (especially cross-site
+scripting, phishing, etc.); the solution to the problem is to "sanitize" any HTML text
+coming from an untrusted source before embedding it in the final web page. If all potentially
+harmful content is removed, it is possible to safely embed the HTML into any page.
+
+===Overview
+
+This program defines the |filter-html| function, that can be used to sanitize any HTML
+text. The string passed as argument is fully parsed and completely regenerated as
+XHTML 1.0 Strict, which is returned as a string.
+
+If the |/all| refinement is used, a complete XHTML 1.0 document is returned; otherwise,
+the text returned contains only the "body" part of the document and can be embedded
+directly inside another XHTML document.
+
+The |/with| refinement can be used to prepend a prefix to all tag IDs (or anchor names,
+and so on) that are specified in the source document (thus preventing clashes with IDs
+in the host document). If you are embedding the filtered HTML in a document that makes use
+of IDs, anchors etc., then you **should** use the |/with| refinement providing a prefix that
+ensures no clashes. (Note: currently the CSS is not being parsed, so references to IDs in
+the CSS will break when using |/with|.)
+
+The |/utf8| refinement can be used to disable the conversion of all non-ASCII characters
+to HTML entities (e.g. if your page is in Japanese then you don't want every character
+to be encoded as an HTML entity, as that would take much more space than UTF-8).
+
+\note Note:
+
+The source |html| string is assumed to use the UTF-8 encoding. If your text uses any
+other encoding, you **must** convert it to UTF-8 before calling this function.
+
+The output string will always be ASCII (all non-ASCII characters will be converted
+to a character entity), unless the |/utf8| refinement is used, in which case the output
+string will be UTF-8 encoded.
+
+/note
+
+    -main-:
+    module [
+        "HTML Filter"
+        {Filters HTML text removing any potential security treat;
+        allows embedding some HTML coming from an untrusted source
+        in a web page without creating security holes for the web site.}
+        import [
+            ml-parser       "Used to parse the HTML text"
+            html-normalizer "Used to normalize the HTML before regenerating it"
+            uri-parser      "Used to check and normalize the URLs"
+        ]
+        global [
+            filter-html     "Made global so that it's easy to use in non-modules"
+        ]
+    ] [
+        -stage3-
+
+        filter-html: func [
+            "Sanitize HTML text"
+            html [string!]
+            /all "Return a complete HTML document (including <html> tag, <head> etc.)"
+            /with prefix "Prepend the given prefix to all IDs"
+            /utf8 "Return UTF-8 text instead of ASCII"
+        ] [
+            -filter-html-
+        ]
+    ]
+
+===Parse and regenerate the |html| text
+
+Parsing and regeneration is done using a multi-stage pipeline of
+finite state machines (FSMs). The first stage uses |parse-ml| on
+the source text, parsing tags, text and character entities,
+and sends the parsed elements to the second stage, the |html-normalizer| module,
+via the |process-tag| function; that in turn sends the normalized elements
+to the |stage3| function.
+
+    -filter-html-:
+    init-stage3 all prefix utf8
+    init-normalizer :stage3
+    parse-ml html :process-tag
+    end-normalizer
+    end-stage3
+
+===Regeneration (stage 3)
+
+    -stage3-:
+    stage3-fsm: make fsm! [ ]
+    stage3: func [cmd data] [
+        if block? cmd [cmd: first cmd]
+        stage3-ctx/cmd: cmd
+        stage3-ctx/data: data
+        stage3-fsm/event cmd
+    ]
+    init-stage3: func [all prefix utf8] [
+        out: make string! 1024
+        emit-full-doc?: all
+        id-prefix: prefix
+        emit-utf8?: utf8
+        ;stage3-fsm/tracing: yes
+        stage3-fsm/init stage3-ctx/initial
+        if emit-full-doc? [
+            emit <?xml version="1.0" encoding="UTF-8"?>
+            emit newline
+            emit <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+            emit newline
+        ]
+    ]
+    emit-full-doc?: no
+    id-prefix: none
+    emit-utf8?: no
+    end-stage3: does [
+        stage3-fsm/end
+        out
+    ]
+    stage3-ctx: context [
+        cmd: data: none
+        
+        inherit: func [old new] [
+            append new old
+        ]
+
+        initial: [
+            ; whitespace before <html> removed
+            comment: (emit data)
+            <html> (
+                if emit-full-doc? [emit-tag <html> data [xmlns force http://www.w3.org/1999/xhtml]]
+            ) in-html (
+                if emit-full-doc? [emit </html>]
+            )
+        ]
+        in-html: [
+            comment: whitespace: (emit data)
+            <head> (if emit-full-doc? [emit-tag <head> data [ ]]) in-head (if emit-full-doc? [emit </head>])
+            <body> (
+                if emit-full-doc? [
+                    emit-tag <body> data [
+                        background [style* uri   "background-image"] none
+                        text       [style* color "color"]            none
+                        link       color                             none
+                        vlink      color                             none
+                        alink      color                             none
+                    ]
+                ]
+            ) in-body (if emit-full-doc? [emit </body>])
+            </html> return
+        ]
+        in-head: [
+            comment: whitespace: (emit data)
+            </head> return
+            <title> (if emit-full-doc? [emit-tag <title> data [ ]]) in-title (if emit-full-doc? [emit </title>])
+            <base/> (
+                if emit-full-doc? [
+                    emit-tag <base/> data [
+                        href   uri             none
+                        target [enum "_blank"] none
+                    ]
+                ]
+            )
+            <style> (
+                if emit-full-doc? [
+                    emit-tag <style> data [
+                        type  force      "text/css"
+                        media media-desc none
+                    ]
+                    emit {^//* <![CDATA[ */^/}
+                ]
+            ) in-style (if emit-full-doc? [emit ["^//* ]]> */^/" </style>]])
+            ;<meta/>
+            <link/> (
+                if emit-full-doc? [
+                    emit-tag <link/> data [
+                        href     uri             none
+                        hreflang name*           none
+                        type     cdata           none
+                        rel      name-list       none
+                        rev      name-list       none
+                        charset  cdata           none
+                        target   [enum "_blank"] none
+                        media    media-desc      none
+                    ]
+                ]
+            )
+        ]
+        in-style: [
+            ; inside <![CDATA[...]]> so no need to escape
+            text: whitespace: (if emit-full-doc? [emit replace/all data "]]>" ""])
+            </style> return
+        ]
+        in-title: [
+            text: whitespace: (if emit-full-doc? [encode-entities out data emit-utf8?])
+            </title> return
+        ]
+        in-body: [
+            comment: whitespace: (emit data)
+
+            </body> return
+
+            <style> (
+                if emit-full-doc? [
+                    emit-tag <style> data [
+                        type  force      "text/css"
+                        media media-desc none
+                    ]
+                    emit {^//* <![CDATA[ */^/}
+                ]
+            ) in-style (if emit-full-doc? [emit ["^//* ]]> */^/" </style>]])
+
+            <h1> <h2> <h3> <h4> <h5> <h6> <address> <p>
+            <pre> <legend>
+                (emit-tag cmd data [ ]) in-para
+
+            <ul> (emit-tag cmd data [
+                type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
+            ]) in-list
+            <ol> (emit-tag cmd data [
+                type  [style* list-style "list-style-type"] none
+                start number                                none
+            ]) in-list
+            <dl> (emit-tag cmd data [ ]) in-dlist
+
+            <div> <fieldset> (emit-tag cmd data [ ])
+            <center> (emit-tag <div> append copy [align "center"] data [ ])
+
+            <blockquote> (emit-tag cmd data [cite uri none])
+            <form>  (emit-tag cmd data [
+                action  force "#" ; disable forms!
+                method  force "GET"
+                name    name* none
+            ])
+            <table> (emit-tag cmd data [
+                summary     cdata                          none
+                align       [enum "left" "center" "right"] none
+                width       [style* lengthpx "width"]      none
+                frame       [
+                    enum "void" "above" "below" "hsides"
+                        "lhs" "rhs" "vsides" "box" "border"
+                ]                                          none
+                rules       [
+                    enum "none" "groups" "rows" "cols" "all"
+                ]                                          none
+                border      [style* pixels "border-width"] none
+                cellspacing length                         none
+                cellpadding length                         none
+            ]) in-table (emit </table>)
+            
+            <ins> <del> (emit-tag cmd data [
+                cite     uri   none
+                datetime cdata none
+            ])
+
+            <hr/> (emit-tag cmd data [
+                ; this is quite hard to convert to CSS automatically
+                ; so will keep the deprecated attributes
+                align   [enum "left" "right" "center"] none
+                noshade [bool "noshade"]               none
+                size    number                         none
+                width   length                         none
+            ])
+            
+            </div> </blockquote> </form> </fieldset> </ins> </del>
+                (emit lowercase cmd)
+            </center> (emit </div>)
+        ]
+        in-para: [
+            comment: whitespace: (emit data)
+
+            </h1> </h2> </h3> </h4> </h5> </h6> </address> </p>
+            </dt> </pre> </caption> </legend>
+                (emit lowercase cmd) return
+
+            <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
+            <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
+            <abbr> <acronym>
+                (emit-tag cmd data [ ])
+
+            <a> (emit-tag cmd data [
+                name     name*                                   none
+                href     uri                                     none
+                hreflang name*                                   none
+                type     cdata                                   none
+                rel      name-list                               none
+                rev      name-list                               none
+                charset  cdata                                   none
+                target   [enum "_blank"]                         none
+                shape    [enum "default" "rect" "circle" "poly"] none
+                coords   cdata                                   none
+            ])
+
+            <font> (emit-tag <span> data [
+                size  [style* font-size "font-size"]   none
+                color [style* color     "color"]       none
+                face  [style* cdata     "font-family"] none
+            ])
+            </font> (emit </span>)
+
+            <span> (emit-tag cmd data [ ])
+
+            <map> (emit-tag cmd data [name name* none])
+            <area/> (emit-tag cmd data [
+                shape    [enum "default" "rect" "circle" "poly"] none
+                coords   cdata                                   none
+                nohref   [bool "nohref"]                         none
+                alt      cdata                                   none
+                href     uri                                     none
+                target   [enum "_blank"]                         none
+            ])
+
+            <select> (emit-tag cmd data [
+                name     name*             none
+                size     number            none
+                multiple [bool "multiple"] none
+                disabled force             "disabled"
+            ]) in-select (emit </select>)
+            <textarea> (emit-tag cmd data [
+                name     name*             none
+                rows     number            none
+                cols     number            none
+                readonly [bool "readonly"] none
+                disabled force             "disabled"
+            ]) in-option
+            <button> (emit-tag cmd data [
+                name     name*                            none
+                value    cdata                            none
+                type     [enum "submit" "button" "reset"] none
+                disabled force                            "disabled"
+            ])
+            <label> (emit-tag cmd data [for name* none])
+            <input/> (emit-tag cmd data [
+                type      [
+                    enum "text" "password" "checkbox" "radio"
+                        "submit" "reset" "file" "hidden"
+                        "image" "button"
+                ]                           none
+                name      name*             none
+                value     cdata             none
+                size      number            none
+                maxlength number            none
+                checked   [bool "checked"]  none
+                src       uri               none
+                alt       cdata             none
+                accept    cdata             none
+                readonly  [bool "readonly"] none
+                disabled  force             "disabled"
+                usemap    uri               none
+                ismap     [bool "ismap"]    none
+            ])
+
+            <q> (emit-tag cmd data [cite uri none])
+
+            ;<object>
+            
+            <ins> <del> (emit-tag cmd data [
+                cite     uri   none
+                datetime cdata none
+            ])
+
+            <img/> (emit-tag cmd data [
+                src      uri            none
+                alt      cdata          none
+                longdesc uri            none
+                name     name*          none
+                usemap   uri            none
+                ismap    [bool "ismap"] none
+                width    length         none
+                height   length         none
+                hspace   [imgmargin "left" "right"] none
+                vspace   [imgmargin "top" "bottom"] none
+                border   [style* pixels "border-width"] none
+                align    imgalign       none
+            ])
+
+            <br/> (emit-tag cmd data [clear brclear none])
+
+            <basefont/>
+
+            </tt> </i> </b> </u> </strike> </s> </big> </small> </sub> </sup>
+            </em> </strong> </dfn> </code> </samp> </kbd> </var> </cite>
+            </a> </map> </button> </label> </span>
+            </abbr> </acronym> </q> ;</object>
+            </ins> </del> ; should be treated specially, but noone uses them so...
+                (emit lowercase cmd)
+            
+            text: (encode-entities out data emit-utf8?)
+        ]
+        in-item: inherit in-body inherit in-para [
+            </li> </td> </th> </dd> (emit lowercase cmd) return
+        ]
+        in-list: [
+            comment: whitespace: (emit data)
+
+            <li> (emit-tag <li> data [
+                type  [style* list-style "list-style-type"] none
+                value number                                none
+            ]) in-item
+
+            <ul> (emit <li> emit-tag cmd data [
+                type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
+            ]) in-list (emit </li>)
+            <ol> (emit <li> emit-tag cmd data [
+                type  [style* list-style "list-style-type"] none
+                start number                                none
+            ]) in-list (emit </li>)
+
+            </ul> </ol> (emit lowercase cmd) return
+        ]
+        in-dlist: [
+            comment: whitespace: (emit data)
+            
+            <dt> (emit-tag cmd data [ ]) in-para
+            <dd> (emit-tag cmd data [ ]) in-item
+
+            </dl> (emit </dl>) return
+        ]
+        in-table: [
+            comment: whitespace: (emit data)
+            
+            <caption> (emit-tag cmd data [ ]) in-para
+
+            <colgroup> (emit-tag cmd data [
+                span   number       none
+                width  multi-length none
+                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            ]) in-colgroup (emit </colgroup>)
+            <col/> (emit-tag cmd data [
+                span   number       none
+                width  multi-length none
+                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            ])
+
+            <thead> <tfoot> <tbody> (emit-tag cmd data [
+                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            ]) in-rows
+
+            <tr> (emit <tbody>) continue in-rows (emit </tbody>)
+
+            </table> return
+        ]
+        in-colgroup: [
+            comment: whitespace: (emit data)
+            
+            <col/> (emit-tag cmd data [
+                span   number       none
+                width  multi-length none
+                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            ])
+            
+            </colgroup> return
+        ]
+        in-rows: [
+            comment: whitespace: (emit data)
+
+            <tr> (emit-tag cmd data [
+                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            ]) in-cells (emit </tr>)
+            
+            </thead> </tfoot> </tbody> (emit lowercase cmd) return
+
+            </table> 2 return ; no <tbody>
+        ]
+        in-cells: [
+            comment: whitespace: (emit data)
+            
+            <td> <th> (emit-tag cmd data [
+                headers name-list                                none
+                scope   [enum "row" "col" "rowgroup" "colgroup"] none
+                abbr    cdata                                    none
+                axis    cdata                                    none
+                rowspan number                                   none
+                colspan number                                   none
+                nowrap  [style* [bool "nowrap"] "white-space"]   none
+                width   [style* lengthpx "width"]                  none
+                height  [style* lengthpx "height"]                 none
+                ; char alignment not supported (browsers do not support it anyway)
+                valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            ]) in-item
+
+            </tr> return
+        ]
+        in-select: [
+            comment: whitespace: (emit data)
+            
+            <option> (emit-tag cmd data [
+                selected [bool "selected"] none
+                value    cdata             none
+                label    cdata             none
+                disabled force             "disabled"
+            ]) in-option
+            <optgroup> (emit-tag cmd data [
+                label    cdata none
+                disabled force "disabled"
+            ]) in-optgroup (emit </optgroup>)
+
+            </select> return
+        ]
+        in-option: [
+            comment: whitespace: (emit data)
+
+            text: (encode-entities out data emit-utf8?)
+            
+            </option> </textarea> (emit lowercase cmd) return
+        ]
+        in-optgroup: [
+            comment: whitespace: (emit data)
+
+            <option> (emit-tag cmd data [
+                selected [bool "selected"] none
+                value    cdata             none
+                label    cdata             none
+                disabled force             "disabled"
+            ]) in-option
+
+            </optgroup> return
+        ]
+    ]
+    out: {}
+    emit: func [value] [repend out value]
+    global-attrs: [
+        dir     [enum "LTR" "RTL"]                none
+        id      name*                             none
+        class   name-list                         none
+        title   cdata                             none
+        bgcolor [style* color "background-color"] none
+        align   [style* [enum "left" "center" "right" "justify"] "text-align"] none
+    ]
+    attr-types: context [
+        enum: func [value opts] [
+            if value: find opts value [value/1]
+        ]
+        name*: func [value opts] [
+            if parse/all trim/lines value [name] [value]
+        ]
+        name-list: func [value opts] [
+            if parse/all trim/lines value [name any [" " name]] [
+                value
+            ]
+        ]
+        force: func [value opts] [none] ; force default
+        style*: func [value opts] [
+            if value: process-attr value opts/1 none [
+                repend style either opts/1 = 'uri [
+                    [opts/2 ": url('" value "');"]
+                ] [
+                    [opts/2 ": " value ";"]
+                ]
+            ]
+            none
+        ]
+        color: func [value opts] [
+            if parse/all trim/lines value [
+                "#" 3 6 hexdigit
+                |
+                "aliceblue" | "antiquewhite" | "aqua" | "aquamarine" | "azure" |
+                "beige" | "bisque" | "black" | "blanchedalmond" | "blue" |
+                "blueviolet" | "brown" | "burlywood" | "cadetblue" | "chartreuse" |
+                "chocolate" | "coral" | "cornflowerblue" | "cornsilk" | "crimson" |
+                "cyan" | "darkblue" | "darkcyan" | "darkgoldenrod" | "darkgray" |
+                "darkgreen" | "darkkhaki" | "darkmagenta" | "darkolivegreen" |
+                "darkorange" | "darkorchid" | "darkred" | "darksalmon" |
+                "darkseagreen" | "darkslateblue" | "darkslategray" | "darkturquoise" |
+                "darkviolet" | "deeppink" | "deepskyblue" | "dimgray" |
+                "dodgerblue" | "feldspar" | "firebrick" | "floralwhite" |
+                "forestgreen" | "fuchsia" | "gainsboro" | "ghostwhite" | "gold" |
+                "goldenrod" | "gray" | "green" | "greenyellow" | "honeydew" |
+                "hotpink" | "indianred" | "indigo" | "ivory" | "khaki" | "lavender" |
+                "lavenderblush" | "lawngreen" | "lemonchiffon" | "lightblue" |
+                "lightcoral" | "lightcyan" | "lightgoldenrodyellow" | "lightgreen" |
+                "lightgrey" | "lightpink" | "lightsalmon" | "lightseagreen" |
+                "lightskyblue" | "lightslateblue" | "lightslategray" |
+                "lightsteelblue" | "lightyellow" | "lime" | "limegreen" | "linen" |
+                "magenta" | "maroon" | "mediumaquamarine" | "mediumblue" |
+                "mediumorchid" | "mediumpurple" | "mediumseagreen" |
+                "mediumslateblue" | "mediumspringgreen" | "mediumturquoise" |
+                "mediumvioletred" | "midnightblue" | "mintcream" | "mistyrose" |
+                "moccasin" | "navajowhite" | "navy" | "oldlace" | "olive" |
+                "olivedrab" | "orange" | "orangered" | "orchid" | "palegoldenrod" |
+                "palegreen" | "paleturquoise" | "palevioletred" | "papayawhip" |
+                "peachpuff" | "peru" | "pink" | "plum" | "powderblue" | "purple" |
+                "red" | "rosybrown" | "royalblue" | "saddlebrown" | "salmon" |
+                "sandybrown" | "seagreen" | "seashell" | "sienna" | "silver" |
+                "skyblue" | "slateblue" | "slategray" | "snow" | "springgreen" |
+                "steelblue" | "tan" | "teal" | "thistle" | "tomato" | "turquoise" |
+                "violet" | "violetred" | "wheat" | "white" | "whitesmoke" | "yellow" |
+                "yellowgreen" | "transparent"
+            ] [
+                value
+            ]
+        ]
+        uri: func [value opts] [
+            all [
+                value: parse-uri/relative value
+                find [#[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"] value/scheme
+                ; should warn on userinfo
+                form-uri value
+            ]
+        ]
+        cdata: func [value opts] [if value [trim/lines value]]
+        media-desc: func [value opts /local names nm] [
+            names: clear [ ]
+            if all [value parse/all trim/lines value [
+                copy nm name (append names nm)
+                any [
+                    thru "," opt " " copy nm name (append names nm)
+                ]
+                to end
+            ]] [
+                names: intersect names [
+                    "screen" "tty" "tv" "projection" "handheld"
+                    "print" "braille" "aural" "all"
+                ]
+                if empty? names [return none]
+                value: copy first names
+                foreach name next names [
+                    repend value [", " name]
+                ]
+                value
+            ]
+        ]
+        list-style: func [value opts] [
+            if find ["disc" "circle" "square"] value [return value]
+            select/case [
+                "1" "decimal"     #[none]
+                "a" "lower-alpha" #[none]
+                "A" "upper-alpha" #[none]
+                "i" "lower-roman" #[none]
+                "I" "upper-roman" #[none]
+            ] value
+        ]
+        number: func [value opts] [
+            if parse/all trim/lines value [some digit] [value]
+        ]
+        pixels: func [value opts] [
+            if parse/all trim/lines value [some digit] [append value "px"]
+        ]
+        bool: func [value opts] [
+            opts/1
+        ]
+        length: func [value opts] [
+            if parse/all trim/lines value [some digit opt "%"] [value]
+        ]
+        lengthpx: func [value opts] [
+            if parse/all trim/lines value [some digit ["%" | (append value "px") to end]] [value]
+        ]
+        multi-length: func [value opts] [
+            if parse/all trim/lines value [some digit ["%" | "*" | none]] [value]
+        ]
+        font-size: func [value opts] [
+            trim/lines value
+            any [
+                select [
+                    "1"  "xx-small" #[none]
+                    "2"  "x-small"  #[none]
+                    "3"  "small"    #[none]
+                    "4"  "medium"   #[none]
+                    "5"  "large"    #[none]
+                    "6"  "x-large"  #[none]
+                    "7"  "xx-large" #[none]
+                    "+1" "120%"     #[none]
+                    "+2" "144%"     #[none]
+                    "+3" "173%"     #[none]
+                    "+4" "207%"     #[none]
+                    "+5" "249%"     #[none]
+                    "+6" "299%"     #[none]
+                    "+7" "358%"     #[none]
+                    "-1" "80%"      #[none]
+                    "-2" "64%"      #[none]
+                    "-3" "51%"      #[none]
+                    "-4" "41%"      #[none]
+                    "-5" "33%"      #[none]
+                    "-6" "26%"      #[none]
+                    "-7" "21%"      #[none]
+                ] value
+                length value none
+            ]
+        ]
+        imgmargin: func [value opts] [
+            if value: number value none [
+                repend style [
+                    "margin-" opts/1 ": " value "px;"
+                    "margin-" opts/2 ": " value "px;"
+                ]
+            ]
+            none
+        ]
+        imgalign: func [value opts] [
+            append style any [select [
+                "bottom" "vertical-align: bottom;" #[none]
+                "middle" "vertical-align: middle;" #[none]
+                "top"    "vertical-align: top;"    #[none]
+                "left"   "float: left;"            #[none]
+                "right"  "float: right;"           #[none]
+            ] value ""]
+            none
+        ]
+        brclear: func [value opts] [
+            append style any [select [
+                "none"  "clear: none;"  #[none]
+                "left"  "clear: left;"  #[none]
+                "right" "clear: right;" #[none]
+                "all"   "clear: both;"  #[none]
+            ] value ""]
+            none
+        ]
+    ]
+    style: none
+    process-attr: func [value type defvalue /local opts] [
+        if defvalue = 'none [defvalue: none]
+        if none? value [return defvalue]
+        if block? type [opts: next type type: first type]
+        type: get in attr-types type
+        value: any [type value opts defvalue]
+    ]
+    emit-tag: func [tag attrs valid-attrs /local value lang] [
+        tag: as-string lowercase tag
+        emit "<"
+        insert/part tail out tag either #"/" = last tag [back tail tag] [tail tag]
+        if not block? attrs [attrs: [ ]]
+        lang: any [
+            process-attr select attrs 'xml/lang 'name* none
+            process-attr select attrs 'lang     'name* none
+        ]
+        if lang [
+            emit [{ lang="} lang {" xml:lang="} lang {"}]
+        ]
+        style: make string! 256
+        foreach [name type defvalue] union/skip valid-attrs global-attrs 3 [
+            value: process-attr select attrs name type defvalue
+            if value [
+                emit [" " name {="}]
+                encode-entities out value emit-utf8?
+                emit {"}
+            ]
+        ]
+        if value: select attrs 'style [
+            append style value
+        ]
+        if not empty? style [
+            emit { style="}
+            encode-entities out style emit-utf8?
+            emit {"}
+        ]
+        either #"/" = last tag [emit " />"] [emit ">"]
+    ]
+    ascii: exclude charset [#"^(00)" - #"^(7F)"] special: charset {"&<>}
+    seq2: charset [#"^(C0)" - #"^(DF)"]
+    seq3: charset [#"^(E0)" - #"^(EF)"]
+    seq4: charset [#"^(F0)" - #"^(F7)"]
+    seq: charset [#"^(80)" - #"^(BF)"]
+    encode-entities: func [output text only /local mk1 mk2] [
+        parse/all text [
+            some [
+                mk1: some ascii mk2: (insert/part tail output mk1 mk2)
+                |
+                copy mk1 [special | seq2 seq | seq3 2 seq | seq4 3 seq] (insert tail output encode-entity as-binary mk1 only)
+                |
+                skip
+            ]
+        ]
+    ]
+    rselect: func [series value] [
+        all [
+            series: find series value
+            pick series -1
+        ]
+    ]
+    encode-entity: func [char [binary!] only /local nm] [
+        if nm: rselect entity-map char [
+            return rejoin ["&" nm ";"]
+        ]
+        if only [return char]
+        ; assume well formed utf-8 char
+        do pick [
+            none
+            [   ; 2
+                char: char/1 and 31 * 64 + (char/2 and 63)
+            ]
+            [   ; 3
+                char: char/1 and 15 * 4096 + (char/2 and 63 * 64) + (char/3 and 63)
+            ]
+            [   ; 4
+                char: char/1 and 7 * 262144 + (char/2 and 63 * 4096) + (char/3 and 63 * 64) + (char/4 and 63)
+            ]
+        ] length? char
+        rejoin ["&#" char ";"]
+    ]
