@@ -170,6 +170,7 @@ The following definitions are used in the rules for tags:
     letter+: union union letter digit charset {.-_} ; {.-_:}
     space: charset { ^/^-}
     value-chars: union letter+ charset "/:@%#?,+&=;" ; very relaxed
+    garbage: union value-chars charset {"'}
     text-char: complement charset "&< ^/^-"
     name: [letter* any letter+]
 
@@ -192,10 +193,10 @@ End tags are sent to the second stage as |</tagname>|.
     start-empty-tag: [
         #"<" 
         copy nm [name opt [#":" name]] any space 
-        (attributes: make block! 16) any attribute 
+        (attributes: make block! 16) any [attribute | some garbage] ; ignore any garbage
         ["/>" (cb head insert insert make tag! 3 + length? nm nm #"/" attributes) | #">" (cb to tag! nm attributes)]
         |
-        #"<" (stage2 [text:] copy "<")
+        #"<" (cb [text:] copy "<")
     ]
     attribute: [
         [
