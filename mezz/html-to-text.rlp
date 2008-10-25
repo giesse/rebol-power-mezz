@@ -1,0 +1,317 @@
+HTML to plain text converter
+
+    Purpose: {
+        Defines a function that can convert a HTML text string into a plain
+        text string.
+    }
+    Author: "Gabriele Santilli"
+    EMail: giesse@rebol.it
+    File: %html-to-text.r
+    Version: 1.0.0
+
+===Introduction
+
+This module defines a function, |html-to-text|, that can convert a HTML string into
+just plain text. Currently the conversion is rather simple, but it is easy to improve
+it.
+
+===Overview
+
+\note Note:
+
+The source |html| string is assumed to use the UTF-8 encoding. If your text uses any
+other encoding, you **must** convert it to UTF-8 before calling this function.
+
+The output string will always be UTF-8 encoded.
+
+/note
+
+    -main-:
+    module [
+        "HTML to plain text converter"
+        {Defines a function that can convert a HTML text string into a plain
+        text string.}
+        import [
+            ml-parser       "Used to parse the HTML text"
+            html-normalizer "Used to normalize the HTML before regenerating it"
+            ;uri-parser      "Used to check and normalize the URLs"
+        ]
+        global [
+            html-to-text    "Made global so that it's easy to use in non-modules"
+        ]
+    ] [
+        -stage3-
+
+        html-to-text: func [
+            "Convert HTML to plain text"
+            html [string!]
+        ] [
+            -html-to-text-
+        ]
+    ]
+
+===Parse the |html| text and generate plain text
+
+We use a multi-stage pipeline of
+finite state machines (FSMs). The first stage uses |parse-ml| on
+the source text, parsing tags, text and character entities,
+and sends the parsed elements to the second stage, the |html-normalizer| module,
+via the |process-tag| function; that in turn sends the normalized elements
+to the |stage3| function.
+
+    -filter-html-:
+    init-stage3
+    init-normalizer :stage3
+    parse-ml html :process-tag
+    end-normalizer
+    end-stage3
+
+===Conversion to text (stage 3)
+
+    -stage3-:
+    stage3-fsm: make fsm! [ ]
+    stage3: func [command command-data] [
+        if block? command [command: first command]
+        cmd: command
+        data: command-data
+        stage3-fsm/event cmd
+    ]
+    init-stage3: does [
+        out: make string! 1024
+        uri-base: none
+        clear links
+        clear indent
+        stage3-fsm/init initial
+    ]
+    end-stage3: does [
+        stage3-fsm/end
+        emit newline
+        forall links [
+            emit [#"[" index? links "] "]
+            emit-uri links/1
+            emit newline
+        ]
+        out
+    ]
+    inherit: func [old new] [
+        append new old
+    ]
+    
+    initial: [
+        <html> in-html
+    ]
+    in-html: [
+        <head> in-head (unless empty? out [emit newline])
+        <body> in-body
+        </html> return
+    ]
+    in-head: [
+        </head> return
+        <title> in-title
+        <base/> (uri-base: any [select data 'href uri-base])
+        <style> in-style
+        ;<meta/>
+        <link/> (
+            emit any [select data 'rel select data 'rev "LINK: "]
+            emit-uri select data 'href
+            emit newline
+        )
+    ]
+    in-style: [
+        </style> return
+    ]
+    in-title: [
+        </title> return
+    ]
+    para-buffer: ""
+    in-body: [
+        </body> return
+
+        <style> in-style
+
+        <h1> (clear para-buffer) in-para (
+            uppercase para-buffer
+            emit-para
+            emit [
+                indent copy/part "======================================================================" 70 - length? indent
+                newline
+                newline
+            ]
+        )
+        <h2> <h3> <h4> <h5> <h6> (clear para-buffer) in-para (
+            uppercase para-buffer
+            emit-para
+            emit newline
+        )
+        <address> <p> <legend> (clear para-buffer) in-para (emit-para emit newline)
+        <pre> (clear para-buffer) in-pre (emit para-buffer)
+
+        <ul> in-ulist (emit newline)
+        <ol> (olist-start: select data 'start) in-olist (emit newline)
+        <dl> in-dlist (emit newline)
+
+        ;<center>
+
+        <blockquote> (increase-indent) in-blockquote (decrease-indent)
+        <table> in-table
+        
+        <hr/> (emit [
+            indent copy/part "----------------------------------------------------------------------" 70 - length? indent
+            newline
+            newline
+        ])
+    ]
+    in-blockquote: inherit in-body [
+        </blockquote> return
+    ]
+    links: [ ]
+    in-para: [
+        whitespace: (unless #" " = last para-buffer [append para-buffer #" "])
+
+        </h1> </h2> </h3> </h4> </h5> </h6> </address> </p>
+        </dt> </pre> </caption> </legend>
+            return
+
+        ;<tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
+        ;<em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
+        ;<abbr> <acronym>
+
+        <a> (append links select data 'href) in-link (repend para-buffer [" [" length? links "] "])
+
+        <select> in-select
+        ;<textarea> in-option
+        ;<button>
+        ;<label>
+        ;<input/>
+
+        <q> (append para-buffer #{E2809C})
+        </q> (append para-buffer #{E2809D})
+
+        ;<object>
+        
+        <img/> (append para-buffer "[IMAGE]") ; show src="" ?
+
+        <br/> (emit-para)
+
+        text: (append para-buffer data)
+    ]
+    in-pre: inherit in-para [
+        whitespace: (append para-buffer data)
+        <br/> (append para-buffer newline)
+    ]
+    in-link: inherit in-para [
+        </a> return
+    ]
+    in-ulist: [
+        comment: whitespace: (emit data)
+
+        <li> (emit-tag <li> data [
+            type  [style* list-style "list-style-type"] none
+            value number                                none
+        ]) in-item
+
+        <ul> (emit <li> emit-tag cmd data [
+            type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
+        ]) in-list (emit </li>)
+        <ol> (emit <li> emit-tag cmd data [
+            type  [style* list-style "list-style-type"] none
+            start number                                none
+        ]) in-list (emit </li>)
+
+        </ul> </ol> (emit lowercase cmd) return
+    ]
+    in-olist: inherit in-ulist [
+        
+    ]
+    in-dlist: [
+        comment: whitespace: (emit data)
+        
+        <dt> (emit-tag cmd data [ ]) in-para
+        <dd> (emit-tag cmd data [ ]) in-item
+
+        </dl> (emit </dl>) return
+    ]
+    in-table: [
+        comment: whitespace: (emit data)
+        
+        <caption> (emit-tag cmd data [ ]) in-para
+
+        <colgroup> (emit-tag cmd data [
+            span   number       none
+            width  multi-length none
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]) in-colgroup (emit </colgroup>)
+        <col/> (emit-tag cmd data [
+            span   number       none
+            width  multi-length none
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ])
+
+        <thead> <tfoot> <tbody> (emit-tag cmd data [
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]) in-rows
+
+        <tr> (emit <tbody>) continue in-rows (emit </tbody>)
+
+        </table> return
+    ]
+    in-colgroup: [
+        </colgroup> return
+    ]
+    in-rows: [
+        comment: whitespace: (emit data)
+
+        <tr> (emit-tag cmd data [
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]) in-cells (emit </tr>)
+        
+        </thead> </tfoot> </tbody> (emit lowercase cmd) return
+
+        </table> 2 return ; no <tbody>
+    ]
+    in-cells: [
+        comment: whitespace: (emit data)
+        
+        <td> <th> (emit-tag cmd data [
+            headers name-list                                none
+            scope   [enum "row" "col" "rowgroup" "colgroup"] none
+            abbr    cdata                                    none
+            axis    cdata                                    none
+            rowspan number                                   none
+            colspan number                                   none
+            nowrap  [style* [bool "nowrap"] "white-space"]   none
+            width   [style* lengthpx "width"]                  none
+            height  [style* lengthpx "height"]                 none
+            ; char alignment not supported (browsers do not support it anyway)
+            valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]) in-item
+
+        </tr> return
+    ]
+    in-select: [
+        </select> return
+    ]
+    emit: func [value] [repend out value]
+    indent: ""
+    increase-indent: does [append indent "    "]
+    decrease-indent: does [clear skip tail indent -4]
+    break-at: complement charset [#"0" - #"9" #"A" - #"Z" #"a" - #"z" {"'#$%&([^{@} #"^(80)" - #"^(FF)"]
+    emit-para: has [pos] [
+        while [not tail? para-buffer] [
+            emit indent
+            pos: skip para-buffer 71 - length? indent
+            pos: find/reverse/tail pos break-at
+            if any [not pos (index? pos) <= index? para-buffer] [
+                pos: skip para-buffer 71 - length? indent
+                pos: any [find/tail pos break-at tail pos]
+            ]
+            insert/part tail out para-buffer para-buffer: pos
+            emit newline
+        ]
+        clear para-buffer: head para-buffer
+    ]
+    emit-uri: func [uri] [
+        ; needs to be smarter.
+        if uri-base [emit uri-base]
+        emit uri
+    ]
