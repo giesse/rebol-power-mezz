@@ -308,6 +308,7 @@ modules too.
     name        "Parse rule for tag names"
     digit       "Charset for digits"
     hexdigit    "Charset for a hex digit"
+    space       "Charset for whitespace"
 
 ---Entity conversion functions
 
