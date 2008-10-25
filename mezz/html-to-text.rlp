@@ -146,9 +146,9 @@ to the |stage3| function.
         <address> <p> <legend> (clear para-buffer) in-para (emit-para emit newline)
         <pre> (clear para-buffer) in-pre (emit para-buffer)
 
-        <ul> in-ulist (emit newline)
-        <ol> (olist-start: select data 'start) in-olist (emit newline)
-        <dl> in-dlist (emit newline)
+        <ul> (increase-indent) in-ulist (decrease-indent emit newline)
+        <ol> (increase-indent count: any [if count*: select data 'start [attempt [to integer! count*]] 1]) in-olist (decrease-indent emit newline)
+        <dl> (increase-indent) in-dlist (decrease-indent emit newline)
 
         ;<center>
 
@@ -202,34 +202,33 @@ to the |stage3| function.
     in-link: inherit in-para [
         </a> return
     ]
+    ; we are supporting lists only for very simple cases...
+    in-item: inherit in-para [
+        </li> </dt> </dd> return
+    ]
     in-ulist: [
-        comment: whitespace: (emit data)
+        <li> (clear para-buffer) in-item (emit-para/with " * ")
+        <ul> (increase-indent) in-ulist (decrease-indent)
+        <ol> (increase-indent) in-olist (decrease-indent)
 
-        <li> (emit-tag <li> data [
-            type  [style* list-style "list-style-type"] none
-            value number                                none
-        ]) in-item
-
-        <ul> (emit <li> emit-tag cmd data [
-            type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
-        ]) in-list (emit </li>)
-        <ol> (emit <li> emit-tag cmd data [
-            type  [style* list-style "list-style-type"] none
-            start number                                none
-        ]) in-list (emit </li>)
-
-        </ul> </ol> (emit lowercase cmd) return
+        </ul> </ol> return
     ]
     in-olist: inherit in-ulist [
-        
+        <li> (
+            clear para-buffer
+            if all [
+                count*: select data 'value
+                attempt [count*: to integer count*]
+            ] [
+                count: count*
+            ]
+        ) in-item (emit-para/with rejoin [#" " count ". "] count: count + 1)
     ]
     in-dlist: [
-        comment: whitespace: (emit data)
-        
-        <dt> (emit-tag cmd data [ ]) in-para
-        <dd> (emit-tag cmd data [ ]) in-item
+        <dt> (clear para-buffer) in-item (append para-buffer #":" emit-para)
+        <dd> (clear para-buffer) in-item (emit-para emit newline)
 
-        </dl> (emit </dl>) return
+        </dl> return
     ]
     in-table: [
         comment: whitespace: (emit data)
@@ -293,12 +292,16 @@ to the |stage3| function.
     ]
     emit: func [value] [repend out value]
     indent: ""
-    increase-indent: does [append indent "    "]
-    decrease-indent: does [clear skip tail indent -4]
+    increase-indent: does [append indent "      "]
+    decrease-indent: does [clear skip tail indent -6]
     break-at: complement charset [#"0" - #"9" #"A" - #"Z" #"a" - #"z" {"'#$%&([^{@} #"^(80)" - #"^(FF)"]
-    emit-para: has [pos] [
+    emit-para: has [pos /with bullet] [
+        emit indent
+        if bullet [
+            change skip tail out negate length? bullet bullet
+            bullet: none
+        ]
         while [(length? para-buffer) > (70 - length? indent)] [
-            emit indent
             pos: skip para-buffer 71 - length? indent
             ; bug: /tail does not work with charset
             pos: find/reverse pos break-at
@@ -309,8 +312,8 @@ to the |stage3| function.
             pos: next pos
             insert/part tail out para-buffer para-buffer: pos
             emit newline
+            emit indent
         ]
-        emit indent
         emit para-buffer
         emit newline
         clear para-buffer: head para-buffer
