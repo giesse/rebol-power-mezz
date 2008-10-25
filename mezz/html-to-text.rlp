@@ -59,7 +59,7 @@ and sends the parsed elements to the second stage, the |html-normalizer| module,
 via the |process-tag| function; that in turn sends the normalized elements
 to the |stage3| function.
 
-    -filter-html-:
+    -html-to-text-:
     init-stage3
     init-normalizer :stage3
     parse-ml html :process-tag
@@ -193,10 +193,10 @@ to the |stage3| function.
 
         <br/> (emit-para)
 
-        text: (append para-buffer data)
+        text: (record data)
     ]
     in-pre: inherit in-para [
-        whitespace: (append para-buffer data)
+        text: whitespace: (append para-buffer data)
         <br/> (append para-buffer newline)
     ]
     in-link: inherit in-para [
@@ -297,18 +297,33 @@ to the |stage3| function.
     decrease-indent: does [clear skip tail indent -4]
     break-at: complement charset [#"0" - #"9" #"A" - #"Z" #"a" - #"z" {"'#$%&([^{@} #"^(80)" - #"^(FF)"]
     emit-para: has [pos] [
-        while [not tail? para-buffer] [
+        while [(length? para-buffer) > (70 - length? indent)] [
             emit indent
             pos: skip para-buffer 71 - length? indent
-            pos: find/reverse/tail pos break-at
+            ; bug: /tail does not work with charset
+            pos: find/reverse pos break-at
             if any [not pos (index? pos) <= index? para-buffer] [
                 pos: skip para-buffer 71 - length? indent
-                pos: any [find/tail pos break-at tail pos]
+                pos: any [find pos break-at tail pos]
             ]
+            pos: next pos
             insert/part tail out para-buffer para-buffer: pos
             emit newline
         ]
+        emit indent
+        emit para-buffer
+        emit newline
         clear para-buffer: head para-buffer
+    ]
+    record: func [text /local pre post] [
+        unless empty? text [
+            pre: find space text/1
+            post: find space last text
+        ]
+        trim/lines text
+        if pre [append para-buffer #" "]
+        append para-buffer text
+        if post [append para-buffer #" "]
     ]
     emit-uri: func [uri] [
         ; needs to be smarter.
