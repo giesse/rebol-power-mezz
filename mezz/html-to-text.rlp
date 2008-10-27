@@ -111,11 +111,11 @@ to the |stage3| function.
         <base/> (uri-base: any [select data 'href uri-base])
         <style> in-style
         ;<meta/>
-        <link/> (
-            emit any [select data 'rel select data 'rev "LINK: "]
-            emit-uri select data 'href
-            emit newline
-        )
+        ;<link/> ( ; turns out to be not very useful in practice
+        ;    emit any [select data 'rel select data 'rev "LINK: "]
+        ;    emit-uri select data 'href
+        ;    emit newline
+        ;)
     ]
     in-style: [
         </style> return
@@ -135,30 +135,41 @@ to the |stage3| function.
             emit [
                 indent copy/part "======================================================================" 70 - length? indent
                 newline
-                newline
+                indent newline
             ]
         )
         <h2> <h3> <h4> <h5> <h6> (clear para-buffer) in-para (
             uppercase para-buffer
             emit-para
-            emit newline
+            emit [indent newline]
         )
-        <address> <p> <legend> (clear para-buffer) in-para (emit-para emit newline)
+        <address> <p> <legend> (clear para-buffer) in-para (emit-para emit [indent newline])
         <pre> (clear para-buffer) in-pre (emit para-buffer)
 
-        <ul> (increase-indent) in-ulist (decrease-indent emit newline)
-        <ol> (increase-indent count: any [if count*: select data 'start [attempt [to integer! count*]] 1]) in-olist (decrease-indent emit newline)
-        <dl> (increase-indent) in-dlist (decrease-indent emit newline)
+        <ul> (increase-indent) in-ulist (decrease-indent emit [indent newline])
+        <ol> (increase-indent count: any [if count*: select data 'start [attempt [to integer! count*]] 1]) in-olist (decrease-indent emit [indent newline])
+        <dl> (increase-indent) in-dlist (decrease-indent emit [indent newline])
 
         ;<center>
 
         <blockquote> (increase-indent) in-blockquote (decrease-indent)
-        <table> in-table
+        <table> (
+            emit [
+                indent copy/part "== TABLE =============================================================" 70 - length? indent
+                newline
+            ]
+        ) in-table (
+            emit [
+                indent copy/part "======================================================================" 70 - length? indent
+                newline
+                indent newline
+            ]
+        )
         
         <hr/> (emit [
             indent copy/part "----------------------------------------------------------------------" 70 - length? indent
             newline
-            newline
+            indent newline
         ])
     ]
     in-blockquote: inherit in-body [
@@ -166,8 +177,6 @@ to the |stage3| function.
     ]
     links: [ ]
     in-para: [
-        whitespace: (unless #" " = last para-buffer [append para-buffer #" "])
-
         </h1> </h2> </h3> </h4> </h5> </h6> </address> </p>
         </dt> </pre> </caption> </legend>
             return
@@ -193,7 +202,7 @@ to the |stage3| function.
 
         <br/> (emit-para)
 
-        text: (record data)
+        whitespace: text: (record data)
     ]
     in-pre: inherit in-para [
         text: whitespace: (append para-buffer data)
@@ -202,9 +211,9 @@ to the |stage3| function.
     in-link: inherit in-para [
         </a> return
     ]
-    ; we are supporting lists only for very simple cases...
+    ; we are supporting lists and tables only for very simple cases...
     in-item: inherit in-para [
-        </li> </dt> </dd> return
+        </li> </dt> </dd> </td> </th> return
     ]
     in-ulist: [
         <li> (clear para-buffer) in-item (emit-para/with " * ")
@@ -226,66 +235,42 @@ to the |stage3| function.
     ]
     in-dlist: [
         <dt> (clear para-buffer) in-item (append para-buffer #":" emit-para)
-        <dd> (clear para-buffer) in-item (emit-para emit newline)
+        <dd> (clear para-buffer) in-item (emit-para emit [indent newline])
 
         </dl> return
     ]
     in-table: [
-        comment: whitespace: (emit data)
-        
-        <caption> (emit-tag cmd data [ ]) in-para
+        <caption> (clear para-buffer emit [indent "Table caption:" newline]) in-para (emit-para emit [indent newline])
 
-        <colgroup> (emit-tag cmd data [
-            span   number       none
-            width  multi-length none
-            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-        ]) in-colgroup (emit </colgroup>)
-        <col/> (emit-tag cmd data [
-            span   number       none
-            width  multi-length none
-            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-        ])
-
-        <thead> <tfoot> <tbody> (emit-tag cmd data [
-            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        <thead> <tfoot> <tbody> (emit [
+            indent copy/part "----------------------------------------------------------------------" 70 - length? indent
+            newline
         ]) in-rows
 
-        <tr> (emit <tbody>) continue in-rows (emit </tbody>)
+        <tr> continue in-rows
 
         </table> return
     ]
-    in-colgroup: [
-        </colgroup> return
-    ]
     in-rows: [
-        comment: whitespace: (emit data)
-
-        <tr> (emit-tag cmd data [
-            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-        ]) in-cells (emit </tr>)
+        <tr> (
+            emit [indent "--" newline]
+        ) in-cells
         
-        </thead> </tfoot> </tbody> (emit lowercase cmd) return
+        </thead> </tfoot> </tbody> return
 
         </table> 2 return ; no <tbody>
     ]
     in-cells: [
-        comment: whitespace: (emit data)
-        
-        <td> <th> (emit-tag cmd data [
-            headers name-list                                none
-            scope   [enum "row" "col" "rowgroup" "colgroup"] none
-            abbr    cdata                                    none
-            axis    cdata                                    none
-            rowspan number                                   none
-            colspan number                                   none
-            nowrap  [style* [bool "nowrap"] "white-space"]   none
-            width   [style* lengthpx "width"]                  none
-            height  [style* lengthpx "height"]                 none
-            ; char alignment not supported (browsers do not support it anyway)
-            valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-        ]) in-item
+        <td> <th> (append indent "   || " emit [indent "||" newline]) in-cell (decrease-indent)
 
         </tr> return
+    ]
+    in-cell: inherit in-body [
+        </td> </th> return
+        text: (clear para-buffer) continue in-cell-para (emit-para)
+    ]
+    in-cell-para: inherit in-para [
+        </td> </th> 2 return
     ]
     in-select: [
         </select> return
