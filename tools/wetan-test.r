@@ -163,7 +163,7 @@ indented: [some space chars thru newline any [some space newline]]
 emit: func ['word data] [
 debug ["===EMIT: " word mold data] 
 if string? data [trim/tail data] 
-if not find verbatim word [data: scan-inline data] 
+if not any [find verbatim word word = 'output] [data: scan-inline data]
 repend out [word data]
 ] 
 nowchar: union nochar charset {!"')?-,.;:} 
