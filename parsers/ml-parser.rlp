@@ -11,7 +11,7 @@
 ===Introduction
 
 Parsing XML, XHTML and HTML (as well as other variants) has increasingly become one
-of the most common tasks in programming. We present here a simple but robust "*ML" parser;
+of the most common tasks in programming. We present here a simple but robust "ML" parser;
 since this is fairly low level and rather permissive with the input, it can be used
 in a very wide range of situations.
 
