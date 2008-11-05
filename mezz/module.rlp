@@ -2,12 +2,12 @@ Modules for REBOL 2
 
     Purpose: {
         Defines the MODULE function, that creates encapsulated "modules" that are isolated
-        from the rest of the code.
+        from the rest of the code. Also defines LOAD-MODULE to automate module loading.
     }
     Author: "Gabriele Santilli"
     File: %module.r
     License: "(C) 2008 Qtask, Inc. All rights reserved."
-    Version: 1.0.0
+    Version: 1.1.0
 
 ===Introduction
 
@@ -23,16 +23,19 @@ The |module!| object is the prototype for modules; we represent them as objects 
 to inspect them after creation (see |-help-module-|). The |module| function creates such objects and
 does all the magic necessary for the code in the |body| to be isolated from the rest of the system.
 
-The |spec| argument is a block which can specify the title of the module (using a |string!| value), the
-description for the module (using a second |string!| value), and how the module interacts with the rest
+The |spec| argument is a block which can specify the title of the module (|Title: "Some string"|), the
+description or purpose of the module (|Purpose: "Some string"|), and how the module interacts with the rest
 of the system. In particular, you can specify whether you want access to the words exported by another
-module by *importing* it using the |import| keyword followed by a block of words (each word should refer
-to a module object; it is possible to use strings or other values in this block to provide comments).
+module by *importing* it with |Imports: [block of words or files]| (each word should refer
+to a module object; |file!| values are passed to |load-module|, and the resulting module is then imported;
+it is possible to use strings or other values in this block to provide comments).
 You can also specify which words you want other modules to be able to import from you by *exporting* them
-using the |export| keyword followed by a block of words (you can also use strings or other values in this block
+using |Exports: [block of words]| (you can also use strings or other values in this block
 to provide comments about the words you are exporting). Finally, you can allow your module to alter the global
-context in a controlled way, by using the |global| keyword followed by a block of words (again, strings are ok
+context in a controlled way, by using |Globals: [block of words]| (again, strings are ok
 in this block); such words will not be made local to the module.
+
+The |module?| function returns true if the passed value is a module object.
 
 See |-examples-| for some examples.
 
@@ -44,29 +47,61 @@ See |-examples-| for some examples.
     ]
 
     module: func [
-        "Create a new module"
-        spec [block!] "Specify which modules to IMPORT, which words to EXPORT to other modules, and which words to set as GLOBAL"
+        "Create a new module" [catch]
+        spec [block! object!] "You can set TITLE, PURPOSE, IMPORTS, EXPORTS, GLOBALS"
         body [block!]
 
         /local -mod-locals-
     ] [
         -module-
     ]
+    
+    module?: func [
+        "Returns TRUE for module objects"
+        value [any-type!]
+    ] [
+        -module?-
+    ]
+
+We also define |load-module|, that can load a REBOL script as a module based on its header. The header
+must have |Type| set to |'module|, and can specify |Imports|, |Exports| and |Globals| with the meanings
+given above. Unless the argument is a |url!| or an absolute path, the module is searched for in the search
+path (that can be specified using the |/from| refinement). Please note that you have to add the current
+directory (|%./|) to the search path explicitly if you want to allow the argument to be relative to
+the current directory.
+
+|load-module| never loads the same module (identified by its absolute path) twice. Also, since the |module|
+function automatically calls |load-module| on the modules to import, this means that when you load a module
+all the other modules it depends on are also loaded automatically.
+
+    -definitions-:
+    load-module: func [
+        "Load a REBOL script as a module" [catch]
+        script [file! url!]
+        /from "Add SCRIPT to the search path"
+
+        /local -lm-locals-
+    ] [
+        -load-module-
+    ]
 
 ===Examples
 
+Create a new module:
+
     -examples-:
     my-module: module [
-        "My module"
-        "This is my module. It is just an example module."
-        import [
+        Title: "My module"
+        Purpose: "This is my module. It is just an example module."
+        Imports: [
             my-other-module "We use some stuff from my-other-module"
+            %modules/foo.r  "Call LOAD-MODULE on the file, and import the result"
         ]
-        export [
+        Exports: [
             f "You can use this"
             g "Be careful with it"
         ]
-        global [
+        Globals: [
             a "We set this globally."
         ]
     ] [
@@ -86,6 +121,17 @@ See |-examples-| for some examples.
         ]
     ]
 
+Set the search path, and load modules relative to it:
+
+    -examples-:
+    load-module/from %my-modules/
+    load-module %my-module.r
+
+But you can also specify a full path, thus ignoring the search path:
+
+    load-module %/path/to/my-module.r
+    load-module http://my-modules.com/my-module.r
+
 ===Definition of the |module!| object prototype
 
 This is the prototype used for module objects. |imported|, |exports| and |global| are the
@@ -96,8 +142,8 @@ by the module, and you should not touch them.
     -module!-:
     type: 'module
     title: "Untitled"
-    description: "Undocumented"
-    imported: exports: global: none
+    purpose: "Undocumented"
+    imports: exports: globals: none
     local-ctx: export-ctx: none
 
 ===Create a module based on the given |spec| and |body|
@@ -113,46 +159,30 @@ These are the steps required to create a module:
     -resolve-conflicts-
     -do-body-
 
----Create the module object and parse the |spec|
+---Create the module object from the |spec|
 
-Here we parse the |spec| block and set the respective words in the
-|result| module object. We also prepare |export-ctx|, |imports| and
-|globals| by extracting all the words from |exports|, |imported| and
-|global|.
+Here we make the |result| module object from the given |spec| block.
+We also prepare |export-ctx|, |imports'| and
+|globals'| by extracting all the words from |exports|, |imports| and
+|globals|.
 
     -parse-spec-:
-    result: make module! [
-        parse spec [
-            any [
-                'import set imported block!
-                |
-                'export set exports block!
-                |
-                'global set global block!
-                |
-                set t string! set d string! (title: t description: d)
-                |
-                set t string! (title: description: t)
-                |
-                skip
-            ]
-        ]
-        foreach [src dst] [
-            exports     export-ctx
-            imported    imports
-            global      globals
-        ] [
-            set dst unique any [get src [ ]]
-            ; we can't allow any-word because EXCLUDE (used below)
-            ; distinguishes between different types of words
-            remove-each value get dst [not word? :value]
-        ]
+    result: make module! spec
+    ; we can't allow any-word for globals because EXCLUDE (used below)
+    ; distinguishes between different types of words
+    foreach [src dst cond] bind [
+        exports     export-ctx  [not word? :value]
+        globals     globals'    [not word? :value]
+        imports     imports'    [not any [any-word? :value file? :value url? :value]]
+    ] result [
+        set dst unique any [get src [ ]]
+        remove-each value get dst cond
     ]
 
 ---|module|'s locals
 
     -mod-locals-:
-    result t d imports globals
+    result imports' globals'
 
 ---Create the list of local words
 
@@ -161,7 +191,7 @@ local in |result/local-ctx|, and exclude the words that we want global from them
 that we don't need to copy the block here, because |exclude| will, and we're going to
 make a context out of it anyway.)
 
-Notice that we just leave the words in the |globals| list alone, so they may be bound to
+Notice that we just leave the words in the |globals'| list alone, so they may be bound to
 other contexts as well, not just |system/words|.
 
     -make-locals-:
@@ -177,34 +207,50 @@ other contexts as well, not just |system/words|.
             skip
         ]
     ]
-    result/local-ctx: exclude result/local-ctx globals
+    result/local-ctx: exclude result/local-ctx append copy globals' result/export-ctx
 
 We need these additional local words for the function:
 
     -mod-locals-:
     rule word
 
+---Check if |value| is a module object
+
+    -module?-:
+    to logic! all [
+        object? get/any 'value
+        'module = get in value 'type
+    ]
+
 ---Import other modules specified in the |spec|
 
-Here we iterate thru all the words in the |imports| list, check to make sure that they
-refer to a module object, and for those that do, bind the |body| to their export context,
+Here we iterate thru all the values in the |imports'| list, call |load-module| or check to make sure that they
+refer to a module object, and finally bind the |body| to their export context,
 in the order they are specified.
 
 We are also binding the |result/local-ctx| list of words to their export context; we are doing
 this in preparation for the |-resolve-conflicts-| step.
 
     -import-modules-:
-    foreach module imports [
-        module: get module
-        if all [
-            object? module
-            'module = get in module 'type
+    foreach module-name imports' [
+        set/any 'module either word? module-name [
+            get/any module-name
         ] [
+            load-module module-name
+        ]
+        either module? get/any 'module [
             bind body module/export-ctx
             ; used to resolve conflicts
             bind result/local-ctx module/export-ctx
+        ] [
+            throw make error! join "Not a module: " module-name
         ]
     ]
+
+|module| needs to be made local:
+
+    -mod-locals-:
+    module
 
 ---Find words that are global or imported from another module, but are being set in the |body|
 
@@ -267,6 +313,58 @@ Finally, we |do| the |body|, and return |result|.
     do body
     result
 
+===Load |script| as a module
+
+    -load-module-:
+    search-path: [ ]
+    if from [return append search-path script]
+    either any [url? script #"/" = first script] [
+        if loaded: select modules script [return loaded]
+        loaded: load/header script
+        unless module? loaded/1 [
+            throw make error! rejoin ["Not a module: " mold script]
+        ]
+    ] [
+        loaded: foreach path search-path [
+            if loaded: select modules path/:script [return loaded]
+            if exists? path/:script [
+                loaded: load/header path/:script
+                unless module? loaded/1 [
+                    throw make error! rejoin ["Not a module: " mold script]
+                ]
+                script: path/:script
+                break/return loaded
+            ]
+        ]
+        unless loaded [
+            throw make error! rejoin ["Cannot find " mold script]
+        ]
+    ]
+    if find modules script [
+        throw make error! rejoin ["Loading loop detected: aborted at " mold script]
+    ]
+    repend modules [script none]
+    unless url? script [
+        save-dir: what-dir
+        change-dir first split-path script
+    ]
+    loaded: module loaded/1 next loaded
+    unless url? script [
+        change-dir save-dir
+    ]
+    poke find modules script 2 loaded
+    loaded
+
+List of loaded modules:
+
+    -definitions-:
+    modules: [ ]
+
+---|load-module|'s locals
+
+    -lm-locals-:
+    loaded search-path save-dir
+
 ===Support functions
 
 The |make-context| function creates a context from a list of words. The context is returned as an object,
@@ -279,11 +377,11 @@ but notice that it has no |'self| word.
 
 ===Hiding the support functions from the global context
 
-We don't want to make |make-context| global, so the main code block is actually using
+We don't want to make |make-context| and |modules| global, so the main code block is actually using
 |use| to keep it local. (We cannot use |module| while defining it, can we?)
 
     -main-:
-    use [make-context] [
+    use [make-context modules] [
         -definitions-
     ]
 
