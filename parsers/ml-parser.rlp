@@ -1,12 +1,26 @@
 [X][HT]ML Parser
 
+    Type: Module
     Purpose: {
         Parses XML, XHTML and HTML.
     }
     Author: "Gabriele Santilli"
-    EMail: giesse@rebol.it
     File: %ml-parser.r
-    Version: 1.0.0
+    Version: 1.1.0
+    Imports: [
+        %mezz/utf8.r
+    ]
+    Exports: [
+        parse-ml    "Parse *ML text"
+        name        "Parse rule for tag names"
+        digit       "Charset for a digit"
+        hexdigit    "Charset for a hex digit"
+        space       "Charset for whitespace"
+        entity-map  "List of all the named HTML entities"
+    ]
+    Globals: [
+        load-markup "Made global because it's a useful LOAD/MARKUP replacement"
+    ]
 
 ===Introduction
 
@@ -19,19 +33,16 @@ in a very wide range of situations.
 
 The |parse-ml| function is rather low-level and will incrementally parse a *ML string and call
 the provided callback function with the data as it gets parsed. |callback| **must** take two arguments,
-a "command" and its data. (This is actually designed to fit well with the FSM dialect; it may
-appear a bit awkward because of that.) The command can be a |tag!|, or the |set-word!|'s |comment:|,
-|text:|, |whitespace:|, |declaration:| or |xml-proc:|.
+a "command" and its data. (This is designed to fit well with the FSM dialect.) The command can be a |tag!|, or the |word!|'s |comment|,
+|text|, |whitespace|, |declaration| or |xml-proc|.
 In the |tag!| case, it can be in the form |<name>|, |<name/>| or
 |</name>|, respectively indicating a start tag, an empty tag, or an end tag. The "data" is the
-text string in the block case, while it is a block of attributes (as name/value pairs - names
+text string in the word case, while it is a block of attributes (as name/value pairs - names
 can be |word!| or |path!| values, depending on the presence of a namespace specification) in the
 tag case. (It is just |none| for end tags.)
 
 See |-load-markup-|
-for an example usage of |parse-ml|.
-
-|load-markup| is basically a replacement for |load/markup|. It will return a block with all
+for an example usage of |parse-ml|.  It is basically a replacement for |load/markup|. It will return a block with all
 the tags parsed and converted to |block!| or |tag!|. For an example, see |-examples-|.
 
 \note Note:
@@ -42,35 +53,23 @@ other encoding, you **must** convert it to UTF-8 before calling this function.
 /note
 
     -main-:
-    ml-parser: module [
-        "[X][HT]ML Parser"
-        "Parses XML, XHTML and HTML."
-        export [
-            parse-ml "Parse *ML text"
-            -other-exports-
-        ]
-        global [
-            load-markup "Made global because it's a useful LOAD/MARKUP replacement"
-        ]
+    -parsing-rules-
+
+    parse-ml: func [
+        "Parse *ML text"
+        html [string!]
+        callback [any-function!]
     ] [
-        -parsing-rules-
+        -parse-html-
+    ]
 
-        parse-ml: func [
-            "Parse *ML text"
-            html [string!]
-            callback [any-function!]
-        ] [
-            -parse-html-
-        ]
+    load-markup: func [
+        "LOAD/MARKUP replacement that parses tags and more"
+        html [string!]
 
-        load-markup: func [
-            "LOAD/MARKUP replacement that parses tags and more"
-            html [string!]
-
-            /local -lm-locals-
-        ] [
-            -load-markup-
-        ]
+        /local -lm-locals-
+    ] [
+        -load-markup-
     ]
 
 
@@ -81,7 +80,7 @@ the source text, parsing tags, text and character entities,
 and send the parsed elements to the |callback| function given as argument.
 
     -parse-html-:
-    cb: func [cmd data] [callback either block? cmd [first cmd] [cmd] data]
+    cb: :callback
     parse/all html html-rule
 
 ===Use |parse-ml| to convert |html| to a block
@@ -93,14 +92,14 @@ are appended as a block, and text strings are joined together as much as possibl
     result: copy [ ]
     parse-ml html func [cmd data] [
         switch/default cmd [
-            text: whitespace: [
+            text whitespace [
                 either all [not empty? result string? last result] [
                     append last result data
                 ] [
                     append result data
                 ]
             ]
-            comment: declaration: xml-proc: [
+            comment declaration xml-proc [
                 ; append them as tags
                 if tag? data: attempt [load data] [append result data]
             ]
@@ -154,9 +153,9 @@ CDATA sections are like normal text sections except that the |"<"| and |"&"| cha
 lose any special meaning; this means that text is passed on verbatim.
 
     -parsing-rules-:
-    comment: [copy txt ["<!--" thru "-->"] (cb [comment:] txt)]
-    declaration: [copy txt ["<!doctype" space thru #">"] (cb [declaration:] txt)] ; simplified - may break
-    cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb [text:] txt)]
+    comment: [copy txt ["<!--" thru "-->"] (cb 'comment txt)]
+    declaration: [copy txt ["<!doctype" space thru #">"] (cb 'declaration txt)] ; simplified - may break
+    cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb 'text txt)]
 
 where |cb| is set to the callback function given by the user (see |-parse-html-|).
 
@@ -177,7 +176,7 @@ The following definitions are used in the rules for tags:
 XML processing instructions are simply ignored (this also catches the XML declaration).
 
     -parsing-rules-:
-    proc: [copy txt ["<?" name thru "?>"] (cb [xml-proc:] txt)]
+    proc: [copy txt ["<?" name thru "?>"] (cb 'xml-proc txt)]
 
 Start tags and empty tags are processed with the same rule. Start tags will send the
 |<tagname>| command to the callback function, while empty tags will send |<tagname/>|.
@@ -196,7 +195,7 @@ End tags are sent to the second stage as |</tagname>|.
         (attributes: make block! 16) any [attribute | some garbage] ; ignore any garbage
         ["/>" (cb head insert insert make tag! 3 + length? nm nm #"/" attributes) | #">" (cb to tag! nm attributes)]
         |
-        #"<" (cb [text:] copy "<")
+        #"<" (cb 'text copy "<")
     ]
     attribute: [
         [
@@ -245,7 +244,7 @@ the closing |"-->"|; in the third case we just take everything up to |</script>|
                     clear skip tail txt -2
                     trim/tail txt
                 ]
-                cb [text:] txt
+                cb 'text txt
                 cb nm none
             )
             |
@@ -256,37 +255,37 @@ the closing |"-->"|; in the third case we just take everything up to |</script>|
                     clear skip tail txt -2
                     trim/tail txt
                 ]
-                cb [text:] txt
+                cb 'text txt
                 cb nm none
             )
             |
-            copy txt to nm nm (cb [text:] txt cb nm none)
+            copy txt to nm nm (cb 'text txt cb nm none)
         ]
     ]
 
 Text parsing handles character and named entities, as well as normal text. Text is sent
-to the callback as data for the |text:| command. Whitespace is sent separately with the
-|whitespace:| command, since for e.g. whitespace alone does not start a paragraph.
+to the callback as data for the |text| command. Whitespace is sent separately with the
+|whitespace| command, since for e.g. whitespace alone does not start a paragraph.
 
     -parsing-rules-:
     entity: [
         #"&" [
-            copy nm name #";" (cb [text:] entity-to-char nm)
+            copy nm name #";" (cb 'text copy entity-to-char nm)
             |
-            "#x" copy txt some hexdigit #";" (cb [text:] hex-to-utf8char txt)
+            "#x" copy txt some hexdigit #";" (cb 'text hex-to-utf8char txt)
             |
-            #"#" copy txt some digit #";" (cb [text:] dec-to-utf8char txt)
+            #"#" copy txt some digit #";" (cb 'text dec-to-utf8char txt)
             |
-            none (cb [text:] copy "&")
+            none (cb 'text copy "&")
         ]
     ]
     text: [
         some [
             entity
             |
-            copy txt some space (cb [whitespace:] txt)
+            copy txt some space (cb 'whitespace txt)
             |
-            copy txt some text-char (cb [text:] txt)
+            copy txt some text-char (cb 'text txt)
         ]
     ]
 
@@ -298,17 +297,6 @@ We also need to make the words we are using as variables local to the context:
     attnm: attnmtxt: attnmns: none
     attval: none
     txt: none
-
----Other things to export
-
-We are exporting a few parse rules and charsets that are often useful in other
-modules too.
-
-    -other-exports-:
-    name        "Parse rule for tag names"
-    digit       "Charset for digits"
-    hexdigit    "Charset for a hex digit"
-    space       "Charset for whitespace"
 
 ---Entity conversion functions
 
@@ -348,11 +336,6 @@ values.
     dec-to-utf8char: func [dec] [
         encode-utf8 to integer! dec
     ]
-
-The |entity-map| is also useful to export.
-
-    -other-exports-:
-    entity-map  "List of all the named HTML entities"
 
 ---Named entities map
 
