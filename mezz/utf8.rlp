@@ -1,11 +1,16 @@
 UTF-8 encoding and decoding functions
 
+    Type: Module
     Purpose: {
         Defines the encode-utf8 and decode-utf8 functions.
     }
     Author: "Gabriele Santilli"
     File: %utf8.r
-    Version: 1.0.0
+    Version: 1.1.0
+    Exports: [
+        encode-utf8
+        decode-utf8
+    ]
 
 ===Introduction
 
