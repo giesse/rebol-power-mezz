@@ -1,14 +1,14 @@
 Finite State Machine interpreter
 
+    Type: Module
     Purpose: {
         Implements a FSM interpreter; it can run stack-based FSMs defined
         with a simple REBOL dialect.
     }
     Author: "Gabriele Santilli"
-    EMail: giesse@rebol.it
     File: %fsm.r
     License: {
-        Copyright (c) 2006, Gabriele Santilli
+        Copyright (c) 2006-2008, Gabriele Santilli
         All rights reserved.
 
         Redistribution and use in source and binary forms, with or without
@@ -40,92 +40,100 @@ Finite State Machine interpreter
         ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
         POSSIBILITY OF SUCH DAMAGE.
     }
-    Date: 4-May-2006
-    Version: 1.7.1 ; majorv.minorv.status
-                   ; status: 0: unfinished; 1: testing; 2: stable
-    History: [
-        17-Feb-2006 1.1.0 "History start"
-        17-Feb-2006 1.2.0 "Added override directive"
-        20-Feb-2006 1.3.0 "Fixed a bug in init"
-        22-Feb-2006 1.4.0 "Added rewind? directive, cleaned up parser a bit"
-        17-Mar-2006 1.5.0 "Changed return directive to be able to return to n-th previous state"
-        21-Apr-2006 1.6.1 "Added trace (debug) mode"
-         4-May-2006 1.7.1 "Converted to RLP"
+    Version: 2.0.0
+    Exports: [
+        make-fsm
+        reset-fsm
+        process-event
     ]
 
 ===Introduction
 
 This script implements an interpreter for stack-based finite state machines. A FSM
-is defined by a simple dialect where each state is a REBOL block. The interpreter is
-defined as an object.
+is defined by a simple dialect where each state is a REBOL block. The interpreter
+will process events and change state according to the dialect. It can be used
+in a wide range of cases where stateful processing of asynchronous events is desired.
 
-===The |fsm!| object
+===Overview
 
     -main-:
-    fsm!: context [
-        -fsm-locals-
-        
-        -helper-functions-
-        
-        -event-function-
-        -init-function-
-        -end-function-
-    ]
+    -fsm-locals-
+    
+    -helper-functions-
+    
+    -event-function-
+    -init-function-
+    -end-function-
 
-===The |event| function
+===The |process-event| function
 
-Processes one event with the current state. The state machine must be initialized before starting to process events.
+Processes one event with the current state.
 The return value for this function is undefined (as you see, the current implementation will return |true| due
 to the |until| loop).
 
-An event can be a value of types |any-string!| or |set-word!|, although in theory we can handle anything but parens
-and words. It's easy to extend the code so that it works with other types, if you need it.
+An event can be a value of types |any-string!| or |word!|, although it's easy to extend the code so that it works
+with other types, if you need it.
 
 The |until| loop is needed for the |continue| and |override| directives. See |-interpreter-rules-|.
 
     -event-function-:
-    event: func [
+    process-event: func [
         "Process one event"
-        evt [any-string! set-word!]
+        fsm [object!]
+        event [any-string! word!]
+        data "Any data related to the event"
         
-        /local val ovr retact done?
+        /local -pe-locals-
     ] [
-        ; we haven't been initialized? just exit
-        if not block? state [exit]
+        if word? event [event: to set-word! event]
+        fsm/event: event
+        fsm/data: :data
         until [
-            if tracing [print ["*** event" mold evt]]
+            if fsm/tracing [print ["*** event" mold event]]
             done?: yes
             -process-evt-
-            if tracing [ask ""]
+            if fsm/tracing [ask ""]
             done?
         ]
     ]
 
----|fsm!|'s locals
+---|process-event|'s locals
+    
+    -pe-locals-:
+    done?
+
+---The FSM prototype object
 
 We need to store the current state. The |state| word is used to refer to the current state block.
-It is initialized to the initial state by the |init| function.
+|event| and |data| are used to refer to the current event and its associated data (if any).
+|initial-state| is the initial state of the state machine, and is specified when calling |make-fsm|.
 
 For debugging, it is possible to set |tracing| to |true|; you'll get a step-by-step
 trace of the state machine.
 
     -fsm-locals-:
-    state: none
+    fsm-proto: context [
+        state: event: data: none
+        initial-state: [ ]
+        
+        -other-fsm-variables-
+        
+        ; debug mode, trace events and state changes
+        tracing: no
+    ]
 
-    ; debug mode, trace events and state changes
-    tracing: no
+---Process the |event| event
 
----Process the |evt| event
-
-Processing one event works this way: we use |find| to search for |evt| in the |state| block.
-(This is ok because we assume that events cannot be of type |word!| or |paren!|, and the rest
+Processing one event works this way: we use |find| to search for |event| in the |state| block.
+(This is ok because we assume that events cannot be of type |word!| (|word!| events are converted
+to |set-word!|) or |paren!|, and the rest
 of the dialect only uses words and parens.) If the current state does not handle this event
-(|evt| is not found), we search for |default:| which is the default handling for events for this
+(|event| is not found), we search for |default:| which is the default handling for events for this
 state. If none of them is found, the event is just ignored; otherwise, the directives for the
 event are processed by the interpreter, using |parse|.
 
     -process-evt-:
-    local: any [find state evt find state [default:]]
+    local: any [find fsm/state event find fsm/state [default:]]
     if local [
         parse local [
             -interpreter-rules-
@@ -142,8 +150,8 @@ by directives. The list of directives for an event can be broken into two parts,
 block at all): an action (expressed as a paren, containing arbitrary REBOL code) and some state change
 directives.
 
-In this example, |state-one| defines only an action for |event1:|. For |event2:| we only define
-a state change (going to |state-two|). For |event6:| we define both an action and a state change.
+In this example, |state-one| defines only an action for |event1|. For |event2| we only define
+a state change (going to |state-two|). For |event6| we define both an action and a state change.
 
 State change directives can be broken into two parts too: an optional |continue| or |override|
 directive, followed by a state change. A state change can be: the |return| directive, which
@@ -152,23 +160,23 @@ which we'll discuss later; or a word referring to a state block, which means swi
 In this last case, the word can be followed by a |paren!|, that is similar to the action paren for
 the event, but is executed after the new state uses |return| to return to this state.
 
-In this example, for |event3:| or |event4:|, we define an action, and a state change with a return
-action. This means that if we receive |event3:| or |event4:| while in |state-one|, the action
+In this example, for |event3| or |event4|, we define an action, and a state change with a return
+action. This means that if we receive |event3| or |event4| while in |state-one|, the action
 |(print "Got event3 or event4")| is executed, then the current state in changed to |state-two|.
-When |state-two| uses a |return| directive (for example it does so when receiving the |event6:|
+When |state-two| uses a |return| directive (for example it does so when receiving the |event6|
 event), the current state is changed back to |state-one| and the action |(print "Returned from state-two")|
 is executed.
 
 The |continue| and |override| directives are used to change what happens when switching to a new state.
 (They can be used with |return| and |rewind?| too.) Normally, a state change means that the *next* event
-will be processed by the new state; but if you use |continue|, then the current event is processed
+will be processed by the new state; but if you use |continue|, then the *current* event is processed
 again by the new state (this is like "delegating" the processing of the event to another state). In
-this example, when |event5:| is encountered in |state-one|, the state is changed to |state-two| end
-|event5:| is processed again, which causes to print "Got event5 in state-two".
+this example, when |event5| is encountered in |state-one|, the state is changed to |state-two| and
+|event5| is processed again, which causes to print "Got event5 in state-two".
 
 |override| is very similar, except that a new event is generated and then processed by the new
-state. |override strange-event| generates the event |strange-event:|, so in the default case for
-|state-one| a |strange-event:| is generated, the state is changed to |state-two|, and |strange-event:|
+state. |override strange-event| generates the event |strange-event|, so in the default case for
+|state-one| a |strange-event| is generated, the state is changed to |state-two|, and |strange-event|
 is processed (which causes to print "Unhandled event in state-one, now in state-two").
 
 Please see |-interpreter-rules-| for more details.
@@ -191,14 +199,10 @@ Please see |-interpreter-rules-| for more details.
     
 ---The interpreter's |parse| rules
 
-These rules are parsing the state block already positioned at the event to be processed
+These rules are used to parse the state block already positioned at the event to be processed
 (result of the |find| function). Since multiple events can share the same directives,
-we have one or more event specfications followed by an optional action paren, followed
+we have one or more event specifications followed by an optional action paren, followed
 by optional state change directives.
-
-(As already noted, we only allow |any-string!| or |set-word!| for events, although
-only |paren!| and |word!| really need to be excluded. You can extend this rule if
-you need other types of events.)
 
 Note that the |return-state| helper function is used to return to the previous state,
 and |goto-state| is used to go to a new state. Also note that you can specify an
@@ -208,32 +212,41 @@ the |return-state| function twice.
     -interpreter-rules-:
     some [any-string! | set-word!]
     ; do the event action if present
-    set val opt paren! (if all [:val tracing] [prin [mold :val ""]] do val) [
+    set val opt paren! (if all [:val fsm/tracing] [prin [mold :val ""]] do val) [
         ; make another state handle this event (must be followed by a state change directive)
-        'continue (if tracing [prin "continue "] done?: no)
+        'continue (if fsm/tracing [prin "continue "] done?: no)
         |
         ; override event and make a new state handle it (must be followed by a state change directive)
-        'override set ovr word! (evt: to set-word! ovr if tracing [prin ["override" mold ovr ""]] done?: no)
+        'override set ovr word! (
+            event: fsm/event: to set-word! ovr
+            if fsm/tracing [prin ["override" mold ovr ""]]
+            done?: no
+        )
         |
         none
     ] [
         ; return to previous state
         ; optional integer allows returning to n-th previous state
-        set val opt integer! 'return (loop any [val 1] [return-state])
+        set val opt integer! 'return (loop any [val 1] [return-state fsm])
         |
         -rewind-directive-
         |
         ; go to a new state. a return action can be defined too
         set val word! set retact opt paren! (
-            if block? get/any val [
-                if tracing [prin ["go to" val "then" mold :retact ""]]
-                goto-state get val :retact
+            if block? get in fsm val [
+                if fsm/tracing [prin ["go to" val "then" mold :retact ""]]
+                goto-state fsm val :retact
             ]
         )
         |
         ; continue or override not followed by a state change is ignored
         none (done?: yes)
     ]
+
+We need to add a couple words to the list of locals:
+
+    -pe-locals-:
+    val ovr retact
 
 +++Rule for the |rewind?| directive
 
@@ -246,7 +259,7 @@ in the given order; the directive is ignored (i.e. no state change happens) if n
 given states is on the stack (this is the reason for the question mark in the name).
 
 So, this is a *conditional* state change directive, because the state is only changed
-if one of the listed states are found in the stack. The |rewind-state| helper function
+if one of the listed states is found in the stack. The |rewind-state| helper function
 is called with the listed target states in order; it will return |true| if the state
 was found and the stack was successfully rewound back to it (i.e. the required number
 of returns were performed - return actions are evaluated normally too). In this case,
@@ -255,10 +268,10 @@ conditional |throw|.
 
     -rewind-directive-:
     'rewind? copy val some word! (
-        if tracing [prin ["rewind?" mold/only val]]
+        if fsm/tracing [prin ["rewind?" mold/only val]]
         if not foreach word val [
-            if block? get/any word [
-                if rewind-state get word [break/return true]
+            if block? get in fsm word [
+                if rewind-state fsm word [break/return true]
             ]
             false
         ] [
@@ -270,8 +283,7 @@ conditional |throw|.
 
 ---Helper functions
 
-In the above code we used three helper functions (that are not meant to be called
-by users - they should only call |init|, |event| and |end|): |goto-state|,
+In the above code we used three helper functions |goto-state|,
 |return-state| and |rewind-state|.
 
 |goto-state| changes the current state, pushing the old state and (if given)
@@ -286,38 +298,39 @@ the state is not on the stack, nothing is changed and the function returns false
 Otherwise true is returned.
 
     -helper-functions-:
-    goto-state: func [new-state [block!] retact [paren! none!]] [
-        insert/only insert/only state-stack: tail state-stack :state :retact
-        state: new-state
+    goto-state: func [fsm [object!] new-state [word!] retact [paren! none!]] [
+        insert/only insert/only fsm/state-stack: tail fsm/state-stack fsm/state :retact
+        fsm/state: get in fsm new-state
     ]
     
-    return-state: has [retact [paren! none!]] [
-        set [state retact] state-stack
-        state: any [state initial]
-        if tracing [prin ["return, retact:" mold :retact ""]]
+    return-state: func [fsm [object!] /local state retact] [
+        set [state retact] fsm/state-stack
+        fsm/state: any [state fsm/initial-state]
+        if fsm/tracing [prin ["return, retact:" mold :retact ""]]
         do retact
-        state-stack: skip clear state-stack -2
+        fsm/state-stack: skip clear fsm/state-stack -2
     ]
     
-    rewind-state: func [up-to [block!] /local retact stack] [
+    rewind-state: func [fsm [object!] up-to [word!] /local retact stack] [
         ; nothing in the stack (initial state), so nothing to rewind to
-        if empty? state-stack [return false]
+        if empty? fsm/state-stack [return false]
         ; start from the tail (because of the skip -2 at the start of the loop)
-        stack: tail state-stack
+        stack: tail fsm/state-stack
         ; we will accumulate all the return code here and do it
         ; if we find the state on the stack
         retact: make block! 128
+        up-to: get in fsm up-to
         until [
             stack: skip stack -2
             append retact stack/2
             ; did we find the state? (note: a copy won't be accepted)
             if same? up-to stack/1 [
                 ; switch to this state
-                state: up-to
+                fsm/state: up-to
                 ; do all the return actions (they are all in the retact block)
                 do retact
                 ; reset state stack
-                state-stack: skip clear stack -2
+                fsm/state-stack: skip clear stack -2
                 return true
             ]
             head? stack
@@ -326,54 +339,65 @@ Otherwise true is returned.
         false
     ]
 
-+++Additional |fsm!|'s locals
++++Additional variables for FSM objects
 
-    -fsm-locals-:
-    initial: none
+    -other-fsm-variables-:
     state-stack: [ ]
         
-===The |init| function
+===The |make-fsm| function
 
-Initializes the state machine. You need to call this function first.
+|make-fsm| creates a FSM object that can be used with |process-event| and |reset-fsm|.
 
-The state stack is cleared and the current state is set to the given initial state.
-We also need to remember the initial state, so we set the word |initial| to it.
+The object is made from |fsm-proto| with the given spec. The current state is set to
+|initial-state| and |state-stack| is set to an empty block.
 
     -init-function-:
-    init: func [
-        "Initialize the state machine"
-        initial-state [block!]
+    make-fsm: func [
+        "Create a new Finite State Machine object"
+        spec [block!]
     ] [
-        clear state-stack: head state-stack
-        initial: state: initial-state
+        spec: make fsm-proto spec
+        spec/state: spec/initial-state
+        spec/state-stack: copy [ ]
+        spec
     ]
 
-===The |end| function
+===The |reset-fsm| function
 
-Terminates processing. Gets the state machine back to the initial state and stops it.
-Note that you must call |init| again if you intend to reuse the state machine.
+Resets the state machine object. Gets the state machine back to the initial state gracefully
+(rewinding the stack); with the |/only| refinement, a "hard" reset is performed, that is,
+we only reset the state to |initial-state|, without performing a stack rewind.
 
     -end-function-:
-    end: does [
+    reset-fsm: func [
+        "Reset a FSM object"
+        fsm [object!]
+        /only
+    ] [
         ; rewind the stack (does all pending return actions)
-        foreach [retact state] head reverse head state-stack [do retact]
+        unless only [
+            foreach [retact state] head reverse head fsm/state-stack [do retact]
+        ]
+        clear fsm/state-stack: head fsm/state-stack
+        fsm/state: fsm/initial-state
     ]
 
 ===Example usage
 
-To use the interpreter you just clone the |fsm!| object, call |init| to initialize the state
-machine, then call |event| for all your events, and when finished call |end|.
+To use the interpreter you just make a new FSM object with |make-fsm|, setting an |initial-state|,
+then call |process-event| for all your events, and when finished call |reset-fsm|.
 
 In this example we could set |my-fsm/tracing: yes| to trace the state machine step-by-step
 for debugging.
 
     -example-usage-:
-    my-fsm: make fsm! [ ]
+    my-fsm: make-fsm [
+        initial-state: [ ... ]
+        some-other-state: [ ... ]
+    ]
     ; ...
-    my-fsm/init initial-state
+    process-event my-fsm some-event
     ; ...
-    my-fsm/event some-event
+    process-event my-fsm some-other-event
     ; ...
-    my-fsm/event some-other-event
-    ; ...
-    my-fsm/end
+    reset-fsm my-fsm
