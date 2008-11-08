@@ -1,13 +1,21 @@
 HTML to plain text converter
 
+    Type: Module
     Purpose: {
         Defines a function that can convert a HTML text string into a plain
         text string.
     }
     Author: "Gabriele Santilli"
-    EMail: giesse@rebol.it
     File: %html-to-text.r
     Version: 1.0.0
+    Imports: [
+        %dialects/fsm.r         "Used for the state machine"
+        %parsers/ml-parser.r    "Used to parse the HTML text"
+        %mezz/normalize-html.r  "Used to normalize the HTML before converting it"
+    ]
+    Globals: [
+        html-to-text            "Made global so that it's easy to use in non-modules"
+    ]
 
 ===Introduction
 
@@ -27,27 +35,13 @@ The output string will always be UTF-8 encoded.
 /note
 
     -main-:
-    module [
-        "HTML to plain text converter"
-        {Defines a function that can convert a HTML text string into a plain
-        text string.}
-        import [
-            ml-parser       "Used to parse the HTML text"
-            html-normalizer "Used to normalize the HTML before regenerating it"
-            ;uri-parser      "Used to check and normalize the URLs"
-        ]
-        global [
-            html-to-text    "Made global so that it's easy to use in non-modules"
-        ]
-    ] [
-        -stage3-
+    -stage3-
 
-        html-to-text: func [
-            "Convert HTML to plain text"
-            html [string!]
-        ] [
-            -html-to-text-
-        ]
+    html-to-text: func [
+        "Convert HTML to plain text"
+        html [string!]
+    ] [
+        -html-to-text-
     ]
 
 ===Parse the |html| text and generate plain text
@@ -63,28 +57,24 @@ to the |stage3| function.
     init-stage3
     init-normalizer :stage3
     parse-ml html :process-tag
-    end-normalizer
+    reset-normalizer
     end-stage3
 
 ===Conversion to text (stage 3)
 
     -stage3-:
-    stage3-fsm: make fsm! [ ]
     stage3: func [command command-data] [
-        if block? command [command: first command]
-        cmd: command
-        data: command-data
-        stage3-fsm/event cmd
+        process-event stage3-fsm command command-data
     ]
     init-stage3: does [
         out: make string! 1024
         uri-base: none
         clear links
         clear indent
-        stage3-fsm/init initial
+        reset-fsm/only stage3-fsm
     ]
     end-stage3: does [
-        stage3-fsm/end
+        reset-fsm stage3-fsm
         emit newline
         forall links [
             emit [#"[" index? links "] "]
@@ -96,184 +86,186 @@ to the |stage3| function.
     inherit: func [old new] [
         append new old
     ]
-    
-    initial: [
-        <html> in-html
-    ]
-    in-html: [
-        <head> in-head (unless empty? out [emit newline])
-        <body> in-body
-        </html> return
-    ]
-    in-head: [
-        </head> return
-        <title> in-title
-        <base/> (uri-base: any [select data 'href uri-base])
-        <style> in-style
-        ;<meta/>
-        ;<link/> ( ; turns out to be not very useful in practice
-        ;    emit any [select data 'rel select data 'rev "LINK: "]
-        ;    emit-uri select data 'href
-        ;    emit newline
-        ;)
-    ]
-    in-style: [
-        </style> return
-    ]
-    in-title: [
-        </title> return
-    ]
-    para-buffer: ""
-    in-body: [
-        </body> return
-
-        <style> in-style
-
-        <h1> (clear para-buffer) in-para (
-            uppercase para-buffer
-            emit-para
-            emit [
-                indent copy/part "======================================================================" 70 - length? indent
-                newline
-                indent newline
-            ]
-        )
-        <h2> <h3> <h4> <h5> <h6> (clear para-buffer) in-para (
-            uppercase para-buffer
-            emit-para
-            emit [indent newline]
-        )
-        <address> <p> <legend> (clear para-buffer) in-para (emit-para emit [indent newline])
-        <pre> (clear para-buffer) in-pre (emit para-buffer)
-
-        <ul> (increase-indent) in-ulist (decrease-indent emit [indent newline])
-        <ol> (increase-indent count: any [if count*: select data 'start [attempt [to integer! count*]] 1]) in-olist (decrease-indent emit [indent newline])
-        <dl> (increase-indent) in-dlist (decrease-indent emit [indent newline])
-
-        ;<center>
-
-        <blockquote> (increase-indent) in-blockquote (decrease-indent)
-        <table> (
-            emit [
-                indent copy/part "== TABLE =============================================================" 70 - length? indent
-                newline
-            ]
-        ) in-table (
-            emit [
-                indent copy/part "======================================================================" 70 - length? indent
-                newline
-                indent newline
-            ]
-        )
-        
-        <hr/> (emit [
-            indent copy/part "----------------------------------------------------------------------" 70 - length? indent
-            newline
-            indent newline
-        ])
-    ]
-    in-blockquote: inherit in-body [
-        </blockquote> return
-    ]
     links: [ ]
-    in-para: [
-        </h1> </h2> </h3> </h4> </h5> </h6> </address> </p>
-        </dt> </pre> </caption> </legend>
-            return
+    para-buffer: ""
+    stage3-fsm: make-fsm [
+        initial-state: [
+            <html> in-html
+        ]
+        in-html: [
+            <head> in-head (unless empty? out [emit newline])
+            <body> in-body
+            </html> return
+        ]
+        in-head: [
+            </head> return
+            <title> in-title
+            <base/> (uri-base: any [select data 'href uri-base])
+            <style> in-style
+            ;<meta/>
+            ;<link/> ( ; turns out to be not very useful in practice
+            ;    emit any [select data 'rel select data 'rev "LINK: "]
+            ;    emit-uri select data 'href
+            ;    emit newline
+            ;)
+        ]
+        in-style: [
+            </style> return
+        ]
+        in-title: [
+            </title> return
+        ]
+        in-body: [
+            </body> return
 
-        ;<tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
-        ;<em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
-        ;<abbr> <acronym>
+            <style> in-style
 
-        <a> (append links select data 'href) in-link (repend para-buffer [" [" length? links "] "])
+            <h1> (clear para-buffer) in-para (
+                uppercase para-buffer
+                emit-para
+                emit [
+                    indent copy/part "======================================================================" 70 - length? indent
+                    newline
+                    indent newline
+                ]
+            )
+            <h2> <h3> <h4> <h5> <h6> (clear para-buffer) in-para (
+                uppercase para-buffer
+                emit-para
+                emit [indent newline]
+            )
+            <address> <p> <legend> (clear para-buffer) in-para (emit-para emit [indent newline])
+            <pre> (clear para-buffer) in-pre (emit para-buffer)
 
-        <select> in-select
-        ;<textarea> in-option
-        ;<button>
-        ;<label>
-        ;<input/>
+            <ul> (increase-indent) in-ulist (decrease-indent emit [indent newline])
+            <ol> (increase-indent count: any [if count*: select data 'start [attempt [to integer! count*]] 1]) in-olist (decrease-indent emit [indent newline])
+            <dl> (increase-indent) in-dlist (decrease-indent emit [indent newline])
 
-        <q> (append para-buffer #{E2809C})
-        </q> (append para-buffer #{E2809D})
+            ;<center>
 
-        ;<object>
-        
-        <img/> (append para-buffer "[IMAGE]") ; show src="" ?
+            <blockquote> (increase-indent) in-blockquote (decrease-indent)
+            <table> (
+                emit [
+                    indent copy/part "== TABLE =============================================================" 70 - length? indent
+                    newline
+                ]
+            ) in-table (
+                emit [
+                    indent copy/part "======================================================================" 70 - length? indent
+                    newline
+                    indent newline
+                ]
+            )
+            
+            <hr/> (emit [
+                indent copy/part "----------------------------------------------------------------------" 70 - length? indent
+                newline
+                indent newline
+            ])
+        ]
+        in-blockquote: inherit in-body [
+            </blockquote> return
+        ]
+        in-para: [
+            </h1> </h2> </h3> </h4> </h5> </h6> </address> </p>
+            </dt> </pre> </caption> </legend>
+                return
 
-        <br/> (emit-para)
+            ;<tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
+            ;<em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
+            ;<abbr> <acronym>
 
-        whitespace: text: (record data)
-    ]
-    in-pre: inherit in-para [
-        text: whitespace: (append para-buffer data)
-        <br/> (append para-buffer newline)
-    ]
-    in-link: inherit in-para [
-        </a> return
-    ]
-    ; we are supporting lists and tables only for very simple cases...
-    in-item: inherit in-para [
-        </li> </dt> </dd> </td> </th> return
-    ]
-    in-ulist: [
-        <li> (clear para-buffer) in-item (emit-para/with " * ")
-        <ul> (increase-indent) in-ulist (decrease-indent)
-        <ol> (increase-indent) in-olist (decrease-indent)
+            <a> (append links select data 'href) in-link (repend para-buffer [" [" length? links "] "])
 
-        </ul> </ol> return
-    ]
-    in-olist: inherit in-ulist [
-        <li> (
-            clear para-buffer
-            if all [
-                count*: select data 'value
-                attempt [count*: to integer count*]
-            ] [
-                count: count*
-            ]
-        ) in-item (emit-para/with rejoin [#" " count ". "] count: count + 1)
-    ]
-    in-dlist: [
-        <dt> (clear para-buffer) in-item (append para-buffer #":" emit-para)
-        <dd> (clear para-buffer) in-item (emit-para emit [indent newline])
+            <select> in-select
+            ;<textarea> in-option
+            ;<button>
+            ;<label>
+            ;<input/>
 
-        </dl> return
-    ]
-    in-table: [
-        <caption> (clear para-buffer emit [indent "Table caption:" newline]) in-para (emit-para emit [indent newline])
+            <q> (record #{E2809C})
+            </q> (record #{E2809D})
 
-        <thead> <tfoot> <tbody> (emit [
-            indent copy/part "----------------------------------------------------------------------" 70 - length? indent
-            newline
-        ]) in-rows
+            ;<object>
+            
+            <img/> (record "[IMAGE]") ; show src="" ?
 
-        <tr> continue in-rows
+            <br/> (emit-para)
 
-        </table> return
-    ]
-    in-rows: [
-        <tr> (
-            emit [indent "--" newline]
-        ) in-cells
-        
-        </thead> </tfoot> </tbody> return
+            whitespace: (record " ")
+            text: (record data)
+        ]
+        in-pre: inherit in-para [
+            text: whitespace: (record data)
+            <br/> (record newline)
+        ]
+        in-link: inherit in-para [
+            </a> return
+        ]
+        ; we are supporting lists and tables only for very simple cases...
+        in-item: inherit in-para [
+            </li> </dt> </dd> </td> </th> return
+        ]
+        in-ulist: [
+            <li> (clear para-buffer) in-item (emit-para/with " * ")
+            <ul> (increase-indent) in-ulist (decrease-indent)
+            <ol> (increase-indent) in-olist (decrease-indent)
 
-        </table> 2 return ; no <tbody>
-    ]
-    in-cells: [
-        <td> <th> (append indent "   || " emit [indent "||" newline]) in-cell (decrease-indent)
+            </ul> </ol> return
+        ]
+        in-olist: inherit in-ulist [
+            <li> (
+                clear para-buffer
+                if all [
+                    count*: select data 'value
+                    attempt [count*: to integer count*]
+                ] [
+                    count: count*
+                ]
+            ) in-item (emit-para/with rejoin [#" " count ". "] count: count + 1)
+        ]
+        in-dlist: [
+            <dt> (clear para-buffer) in-item (record #":" emit-para)
+            <dd> (clear para-buffer) in-item (emit-para emit [indent newline])
 
-        </tr> return
-    ]
-    in-cell: inherit in-body [
-        </td> </th> return
-        text: (clear para-buffer) continue in-cell-para (emit-para)
-    ]
-    in-cell-para: inherit in-para [
-        </td> </th> 2 return
-    ]
-    in-select: [
-        </select> return
+            </dl> return
+        ]
+        in-table: [
+            <caption> (clear para-buffer emit [indent "Table caption:" newline]) in-para (emit-para emit [indent newline])
+
+            <thead> <tfoot> <tbody> (emit [
+                indent copy/part "----------------------------------------------------------------------" 70 - length? indent
+                newline
+            ]) in-rows
+
+            <tr> continue in-rows
+
+            </table> return
+        ]
+        in-rows: [
+            <tr> (
+                emit [indent "--" newline]
+            ) in-cells
+            
+            </thead> </tfoot> </tbody> return
+
+            </table> 2 return ; no <tbody>
+        ]
+        in-cells: [
+            <td> <th> (append indent "   || " emit [indent "||" newline]) in-cell (decrease-indent)
+
+            </tr> return
+        ]
+        in-cell: inherit in-body [
+            </td> </th> return
+            text: (clear para-buffer) continue in-cell-para (emit-para)
+        ]
+        in-cell-para: inherit in-para [
+            </td> </th> 2 return
+        ]
+        in-select: [
+            </select> return
+        ]
     ]
     emit: func [value] [repend out value]
     indent: ""
@@ -303,15 +295,8 @@ to the |stage3| function.
         emit newline
         clear para-buffer: head para-buffer
     ]
-    record: func [text /local pre post] [
-        unless empty? text [
-            pre: find space text/1
-            post: find space last text
-        ]
-        trim/lines text
-        if pre [append para-buffer #" "]
+    record: func [text] [
         append para-buffer text
-        if post [append para-buffer #" "]
     ]
     emit-uri: func [uri] [
         ; needs to be smarter.
