@@ -1,14 +1,23 @@
 HTML Filter
 
+    Type: Module
     Purpose: {
         Filters HTML text removing any potential security treat;
         allows embedding some HTML coming from an untrusted source
         in a web page without creating security holes for the web site.
     }
     Author: "Gabriele Santilli"
-    EMail: giesse@rebol.it
     File: %filter-html.r
     Version: 1.0.0
+    Imports: [
+        %dialects/fsm.r         "Used for the state machine"
+        %parsers/ml-parser.r    "Used to parse the HTML text"
+        %mezz/normalize-html.r  "Used to normalize the HTML before regenerating it"
+        %parsers/uri-parser.r   "Used to check and normalize the URLs"
+    ]
+    Globals: [
+        filter-html             "Made global so that it's easy to use in non-modules"
+    ]
 
 ===TODO
 
@@ -58,31 +67,16 @@ string will be UTF-8 encoded.
 /note
 
     -main-:
-    module [
-        "HTML Filter"
-        {Filters HTML text removing any potential security treat;
-        allows embedding some HTML coming from an untrusted source
-        in a web page without creating security holes for the web site.}
-        import [
-            ml-parser       "Used to parse the HTML text"
-            html-normalizer "Used to normalize the HTML before regenerating it"
-            uri-parser      "Used to check and normalize the URLs"
-        ]
-        global [
-            filter-html     "Made global so that it's easy to use in non-modules"
-        ]
-    ] [
-        -stage3-
+    -stage3-
 
-        filter-html: func [
-            "Sanitize HTML text"
-            html [string!]
-            /all "Return a complete HTML document (including <html> tag, <head> etc.)"
-            /with prefix "Prepend the given prefix to all IDs"
-            /utf8 "Return UTF-8 text instead of ASCII"
-        ] [
-            -filter-html-
-        ]
+    filter-html: func [
+        "Sanitize HTML text"
+        html [string!]
+        /all "Return a complete HTML document (including <html> tag, <head> etc.)"
+        /with prefix "Prepend the given prefix to all IDs"
+        /utf8 "Return UTF-8 text instead of ASCII"
+    ] [
+        -filter-html-
     ]
 
 ===Parse and regenerate the |html| text
@@ -98,26 +92,21 @@ to the |stage3| function.
     init-stage3 all prefix utf8
     init-normalizer :stage3
     parse-ml html :process-tag
-    end-normalizer
+    reset-normalizer
     end-stage3
 
 ===Regeneration (stage 3)
 
     -stage3-:
-    stage3-fsm: make fsm! [ ]
     stage3: func [cmd data] [
-        if block? cmd [cmd: first cmd]
-        stage3-ctx/cmd: cmd
-        stage3-ctx/data: data
-        stage3-fsm/event cmd
+        process-event stage3-fsm cmd data
     ]
     init-stage3: func [all prefix utf8] [
         out: make string! 1024
         emit-full-doc?: all
         id-prefix: prefix
         emit-utf8?: utf8
-        ;stage3-fsm/tracing: yes
-        stage3-fsm/init stage3-ctx/initial
+        reset-fsm/only stage3-fsm
         if emit-full-doc? [
             emit <?xml version="1.0" encoding="UTF-8"?>
             emit newline
@@ -129,17 +118,14 @@ to the |stage3| function.
     id-prefix: none
     emit-utf8?: no
     end-stage3: does [
-        stage3-fsm/end
+        reset-fsm stage3-fsm
         out
     ]
-    stage3-ctx: context [
-        cmd: data: none
-        
-        inherit: func [old new] [
-            append new old
-        ]
-
-        initial: [
+    inherit: func [old new] [
+        append new old
+    ]
+    stage3-fsm: make-fsm [
+        initial-state: [
             ; whitespace before <html> removed
             comment: (emit data)
             <html> (
@@ -227,27 +213,27 @@ to the |stage3| function.
 
             <h1> <h2> <h3> <h4> <h5> <h6> <address> <p>
             <pre> <legend>
-                (emit-tag cmd data [ ]) in-para
+                (emit-tag event data [ ]) in-para
 
-            <ul> (emit-tag cmd data [
+            <ul> (emit-tag event data [
                 type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
             ]) in-list
-            <ol> (emit-tag cmd data [
+            <ol> (emit-tag event data [
                 type  [style* list-style "list-style-type"] none
                 start number                                none
             ]) in-list
-            <dl> (emit-tag cmd data [ ]) in-dlist
+            <dl> (emit-tag event data [ ]) in-dlist
 
-            <div> <fieldset> (emit-tag cmd data [ ])
+            <div> <fieldset> (emit-tag event data [ ])
             <center> (emit-tag <div> append copy [align "center"] data [ ])
 
-            <blockquote> (emit-tag cmd data [cite uri none])
-            <form>  (emit-tag cmd data [
+            <blockquote> (emit-tag event data [cite uri none])
+            <form>  (emit-tag event data [
                 action  force "#" ; disable forms!
                 method  force "GET"
                 name    name* none
             ])
-            <table> (emit-tag cmd data [
+            <table> (emit-tag event data [
                 summary     cdata                          none
                 align       [enum "left" "center" "right"] none
                 width       [style* lengthpx "width"]      none
@@ -263,12 +249,12 @@ to the |stage3| function.
                 cellpadding length                         none
             ]) in-table (emit </table>)
             
-            <ins> <del> (emit-tag cmd data [
+            <ins> <del> (emit-tag event data [
                 cite     uri   none
                 datetime cdata none
             ])
 
-            <hr/> (emit-tag cmd data [
+            <hr/> (emit-tag event data [
                 ; this is quite hard to convert to CSS automatically
                 ; so will keep the deprecated attributes
                 align   [enum "left" "right" "center"] none
@@ -278,7 +264,7 @@ to the |stage3| function.
             ])
             
             </div> </blockquote> </form> </fieldset> </ins> </del>
-                (emit lowercase cmd)
+                (emit lowercase event)
             </center> (emit </div>)
         ]
         in-para: [
@@ -286,14 +272,14 @@ to the |stage3| function.
 
             </h1> </h2> </h3> </h4> </h5> </h6> </address> </p>
             </dt> </pre> </caption> </legend>
-                (emit lowercase cmd) return
+                (emit lowercase event) return
 
             <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
             <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
             <abbr> <acronym>
-                (emit-tag cmd data [ ])
+                (emit-tag event data [ ])
 
-            <a> (emit-tag cmd data [
+            <a> (emit-tag event data [
                 name     name*                                   none
                 href     uri                                     none
                 hreflang name*                                   none
@@ -313,10 +299,10 @@ to the |stage3| function.
             ])
             </font> (emit </span>)
 
-            <span> (emit-tag cmd data [ ])
+            <span> (emit-tag event data [ ])
 
-            <map> (emit-tag cmd data [name name* none])
-            <area/> (emit-tag cmd data [
+            <map> (emit-tag event data [name name* none])
+            <area/> (emit-tag event data [
                 shape    [enum "default" "rect" "circle" "poly"] none
                 coords   cdata                                   none
                 nohref   [bool "nohref"]                         none
@@ -325,27 +311,27 @@ to the |stage3| function.
                 target   [enum "_blank"]                         none
             ])
 
-            <select> (emit-tag cmd data [
+            <select> (emit-tag event data [
                 name     name*             none
                 size     number            none
                 multiple [bool "multiple"] none
                 disabled force             "disabled"
             ]) in-select (emit </select>)
-            <textarea> (emit-tag cmd data [
+            <textarea> (emit-tag event data [
                 name     name*             none
                 rows     number            none
                 cols     number            none
                 readonly [bool "readonly"] none
                 disabled force             "disabled"
             ]) in-option
-            <button> (emit-tag cmd data [
+            <button> (emit-tag event data [
                 name     name*                            none
                 value    cdata                            none
                 type     [enum "submit" "button" "reset"] none
                 disabled force                            "disabled"
             ])
-            <label> (emit-tag cmd data [for name* none])
-            <input/> (emit-tag cmd data [
+            <label> (emit-tag event data [for name* none])
+            <input/> (emit-tag event data [
                 type      [
                     enum "text" "password" "checkbox" "radio"
                         "submit" "reset" "file" "hidden"
@@ -365,16 +351,16 @@ to the |stage3| function.
                 ismap     [bool "ismap"]    none
             ])
 
-            <q> (emit-tag cmd data [cite uri none])
+            <q> (emit-tag event data [cite uri none])
 
             ;<object>
             
-            <ins> <del> (emit-tag cmd data [
+            <ins> <del> (emit-tag event data [
                 cite     uri   none
                 datetime cdata none
             ])
 
-            <img/> (emit-tag cmd data [
+            <img/> (emit-tag event data [
                 src      uri            none
                 alt      cdata          none
                 longdesc uri            none
@@ -389,7 +375,7 @@ to the |stage3| function.
                 align    imgalign       none
             ])
 
-            <br/> (emit-tag cmd data [clear brclear none])
+            <br/> (emit-tag event data [clear brclear none])
 
             <basefont/>
 
@@ -398,12 +384,12 @@ to the |stage3| function.
             </a> </map> </button> </label> </span>
             </abbr> </acronym> </q> ;</object>
             </ins> </del> ; should be treated specially, but noone uses them so...
-                (emit lowercase cmd)
+                (emit lowercase event)
             
             text: (encode-entities out data emit-utf8?)
         ]
         in-item: inherit in-body inherit in-para [
-            </li> </td> </th> </dd> (emit lowercase cmd) return
+            </li> </td> </th> </dd> (emit lowercase event) return
         ]
         in-list: [
             comment: whitespace: (emit data)
@@ -413,41 +399,41 @@ to the |stage3| function.
                 value number                                none
             ]) in-item
 
-            <ul> (emit <li> emit-tag cmd data [
+            <ul> (emit <li> emit-tag event data [
                 type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
             ]) in-list (emit </li>)
-            <ol> (emit <li> emit-tag cmd data [
+            <ol> (emit <li> emit-tag event data [
                 type  [style* list-style "list-style-type"] none
                 start number                                none
             ]) in-list (emit </li>)
 
-            </ul> </ol> (emit lowercase cmd) return
+            </ul> </ol> (emit lowercase event) return
         ]
         in-dlist: [
             comment: whitespace: (emit data)
             
-            <dt> (emit-tag cmd data [ ]) in-para
-            <dd> (emit-tag cmd data [ ]) in-item
+            <dt> (emit-tag event data [ ]) in-para
+            <dd> (emit-tag event data [ ]) in-item
 
             </dl> (emit </dl>) return
         ]
         in-table: [
             comment: whitespace: (emit data)
             
-            <caption> (emit-tag cmd data [ ]) in-para
+            <caption> (emit-tag event data [ ]) in-para
 
-            <colgroup> (emit-tag cmd data [
+            <colgroup> (emit-tag event data [
                 span   number       none
                 width  multi-length none
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
             ]) in-colgroup (emit </colgroup>)
-            <col/> (emit-tag cmd data [
+            <col/> (emit-tag event data [
                 span   number       none
                 width  multi-length none
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
             ])
 
-            <thead> <tfoot> <tbody> (emit-tag cmd data [
+            <thead> <tfoot> <tbody> (emit-tag event data [
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
             ]) in-rows
 
@@ -458,7 +444,7 @@ to the |stage3| function.
         in-colgroup: [
             comment: whitespace: (emit data)
             
-            <col/> (emit-tag cmd data [
+            <col/> (emit-tag event data [
                 span   number       none
                 width  multi-length none
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
@@ -469,18 +455,18 @@ to the |stage3| function.
         in-rows: [
             comment: whitespace: (emit data)
 
-            <tr> (emit-tag cmd data [
+            <tr> (emit-tag event data [
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
             ]) in-cells (emit </tr>)
             
-            </thead> </tfoot> </tbody> (emit lowercase cmd) return
+            </thead> </tfoot> </tbody> (emit lowercase event) return
 
             </table> 2 return ; no <tbody>
         ]
         in-cells: [
             comment: whitespace: (emit data)
             
-            <td> <th> (emit-tag cmd data [
+            <td> <th> (emit-tag event data [
                 headers name-list                                none
                 scope   [enum "row" "col" "rowgroup" "colgroup"] none
                 abbr    cdata                                    none
@@ -499,13 +485,13 @@ to the |stage3| function.
         in-select: [
             comment: whitespace: (emit data)
             
-            <option> (emit-tag cmd data [
+            <option> (emit-tag event data [
                 selected [bool "selected"] none
                 value    cdata             none
                 label    cdata             none
                 disabled force             "disabled"
             ]) in-option
-            <optgroup> (emit-tag cmd data [
+            <optgroup> (emit-tag event data [
                 label    cdata none
                 disabled force "disabled"
             ]) in-optgroup (emit </optgroup>)
@@ -517,12 +503,12 @@ to the |stage3| function.
 
             text: (encode-entities out data emit-utf8?)
             
-            </option> </textarea> (emit lowercase cmd) return
+            </option> </textarea> (emit lowercase event) return
         ]
         in-optgroup: [
             comment: whitespace: (emit data)
 
-            <option> (emit-tag cmd data [
+            <option> (emit-tag event data [
                 selected [bool "selected"] none
                 value    cdata             none
                 label    cdata             none
