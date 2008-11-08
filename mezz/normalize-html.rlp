@@ -1,12 +1,28 @@
 HTML Normalizer
 
+    Type: Module
     Purpose: {
         Normalizes a HTML tag stream (that is, balances start and end tags, fixes missing
         end tags, and so on).
     }
     Author: "Gabriele Santilli"
     File: %normalize-html.r
-    Version: 1.0.0
+    Version: 1.1.0
+    Imports: [
+        %dialects/fsm.r "Finite State Machine dialect"
+    ]
+    Exports: [
+        normalize-html "Normalize HTML text"
+        init-normalizer "Initialize HTML normalizer state machine"
+        process-tag "Process a HTML tag"
+        reset-normalizer "Reset HTML normalizer state machine"
+    ]
+
+===TODO
+
+*Since this should now be more general, and not just part of the HTML filter, we must stop filtering away certain tags such as <script>.
+(This is not a problem for the HTML to text converter, but it is a problem if anyone else wants to use
+this code.)
 
 ===Introduction
 
@@ -15,25 +31,16 @@ Introduction to be written.
 ===Overview
 
     -main-:
-    html-normalizer: module [
-        "HTML Normalizer"
-        "Normalizes a HTML tag stream (that is, balances start and end tags, fixes missing end tags, and so on)."
-        export [
-            normalize-html "Normalize HTML text"
-            -low-level-api-export-
-        ]
+    -stage2-
+    -low-level-api-
+
+    normalize-html: func [
+        "Normalize HTML text"
+        html [block!] "Result of LOAD-MARKUP"
+
+        /local -nh-locals-
     ] [
-        -stage2-
-        -low-level-api-
-
-        normalize-html: func [
-            "Normalize HTML text"
-            html [block!] "Result of LOAD-MARKUP"
-
-            /local -nh-locals-
-        ] [
-            -normalize-html-
-        ]
+        -normalize-html-
     ]
 
 ===Normalize the given |html| block
@@ -42,14 +49,14 @@ Introduction to be written.
     result: make block! length? html
     init-normalizer func [cmd data] [
         switch/default cmd [
-            text: whitespace: [
+            text whitespace [
                 either all [not empty? result string? last result] [
                     append last result data
                 ] [
                     append result data
                 ]
             ]
-            comment: declaration: xml-proc: [
+            comment declaration xml-proc [
                 append result data
             ]
         ] [
@@ -61,14 +68,16 @@ Introduction to be written.
             ]
         ]
     ]
-    space: charset { ^/^-}
+    non-space: complement space: charset { ^/^-}
     foreach element html [
         switch type?/word element [
             string! [
-                either parse/all element [any space] [
-                    process-tag [whitespace:] element
-                ] [
-                    process-tag [text:] element
+                parse/all element [
+                    any [
+                        copy txt some space (process-tag 'whitespace txt)
+                        |
+                        copy txt some non-space (process-tag 'text txt)
+                    ]
                 ]
             ]
             block! [
@@ -76,24 +85,24 @@ Introduction to be written.
             ]
             tag! [
                 parse/all element [
-                    "!--" (process-tag [comment:] element)
+                    "!--" (process-tag 'comment element)
                     |
-                    "!doctype" (process-tag [declaration:] element)
+                    "!doctype" (process-tag 'declaration element)
                     !
-                    "?" (process-tag [xml-proc:] element)
+                    "?" (process-tag 'xml-proc element)
                     |
-                    (process-tag element none)
+                    (process-tag copy element none)
                 ]
             ]
         ]
     ]
-    end-normalizer
+    reset-normalizer
     result
 
 ---|normalize-html|'s locals
 
     -nh-locals-
-    result space
+    result space non-space txt
 
 ===Lower level API (for incremental processing)
 
@@ -110,18 +119,11 @@ Introduction to be written.
     ] [
         -process-command-
     ]
-    end-normalizer: func [
-        "Terminate HTML normalizer state machine"
+    reset-normalizer: func [
+        "Reset HTML normalizer state machine"
     ] [
         -end-normalizer-
     ]
-
-Export them:
-
-    -low-level-api-export-:
-    init-normalizer "Initialize HTML normalizer state machine"
-    process-tag "Process a HTML tag"
-    end-normalizer "Terminate HTML normalizer state machine"
 
 ---Process a state machine command (eg. HTML tag)
 
@@ -130,38 +132,31 @@ We use a FSM interperter; thus the |process| function just sets the words |cmd| 
 to the state machine.
 
     -process-command-:
-    if block? command [command: first command]
-    cmd: command
-    data: command-data
-    fsm/event command
+    process-event fsm command command-data
 
 ---Initialize the state machine
 
 There are a number of things to initialize for the state machine, and some things to
 do for correct termination too. These two functions are used for this reason.
 
-We need to initialize the string buffer used by the |text-run| state, and the
-block and inline stacks; then we just initialize the FSM using |initial| as the
-initial state.
+We need to initialize the
+block and inline stacks; then we just reset the FSM to make sure it was not left in
+a state different than the initial state due to an error in a previous run.
 
     -init-normalizer-:
-    cb*: :callback
-    buffer: make string! 256
+    cb: :callback
     clear block-stack
     clear inline-stack
-    fsm/init initial
+    reset-fsm/only fsm
 
----Terminate the state machine
+---Reset the state machine
 
-On termination, we need to check if the |buffer| is non-empty,
-which means that we are still inside the |text-run| state (i.e. the document ended
-with just text) and we need to emit the buffer; then we just terminate the FSM
+On reset, we need to reset the FSM
 (this sends it back to the initial state, so it takes care of closing all elements
 and so on).
 
     -end-normalizer-:
-    if not empty? buffer [cb [text:] buffer]
-    fsm/end
+    reset-fsm fsm
 
 ===Tag balancing state machine
 
@@ -169,10 +164,10 @@ This state machine takes care of ensuring tag balancing, correct nesting, and ov
 well-formedness of the HTML stream. Some potentially harmful content is also removed here.
 
     -stage2-:
-    fsm: make fsm! [ ]
-    cb: func [cmd data] [cb* either block? cmd [first cmd] [cmd] data]
+    fsm: make-fsm [
+        -stage2-states-
+    ]
     
-    -stage2-states-
     -stage2-functions-
 
 ---FSM states
@@ -182,10 +177,11 @@ and end tag for the *html* element are optional, we also emit a |<html>| tag as 
 as we find anything that is not a comment or whitespace.
 
     -stage2-states-:
-    initial: [
-        comment: whitespace: declaration: xml-proc: (cb cmd data)
-        <html> (cb <html> data) in-html-prehead (cb </html> none)
-        default: (cb <html> none) continue in-html-prehead (cb </html> none)
+    initial-state: [
+        comment: declaration: xml-proc: (cb event data)
+        whitespace: ( ) ; ignore
+        <html> (cb <html> data nl) in-html-prehead (cb </html> none)
+        default: (cb <html> none nl) continue in-html-prehead (cb </html> none)
     ]
 
 After the intial state, we get inside the *html* element and waiting for
@@ -194,12 +190,12 @@ too, so we automatically enter the *head* element if we find one of the listed t
 
     -stage2-states-:
     in-html-prehead: [
-        comment: (cb [comment:] data)
-        whitespace: (cb [whitespace:] data)
-        <head> (cb <head> none) in-head
+        comment: (cb 'comment data)
+        whitespace: ( ) ; ignore
+        <head> (cb <head> none nl) in-head
         <title> <isindex> <isindex/> <base> <base/> <script> <script/>
-        <style> <meta> <meta/> <link> <link/> <object> (cb <head> none) continue in-head
-        default: (foreach tag [<head> <title> </title> </head>] [cb tag none]) continue in-html-prebody
+        <style> <meta> <meta/> <link> <link/> <object> (cb <head> none nl) continue in-head
+        default: (foreach tag [<head> <title> </title> </head>] [cb tag none] nl) continue in-html-prebody
     ]
 
 In this state, we are inside the *head* element. We need to process the listed tags,
@@ -213,11 +209,11 @@ preserved while ensuring balancing (see below).
 
     -stage2-states-:
     in-head: [
-        comment: (cb [comment:] data)
-        whitespace: (cb [whitespace:] data)
+        comment: (cb 'comment data)
+        whitespace: ( )
         <head> ( ) ; ignore extra <head> open tag
-        </head> (cb </head> none) in-html-prebody
-        default: (cb </head> none) continue in-html-prebody
+        </head> (cb </head> none nl) in-html-prebody
+        default: (cb </head> none nl) continue in-html-prebody
         <title> (cb <title> none) in-title (cb </title> none)
         <isindex> <isindex/> ( ) ; noone should be using this
         <base> <base/> (cb <base/> data)
@@ -240,8 +236,13 @@ to hide the CSS from old user agents.
     -stage2-states-:
     in-title: [
         comment: ( )
-        text: whitespace: continue text-run
+        text: (cb 'text data)
+        whitespace: (sp) ignore-whitespace
         </title> return
+        default: continue return
+    ]
+    ignore-whitespace: [
+        whitespace: ( )
         default: continue return
     ]
     in-script: [
@@ -255,20 +256,9 @@ to hide the CSS from old user agents.
     ]
     in-style: [
         comment: ( )
-        text: whitespace: continue text-run
+        text: whitespace: (cb event data)
         </style> return
         default: continue return
-    ]
-
-The |text-run| state is used in a few places to reduce a sequence of |text:| and
-|whitespace:| events to a single |text:| event. |buffer| is assumed to have been
-initialized before starting to process input.
-
-    -stage2-states-:
-    buffer: make string! 256
-    text-run: [
-        text: whitespace: (append buffer data)
-        default: (cb [text:] buffer buffer: make string! 256) continue return
     ]
 
 Here we are just after the *head* element, before the |<body>| start tag; since the start
@@ -277,10 +267,10 @@ whitespace after *head*.
 
     -stage2-states-:
     in-html-prebody: [
-        comment: (cb [comment:] data)
-        whitespace: (cb [whitespace:] data)
-        <body> (cb <body> data) in-block (close-all block-stack cb </body> none)
-        default: (cb <body> none) continue in-block (close-all block-stack cb </body> none)
+        comment: (cb 'comment data)
+        whitespace: ( )
+        <body> (cb <body> data nl) in-block (close-all block-stack cb </body> none nl)
+        default: (cb <body> none nl) continue in-block (close-all block-stack cb </body> none nl)
     ]
 
 Inside the *body*, content is processed by two states, |in-block| and |in-inline|. The first
@@ -292,17 +282,18 @@ cannot contain other *p* elements and so on.
 
     -stage2-states-:
     in-block: [
-        comment: (cb [comment:] data)
-        whitespace: (cb [whitespace:] data)
+        comment: (cb 'comment data)
+        whitespace: ( )
         
         <h1> <h2> <h3> <h4> <h5> <h6> <address> <p> <li> <dt> <dd>
-        <pre> <td> <th> <legend> <caption>
-            (open-tag block-stack cmd data) in-inline (close-all inline-stack)
+        <td> <th> <legend> <caption>
+            (open-tag block-stack event data) in-inline (close-all inline-stack)
+        <pre> (open-tag block-stack event data) in-pre (close-all inline-stace)
         
         <ul> <ol> <dl> <div> <center>
         <blockquote> <form> <fieldset> <table> <noscript>
         <tr> <colgroup> <thead> <tfoot> <tbody> <ins> <del>
-            (open-tag block-stack cmd data)
+            (open-tag block-stack event data nl)
         
         <isindex> <isindex/> ( ) ; noone should be using this
         <iframe> </iframe> ( ) ; filter it out
@@ -311,15 +302,15 @@ cannot contain other *p* elements and so on.
         
         <style> (cb <style> data) in-style (cb </style> none)
 
-        <hr> <hr/> (cb <hr/> none) 
-        <col> <col/> (cb <col/> data)
+        <hr> <hr/> (cb <hr/> none nl) 
+        <col> <col/> (cb <col/> data nl)
         
         </h1> </h2> </h3> </h4> </h5> </h6> </address> </p> </ul> </ol>
         </li> </dl> </dt> </dd> </pre> </div> </center>
         </blockquote> </form> </fieldset> </legend> </table> </noscript>
         </tr> </td> </th> </caption> </colgroup> </thead>
         </tfoot> </tbody> </ins> </del>
-            (close-tag block-stack cmd)
+            (close-tag block-stack event nl)
         
         </body> </html> ( ) ; ignored
         
@@ -331,14 +322,14 @@ cannot contain other *p* elements and so on.
             (open-tag block-stack <p> none) continue in-inline (close-all inline-stack)
     ]
     in-inline: [
-        comment: (cb [comment:] data)
+        comment: (cb 'comment data)
         
         <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
         <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
         <a> <font> <map> <select> <textarea> <option> <button>
         <optgroup> <label> <span>
         <abbr> <acronym> <q> <ins> <del> <object>
-            (open-tag inline-stack cmd data)
+            (open-tag inline-stack event data)
         
         <applet> </applet> <param> </param> ( )
         
@@ -348,16 +339,20 @@ cannot contain other *p* elements and so on.
         </optgroup> </label> </span>
         </abbr> </acronym> </q> </object>
         </ins> </del> ; should be treated specially, but noone uses them so...
-            (close-tag inline-stack cmd)
+            (close-tag inline-stack event)
         
         <img> <img/> <basefont> <basefont/> <br> <br/> <area> <area/>
         <input> <input/>
-            (cb either #"/" = last cmd [cmd] [append cmd "/"] data)
+            (cb either #"/" = last event [event] [append event "/"] data if event = <br/> [nl])
         
-        text: whitespace: continue text-run
+        text: (cb 'text data)
+        whitespace: (sp) ignore-whitespace
         
         default: continue return
     ]
+    in-pre: append [
+        whitespace: (cb 'whitespace data)
+    ] in-inline
 
 ---Functions used by the state machine
 
@@ -379,6 +374,8 @@ if that would mean closing a *table* element. (If you have nested tables, you ca
 a *td* inside another *td*.)
 
     -stage2-functions-:
+    nl: does [cb 'whitespace copy "^/"]
+    sp: does [cb 'whitespace copy " "]
     block-stack: [ ]
     inline-stack: [ ]
     nesting: [

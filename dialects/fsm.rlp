@@ -85,8 +85,8 @@ The |until| loop is needed for the |continue| and |override| directives. See |-i
         
         /local -pe-locals-
     ] [
-        if word? event [event: to set-word! event]
         fsm/event: event
+        if word? event [event: to set-word! event]
         fsm/data: :data
         until [
             if fsm/tracing [print ["*** event" mold event]]
@@ -218,7 +218,7 @@ the |return-state| function twice.
         |
         ; override event and make a new state handle it (must be followed by a state change directive)
         'override set ovr word! (
-            event: fsm/event: to set-word! ovr
+            event: to set-word! fsm/event: ovr
             if fsm/tracing [prin ["override" mold ovr ""]]
             done?: no
         )
