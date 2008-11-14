@@ -41,6 +41,9 @@ A standards-compliant URI parser
         POSSIBILITY OF SUCH DAMAGE.
     }
     Version: 1.4.0
+    Imports: [
+        %parsers/common-rules.r
+    ]
     Exports: [
         parse-uri   "Parse a URI into its components"
         form-uri    "Form an URI string from its components"
@@ -159,7 +162,7 @@ more details and an explanation of the rules.
 
     relative-part: ["//" authority path-abempty | path-absolute | path-noscheme | none]
 
-    scheme-rule: [alpha any [alpha | digit |  "+" | "-" | "."]]
+    scheme-rule: [alpha-char any [alpha-char | digit |  "+" | "-" | "."]]
 
     authority: [opt [copy seg userinfo-rule "@" (userinfo: seg)] host-rule opt [":" port-rule]]
     userinfo-rule: [any [relaxed | pct-encoded | sub-delims | ":"]]
@@ -207,13 +210,10 @@ more details and an explanation of the rules.
 
     pct-encoded: ["%" 2 hexdigit]
 
-    alpha: charset [#"A" - #"Z" #"a" - #"z"]
-    digit: charset "0123456789"
     digit0-5: charset "012345"
     digit0-4: charset "01234"
     digit1-9: charset "123456789"
-    hexdigit: charset "0123456789abcdefABCDEF"
-    unreserved: union alpha union digit charset "-._~"
+    unreserved: union alpha-char union digit charset "-._~"
     gen-delims: charset ":/?#[]@"
     sub-delims: charset "!$&'()*+,;="
     reserved: union gen-delims sub-delims

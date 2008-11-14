@@ -28,3 +28,8 @@ schemes/filter.r
 schemes/tee.html
 schemes/tee.r
 output.r
+mezz/text-encoding.html
+mezz/text-encoding.r
+parsers/common-rules.html
+parsers/common-rules.r
+test.html

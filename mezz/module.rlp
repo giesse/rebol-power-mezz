@@ -31,7 +31,9 @@ to a module object; |file!| values are passed to |load-module|, and the resultin
 it is possible to use strings or other values in this block to provide comments).
 You can also specify which words you want other modules to be able to import from you by *exporting* them
 using |Exports: [block of words]| (you can also use strings or other values in this block
-to provide comments about the words you are exporting). Finally, you can allow your module to alter the global
+to provide comments about the words you are exporting). It is also possible to use |Exports: 'All| to
+signal that all the module's locals (that is, all the contained |set-word!|'s) should be exported.
+Finally, you can allow your module to alter the global
 context in a controlled way, by using |Globals: [block of words]| (again, strings are ok
 in this block); such words will not be made local to the module.
 
@@ -140,10 +142,10 @@ they were not specified in the spec.) |local-ctx| and |export-ctx| are the conte
 by the module, and you should not touch them.
 
     -module!-:
-    type: 'module
-    title: "Untitled"
-    purpose: "Undocumented"
-    imports: exports: globals: none
+    Type: 'module
+    Title: "Untitled"
+    Purpose: "Undocumented"
+    Imports: Exports: Globals: none
     local-ctx: export-ctx: none
 
 ===Create a module based on the given |spec| and |body|
@@ -175,8 +177,10 @@ We also prepare |export-ctx|, |imports'| and
         globals     globals'    [not word? :value]
         imports     imports'    [not any [any-word? :value file? :value url? :value]]
     ] result [
-        set dst unique any [get src [ ]]
-        remove-each value get dst cond
+        unless 'All = get src [
+            set dst unique any [get src [ ]]
+            remove-each value get dst cond
+        ]
     ]
 
 ---|module|'s locals
@@ -189,7 +193,8 @@ We also prepare |export-ctx|, |imports'| and
 Here we parse the |body| deeply for |set-word!|'s. We list all words that need to be made
 local in |result/local-ctx|, and exclude the words that we want global from them. (Notice
 that we don't need to copy the block here, because |exclude| will, and we're going to
-make a context out of it anyway.)
+make a context out of it anyway.) We also handle the case where |Exports:| was set to
+|'All| here, making the local context empty and putting all words in the export context.
 
 Notice that we just leave the words in the |globals'| list alone, so they may be bound to
 other contexts as well, not just |system/words|.
@@ -207,7 +212,12 @@ other contexts as well, not just |system/words|.
             skip
         ]
     ]
-    result/local-ctx: exclude result/local-ctx append copy globals' result/export-ctx
+    either result/exports = 'All [
+        result/export-ctx: exclude result/local-ctx globals'
+        clear result/local-ctx
+    ] [
+        result/local-ctx: exclude result/local-ctx append copy globals' result/export-ctx
+    ]
 
 We need these additional local words for the function:
 

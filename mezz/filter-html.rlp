@@ -11,9 +11,11 @@ HTML Filter
     Version: 1.0.0
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
+        %parsers/common-rules.r "We need the NAME rule"
         %parsers/ml-parser.r    "Used to parse the HTML text"
         %mezz/normalize-html.r  "Used to normalize the HTML before regenerating it"
         %parsers/uri-parser.r   "Used to check and normalize the URLs"
+        %mezz/text-encoding.r   "Used to encode HTML entities"
     ]
     Globals: [
         filter-html             "Made global so that it's easy to use in non-modules"
@@ -746,45 +748,6 @@ to the |stage3| function.
         ]
         either #"/" = last tag [emit " />"] [emit ">"]
     ]
-    ascii: exclude charset [#"^(00)" - #"^(7F)"] special: charset {"&<>}
-    seq2: charset [#"^(C0)" - #"^(DF)"]
-    seq3: charset [#"^(E0)" - #"^(EF)"]
-    seq4: charset [#"^(F0)" - #"^(F7)"]
-    seq: charset [#"^(80)" - #"^(BF)"]
     encode-entities: func [output text only /local mk1 mk2] [
-        parse/all text [
-            some [
-                mk1: some ascii mk2: (insert/part tail output mk1 mk2)
-                |
-                copy mk1 [special | seq2 seq | seq3 2 seq | seq4 3 seq] (insert tail output encode-entity as-binary mk1 only)
-                |
-                skip
-            ]
-        ]
-    ]
-    rselect: func [series value] [
-        all [
-            series: find series value
-            pick series -1
-        ]
-    ]
-    encode-entity: func [char [binary!] only /local nm] [
-        if nm: rselect entity-map char [
-            return rejoin ["&" nm ";"]
-        ]
-        if only [return char]
-        ; assume well formed utf-8 char
-        do pick [
-            none
-            [   ; 2
-                char: char/1 and 31 * 64 + (char/2 and 63)
-            ]
-            [   ; 3
-                char: char/1 and 15 * 4096 + (char/2 and 63 * 64) + (char/3 and 63)
-            ]
-            [   ; 4
-                char: char/1 and 7 * 262144 + (char/2 and 63 * 4096) + (char/3 and 63 * 64) + (char/4 and 63)
-            ]
-        ] length? char
-        rejoin ["&#" char ";"]
+        encode-text/to text pick [html-utf8 html-ascii] to logic! only output
     ]

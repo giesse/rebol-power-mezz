@@ -1,0 +1,34 @@
+Common PARSE rules
+
+    Type: Module
+    Purpose: {
+        Defines a number of common charsets and PARSE rules.
+    }
+    Author: "Gabriele Santilli"
+    File: %common-rules.r
+    Version: 1.0.0
+    Exports: All
+
+===Introduction
+
+This file just collects a number of charsets and parse rules that are
+commonly used in other modules.
+
+===Overview
+
+    -main-:
+    ascii-char: charset [#"^(00)" - #"^(7F)"]
+    html-special-char: charset {"&<>}
+    alpha-char: letter: charset [#"A" - #"Z" #"a" - #"z"]
+    space-char: charset { ^/^-}
+    digit: charset "1234567890"
+    hexdigit: charset "1234567890abcdefABCDEF"
+    ascii-minus-html-special: exclude ascii-char html-special-char
+    utf8-seq2: charset [#"^(C0)" - #"^(DF)"]
+    utf8-seq3: charset [#"^(E0)" - #"^(EF)"]
+    utf8-seq4: charset [#"^(F0)" - #"^(F7)"]
+    utf8-seq: charset [#"^(80)" - #"^(BF)"]
+    letter*: union letter charset "_"
+    alphanum: union alpha-char digit
+    letter+: union union letter digit charset {.-_}
+    name: [letter* any letter+]
