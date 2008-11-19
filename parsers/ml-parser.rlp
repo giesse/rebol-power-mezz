@@ -6,7 +6,7 @@
     }
     Author: "Gabriele Santilli"
     File: %ml-parser.r
-    Version: 1.1.0
+    Version: 1.1.1
     Imports: [
         %parsers/common-rules.r
         %mezz/text-encoding.r   "For decoding of HTML entities"
@@ -101,7 +101,7 @@ are appended as a block, and text strings are joined together as much as possibl
             ]
         ] [
             ; cmd is tag!
-            either block? data [
+            either all [block? data not empty? data] [
                 insert data cmd
                 append/only result data
             ] [
@@ -151,7 +151,7 @@ lose any special meaning; this means that text is passed on verbatim.
     -parsing-rules-:
     comment: [copy txt ["<!--" thru "-->"] (cb 'comment txt)]
     declaration: [copy txt ["<!doctype" space-char thru #">"] (cb 'declaration txt)] ; simplified - may break
-    cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb 'text txt)]
+    cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb 'text any [txt copy ""])]
 
 where |cb| is set to the callback function given by the user (see |-parse-html-|).
 
@@ -228,6 +228,7 @@ the closing |"-->"|; in the third case we just take everything up to |</script>|
             any space-char "/*" any space-char "<![CDATA[" any space-char "*/" any space-char
             copy txt to "]]>" 3 skip any space-char "*/" any space-char
             nm (
+                txt: any [txt copy ""]
                 trim/tail txt
                 if "/*" = skip tail txt -2 [
                     clear skip tail txt -2
@@ -239,6 +240,7 @@ the closing |"-->"|; in the third case we just take everything up to |</script>|
             |
             any space-char "<!--" copy txt to "-->" 3 skip any space-char
             nm (
+                txt: any [txt copy ""]
                 trim/tail txt
                 if "//" = skip tail txt -2 [
                     clear skip tail txt -2
@@ -248,7 +250,7 @@ the closing |"-->"|; in the third case we just take everything up to |</script>|
                 cb nm none
             )
             |
-            copy txt to nm nm (cb 'text txt cb nm none)
+            copy txt to nm nm (cb 'text any [txt copy ""] cb nm none)
         ]
     ]
 

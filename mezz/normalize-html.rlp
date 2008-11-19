@@ -7,7 +7,7 @@ HTML Normalizer
     }
     Author: "Gabriele Santilli"
     File: %normalize-html.r
-    Version: 1.1.0
+    Version: 1.1.1
     Imports: [
         %dialects/fsm.r "Finite State Machine dialect"
     ]
@@ -60,7 +60,7 @@ Introduction to be written.
                 append result data
             ]
         ] [
-            either block? data [
+            either all [block? data not empty? data] [
                 insert data cmd
                 append/only result data
             ] [
@@ -88,7 +88,7 @@ Introduction to be written.
                     "!--" (process-tag 'comment element)
                     |
                     "!doctype" (process-tag 'declaration element)
-                    !
+                    |
                     "?" (process-tag 'xml-proc element)
                     |
                     (process-tag copy element none)
@@ -178,7 +178,7 @@ as we find anything that is not a comment or whitespace.
 
     -stage2-states-:
     initial-state: [
-        comment: declaration: xml-proc: (cb event data)
+        comment: declaration: xml-proc: (cb event data nl)
         whitespace: ( ) ; ignore
         <html> (cb <html> data nl) in-html-prehead (cb </html> none)
         default: (cb <html> none nl) continue in-html-prehead (cb </html> none)
@@ -214,14 +214,14 @@ preserved while ensuring balancing (see below).
         <head> ( ) ; ignore extra <head> open tag
         </head> (cb </head> none nl) in-html-prebody
         default: (cb </head> none nl) continue in-html-prebody
-        <title> (cb <title> none) in-title (cb </title> none)
+        <title> (cb <title> none) in-title (cb </title> none nl)
         <isindex> <isindex/> ( ) ; noone should be using this
         <base> <base/> (cb <base/> data)
         <script> in-script
         <script/> ( ) ; just ignore
-        <style> (cb <style> data) in-style (cb </style> none)
+        <style> (cb <style> data) in-style (cb </style> none nl)
         <meta> <meta/> ( ) ;(cb <meta/> data)
-        <link> <link/> (cb <link/> data)
+        <link> <link/> (cb <link/> data nl)
         <object> in-hobject
     ]
 
@@ -300,7 +300,7 @@ cannot contain other *p* elements and so on.
         <script> in-script ; filter it out
         <script/> ( )
         
-        <style> (cb <style> data) in-style (cb </style> none)
+        <style> (cb <style> data) in-style (cb </style> none nl)
 
         <hr> <hr/> (cb <hr/> none nl) 
         <col> <col/> (cb <col/> data nl)
@@ -310,7 +310,7 @@ cannot contain other *p* elements and so on.
         </blockquote> </form> </fieldset> </legend> </table> </noscript>
         </tr> </td> </th> </caption> </colgroup> </thead>
         </tfoot> </tbody> </ins> </del>
-            (close-tag block-stack event nl)
+            (close-tag block-stack event)
         
         </body> </html> ( ) ; ignored
         
@@ -450,6 +450,7 @@ each of them. Then they are removed from the stack.
             ]
             foreach tag head reverse copy pos [
                 cb head insert copy tag "/" none
+                if same? stack block-stack [nl]
             ]
             clear pos
         ]
@@ -463,6 +464,7 @@ and for closing all elements at the end of the document.
     close-all: func [stack] [
         foreach tag head reverse stack [
             cb head insert copy tag "/" none
+            if same? stack block-stack [nl]
         ]
         clear stack
     ]
