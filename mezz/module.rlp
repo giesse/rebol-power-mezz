@@ -7,7 +7,7 @@ Modules for REBOL 2
     Author: "Gabriele Santilli"
     File: %module.r
     License: "(C) 2008 Qtask, Inc. All rights reserved."
-    Version: 1.1.0
+    Version: 1.1.1
 
 ===Introduction
 
@@ -249,9 +249,11 @@ this in preparation for the |-resolve-conflicts-| step.
             load-module module-name
         ]
         either module? get/any 'module [
-            bind body module/export-ctx
-            ; used to resolve conflicts
-            bind result/local-ctx module/export-ctx
+            if object? module/export-ctx [
+                bind body module/export-ctx
+                ; used to resolve conflicts
+                bind result/local-ctx module/export-ctx
+            ]
         ] [
             throw make error! join "Not a module: " module-name
         ]
