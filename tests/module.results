@@ -1,0 +1,95 @@
+logic! #[true] string! {type: module
+title: "Untitled"
+purpose: "Undocumented"
+imports: none
+exports: [b]
+globals: none
+local-ctx: make object! [
+    c: 3
+]
+export-ctx: make object! [
+]
+} error! 
+{** Script Error: a has no value
+** Where: run-test-file
+** Near: a
+} error! 
+{** Script Error: b has no value
+** Where: run-test-file
+** Near: b
+} error! 
+{** Script Error: c has no value
+** Where: run-test-file
+** Near: c
+} error! 
+{** Script Error: a has no value
+** Where: module
+** Near: a
+} string! {type: module
+title: "Untitled"
+purpose: "Undocumented"
+imports: [my-module]
+exports: none
+globals: none
+local-ctx: none
+export-ctx: none
+} error! 
+{** Script Error: c has no value
+** Where: module
+** Near: c
+} integer! 2 string! {type: module
+title: "My module"
+purpose: "Test the MODULE function"
+imports: [my-module]
+exports: [f g]
+globals: [test]
+local-ctx: make object! [
+    enbase: native
+    h: func [][g 2]
+]
+export-ctx: make object! [
+    g: func [a][a + b]
+]
+} block! ["YmxhIGJsYQ==" 1 2 4 5 4] error! 
+{** Script Error: f has no value
+** Where: run-test-file
+** Near: f
+} error! 
+{** Script Error: g has no value
+** Where: run-test-file
+** Near: g
+} block! [4 4] error! 
+{** Script Error: h has no value
+** Where: test3
+** Near: h
+} logic! #[false] logic! #[false] logic! #[false] logic! #[false] logic! #[true] logic! #[true] string! #{7A38671ECE2822CAF66EF948EAD677A508A7B257} logic! #[false] error! 
+{** User Error: Loading loop detected: aborted at %/Volumes/Work/Qtask/power-mezz/tests/data/module3.r
+** Near: load-module module-name
+} error! 
+{** User Error: Loading loop detected: aborted at %/Volumes/Work/Qtask/power-mezz/tests/data/module3.r
+** Near: load-module module-name
+} block! [6 2] error! 
+{** User Error: Not a module: %non-module.r
+** Near: load-module %non-module.r
+} error! 
+{** User Error: Not a module: %non-module.r
+** Near: load-module module-name
+} error! 
+{** User Error: Cannot find %does-not-exist.r
+** Near: load-module %does-not-exist.r
+} error! 
+{** User Error: Cannot find %does-not-exist.r
+** Near: load-module module-name
+} string! {Type: module
+Title: "Untitled"
+Purpose: "Undocumented"
+Imports: none
+Exports: all
+Globals: none
+local-ctx: none
+export-ctx: make object! [
+    b: 2
+    c: 3
+    d: 4
+]
+} block! [1 2 3 4]

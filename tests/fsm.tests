@@ -1,0 +1,45 @@
+REBOL [
+    Title: "Tests the FSM dialect"
+    Author: "Gabriele Santilli"
+    Tests: [%mezz/module.r %dialects/fsm.r]
+]
+
+[
+    do %mezz/module.r
+    load-module/from clean-path %./
+    load-module %dialects/fsm.r
+    true
+]
+[
+    module [
+        imports: [%dialects/fsm.r]
+        globals: [result]
+    ] [
+        result: [ ]
+        fsm: make-fsm [
+            initial-state: [
+                event1: (append result "Got event1")
+                event2: state-two
+                event3: event4: (repend result ["Got event3 or event4" event data]) state-two (append result "Returned from state-two")
+                event5: continue state-two
+                event6: (repend result ["Got event6" data]) state-two
+                default: override strange-event state-two
+            ]
+            state-two: [
+                event5: (append result "Got event5 in state-two")
+                strange-event: (repend result ["Unhandled event in state-one, now in state-two" event data])
+                event6: return
+                default: continue return
+            ]
+        ]
+        foreach [event data] [
+            event1 1 event6 2 event5 3 event2 4 event5 5 event6 6 event3 7 event4 8 event6 9
+            event2 10 event1 11 event7 12 event1 13 event2 14 event3 15 event4 16 event5 17
+            event6 18 event7 19
+        ] [
+            process-event fsm event data
+        ]
+        reset-fsm fsm
+    ]
+    result
+]

@@ -1,0 +1,51 @@
+REBOL [
+    Title: "Tests for the HTML to text converter"
+    Author: "Gabriele Santilli"
+    Tests: [%mezz/html-to-text.r %dialects/fsm.r %mezz/module.r %parsers/ml-parser.r %mezz/normalize-html.r]
+]
+
+[
+    do %mezz/module.r
+    load-module/from what-dir
+    load-module %mezz/html-to-text.r
+    true
+]
+[
+    html-to-text read %tests/data/rebol.com.html
+]
+[
+    html-to-text read %tests/data/w3.org.html
+]
+[
+    html-to-text read %tests/data/fairy.html
+]
+[
+    html-to-text read %tests/data/1.html
+]
+[
+    html-to-text read %tests/data/2.html
+]
+[
+    html-to-text read %tests/data/3.html
+]
+[
+    html-to-text read %tests/data/4.html
+]
+[
+    html-to-text read %tests/data/5.html
+]
+[
+    html-to-text read %tests/data/6.html
+]
+[
+    html-to-text read %tests/data/7.html
+]
+[
+    html-to-text read %tests/data/8.html
+]
+[
+    html-to-text read %tests/data/9.html
+]
+[
+    html-to-text read %tests/data/10.html
+]

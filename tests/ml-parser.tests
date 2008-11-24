@@ -1,0 +1,54 @@
+REBOL [
+    Title: "Tests the ML Parser"
+    Author: "Gabriele Santilli"
+    Tests: [%mezz/module.r %parsers/ml-parser.r]
+]
+
+[
+    do %mezz/module.r
+    load-module/from what-dir
+    load-module %parsers/ml-parser.r
+    true
+]
+[
+    load-markup {Some <b>html</b>. See <a href="http://www.example.com">link</a>.}
+]
+[
+    load-markup read %tests/data/rebol.com.html
+]
+[
+    load-markup read %tests/data/w3.org.html
+]
+[
+    load-markup read %tests/data/fairy.html
+]
+[
+    load-markup read %tests/data/1.html
+]
+[
+    load-markup read %tests/data/2.html
+]
+[
+    load-markup read %tests/data/3.html
+]
+[
+    load-markup read %tests/data/4.html
+]
+[
+    load-markup read %tests/data/5.html
+]
+[
+    load-markup read %tests/data/6.html
+]
+[
+    load-markup read %tests/data/7.html
+]
+[
+    load-markup read %tests/data/8.html
+]
+[
+    load-markup read %tests/data/9.html
+]
+[
+    load-markup read %tests/data/10.html
+]

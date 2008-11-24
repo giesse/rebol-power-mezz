@@ -1,0 +1,71 @@
+logic! #[true] string! {scheme: "http"
+userinfo: none
+host: "www.rebol.com"
+port: none
+path: []
+query: none
+fragment: none
+} string! {scheme: "https"
+userinfo: none
+host: "www.qtask.com"
+port: none
+path: ["quilt.fcgi"]
+query: none
+fragment: "mail"
+} string! "imap://somehost/a/b/c" string! {scheme: "ftp"
+userinfo: none
+host: "ftp.is.co.za"
+port: none
+path: ["rfc" "rfc1808.txt"]
+query: none
+fragment: none
+} string! {scheme: "http"
+userinfo: none
+host: "www.ietf.org"
+port: none
+path: ["rfc" "rfc2396.txt"]
+query: none
+fragment: none
+} string! {scheme: "ldap"
+userinfo: none
+host: "[2001:db8::7]"
+port: none
+path: ["c=GB"]
+query: [["objectClass?one" ""]]
+fragment: none
+} string! {scheme: "mailto"
+userinfo: none
+host: none
+port: none
+path: ["John.Doe@example.com"]
+query: none
+fragment: none
+} string! {scheme: "news"
+userinfo: none
+host: none
+port: none
+path: ["comp.infosystems.www.servers.unix"]
+query: none
+fragment: none
+} string! {scheme: "tel"
+userinfo: none
+host: none
+port: none
+path: ["+1-816-555-1212"]
+query: none
+fragment: none
+} string! {scheme: "telnet"
+userinfo: none
+host: "192.0.2.16"
+port: "80"
+path: [""]
+query: none
+fragment: none
+} string! {scheme: "urn"
+userinfo: none
+host: none
+port: none
+path: ["oasis:names:specification:docbook:dtd:xml:4.1.2"]
+query: none
+fragment: none
+}

@@ -1,0 +1,51 @@
+REBOL [
+    Title: "Tests for the HTML filter"
+    Author: "Gabriele Santilli"
+    Tests: [%mezz/filter-html.r %dialects/fsm.r %mezz/module.r %parsers/ml-parser.r %mezz/normalize-html.r %parsers/uri-parser.r]
+]
+
+[
+    do %mezz/module.r
+    load-module/from what-dir
+    load-module %mezz/filter-html.r
+    true
+]
+[
+    filter-html/all read %tests/data/rebol.com.html
+]
+[
+    filter-html/all read %tests/data/w3.org.html
+]
+[
+    filter-html/all read %tests/data/fairy.html
+]
+[
+    filter-html/all read %tests/data/1.html
+]
+[
+    filter-html/all read %tests/data/2.html
+]
+[
+    filter-html/all read %tests/data/3.html
+]
+[
+    filter-html/all read %tests/data/4.html
+]
+[
+    filter-html/all read %tests/data/5.html
+]
+[
+    filter-html/all read %tests/data/6.html
+]
+[
+    filter-html/all read %tests/data/7.html
+]
+[
+    filter-html/all read %tests/data/8.html
+]
+[
+    filter-html/all read %tests/data/9.html
+]
+[
+    filter-html/all read %tests/data/10.html
+]

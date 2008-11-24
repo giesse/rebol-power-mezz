@@ -1,0 +1,252 @@
+REBOL [
+	Title: "Tests for PIPE, CHAIN://, FILTER:// and TEE://"
+	Author: "Gabriele Santilli"
+	Tests: [%schemes/chain.r %schemes/filter.r %schemes/tee.r %mezz/pipe.r]
+]
+
+[
+	{All tests in this file should return true.}
+	foreach file [
+		%schemes/chain.r
+		%schemes/filter.r
+		%schemes/tee.r
+		%mezz/pipe.r
+	] [
+		do file
+	]
+	true
+]
+[
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/test.bin
+	pipe src dst
+	close src
+	close dst
+	equal? read/binary system/options/boot read/binary %tests/data/test.bin
+]
+[
+	random/seed now
+	my-key: copy/part append checksum/secure random/secure mold system/error checksum/secure random/secure mold system/error 32
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/enc.bin
+	enc: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	pipe/thru src dst enc
+	close src
+	close dst
+	close enc
+	src: open/binary/direct/read %tests/data/enc.bin
+	dst: open/binary/direct/write/new %tests/data/test.bin
+	dec: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'decrypt strength: 256 key: my-key padding: true]
+	pipe/thru src dst dec
+	close src
+	close dst
+	close dec
+	equal? read/binary system/options/boot read/binary %tests/data/test.bin
+]
+[
+	src: open/binary/direct/read system/options/boot
+	cks: open/binary [scheme: 'checksum]
+	pipe src cks
+	close src
+	also
+		equal? copy cks checksum/secure read/binary system/options/boot
+		close cks
+]
+[
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/test.bin
+	cks: open/binary [scheme: 'checksum]
+	tee: open/binary [scheme: 'tee sub-port: cks]
+	pipe/thru src dst tee
+	close src
+	close dst
+	close tee
+	equal? read/binary system/options/boot read/binary %tests/data/test.bin
+]
+[
+	also
+		equal? copy cks checksum/secure read/binary system/options/boot
+		close cks
+]
+[
+	cks: open/binary [scheme: 'checksum]
+	tee: open/binary [scheme: 'tee sub-port: cks]
+	enc: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	enc2: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	fil: open/binary [scheme: 'chain sub-port: reduce [tee enc]]
+	insert fil "This is a simple test"
+	insert enc2 "This is a simple test"
+	update fil
+	update enc2
+	equal? copy fil copy enc2
+]
+[
+	also
+		equal? copy cks checksum/secure "This is a simple test"
+		(close fil close enc close tee close cks)
+]
+[
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/enc2.bin
+	cks: open/binary [scheme: 'checksum]
+	tee: open/binary [scheme: 'tee sub-port: cks]
+	enc: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	fil: open/binary [scheme: 'chain sub-port: reduce [tee enc]]
+	pipe/thru src dst fil
+	close src
+	close dst
+	close tee
+	close enc
+	close fil
+	equal? read/binary %tests/data/enc.bin read/binary %tests/data/enc2.bin
+]
+[
+	also
+		equal? copy cks checksum/secure read/binary system/options/boot
+		close cks
+]
+[
+	cks: open/binary [scheme: 'checksum]
+	tee: open/binary [scheme: 'tee sub-port: cks]
+	cks2: open/binary [scheme: 'checksum]
+	tee2: open/binary [scheme: 'tee sub-port: cks2]
+	enc: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	fil: open/binary [scheme: 'chain sub-port: reduce [tee enc tee2]]
+	enc2: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	insert fil "A"
+	insert enc2 "A"
+	update fil
+	update enc2
+	crypted: copy enc2
+	equal? copy fil crypted
+]
+[
+	equal? copy cks checksum/secure "A"
+]
+[
+	also
+		equal? copy cks2 checksum/secure crypted
+		(close enc2 close fil close enc close tee2 close cks2 close tee close cks)
+]
+[
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/enc2.bin
+	cks: open/binary [scheme: 'checksum]
+	tee: open/binary [scheme: 'tee sub-port: cks]
+	cks2: open/binary [scheme: 'checksum]
+	tee2: open/binary [scheme: 'tee sub-port: cks2]
+	enc: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	fil: open/binary [scheme: 'chain sub-port: reduce [tee enc tee2]]
+	pipe/thru src dst fil
+	close src
+	close dst
+	close tee
+	close tee2
+	close enc
+	close fil
+	equal? read/binary %tests/data/enc.bin read/binary %tests/data/enc2.bin
+]
+[
+	equal? copy cks checksum/secure read/binary system/options/boot
+]
+[
+	also
+		equal? copy cks2 checksum/secure read/binary %tests/data/enc2.bin
+		(close cks close cks2)
+]
+[
+	cks: open/binary [scheme: 'checksum]
+	tee-cks: open/binary [scheme: 'tee sub-port: cks]
+	tee-file: open/binary tee:tests/data/test.bin
+	enc: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	enbase*: func [val] [append enbase val newline]
+	enb: open/binary [scheme: 'filter function: :enbase* block-length: -54]
+	enb-file: open/binary/direct/write/new %tests/data/enb.txt
+	enb-chain: open/binary [scheme: 'chain sub-port: reduce [enb enb-file]]
+	enb-tee: open/binary [scheme: 'tee sub-port: enb-chain]
+	fil: open/binary [scheme: 'chain sub-port: reduce [tee-file tee-cks enc enb-tee]]
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/enc.bin
+	pipe/thru src dst fil
+	close dst
+	close src
+	close fil
+	close enb-tee
+	close enb-chain
+	close enb
+	close enc
+	close tee-file
+	close tee-cks
+	cks-result: copy cks
+	close cks
+	equal? read/binary %tests/data/enc.bin read/binary %tests/data/enc2.bin
+]
+[
+	equal? cks-result checksum/secure read/binary system/options/boot
+]
+[
+	equal? read/binary system/options/boot read/binary %tests/data/test.bin
+]
+[
+	equal? read/binary %tests/data/enc.bin debase read %tests/data/enb.txt
+]
+[
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/test.bin
+	pipe/part src dst 100000
+	close src
+	close dst
+	equal? read/binary/part system/options/boot 100000 read/binary %tests/data/test.bin
+]
+[
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/test.bin
+	pipe/with src dst 16 * 1024
+	close src
+	close dst
+	equal? read/binary system/options/boot read/binary %tests/data/test.bin
+]
+[
+	cks: open/binary [scheme: 'checksum]
+	tee-cks: open/binary [scheme: 'tee sub-port: cks]
+	tee-file: open/binary tee:tests/data/test.bin
+	enc: open/binary [scheme: 'crypt algorithm: 'rijndael direction: 'encrypt strength: 256 key: my-key padding: true]
+	enbase*: func [val] [append enbase val newline]
+	enb: open/binary [scheme: 'filter function: :enbase* block-length: -54]
+	enb-file: open/binary/direct/write/new %tests/data/enb.txt
+	enb-chain: open/binary [scheme: 'chain sub-port: reduce [enb enb-file]]
+	enb-tee: open/binary [scheme: 'tee sub-port: enb-chain]
+	fil: open/binary [scheme: 'chain sub-port: reduce [tee-file tee-cks enc enb-tee]]
+	src: open/binary/direct/read system/options/boot
+	dst: open/binary/direct/write/new %tests/data/enc.bin
+	pipe/thru/part/with src dst fil 100000 16 * 1024
+	close dst
+	close src
+	close fil
+	close enb-tee
+	close enb-chain
+	close enb
+	close enc
+	close tee-file
+	close tee-cks
+	cks-result: copy cks
+	close cks
+	equal? read/binary/part %tests/data/enc.bin 100000 read/binary/part %tests/data/enc2.bin 100000
+]
+[
+	equal? cks-result checksum/secure read/binary/part system/options/boot 100000
+]
+[
+	equal? read/binary/part system/options/boot 100000 read/binary %tests/data/test.bin
+]
+[
+	equal? read/binary %tests/data/enc.bin debase read %tests/data/enb.txt
+]
+[
+	foreach file [
+		%enb.txt %enc2.bin %enc.bin %test.bin
+	] [
+		delete join %tests/data/ file
+	]
+	true
+]

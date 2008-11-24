@@ -1,0 +1,197 @@
+REBOL [
+    Title: "Tests MODULE and LOAD-MODULE"
+    Author: "Gabriele Santilli"
+    Tests: [%mezz/module.r]
+]
+
+[
+    do %mezz/module.r
+    true
+]
+[
+    form my-module: module [
+        exports: [b]
+    ] [
+        a: 1
+        b: 2
+        c: 3
+    ]
+]
+[
+    a
+]
+[
+    b
+]
+[
+    c
+]
+[
+    module [
+        imports: [my-module]
+    ] [
+        a
+    ]
+]
+[
+    form module [
+        imports: [my-module]
+    ] [
+        b
+    ]
+]
+[
+    module [
+        imports: [my-module]
+    ] [
+        c
+    ]
+]
+[
+    module [
+        imports: [my-module]
+        globals: [d]
+    ] [
+        d: b
+    ]
+    d
+]
+[
+    form my-module2: module [
+        Title: "My module"
+        Purpose: "Test the MODULE function"
+        Imports: [my-module]
+        Exports: [f g]
+        Globals: [test]
+    ] [
+        d: context [
+            enbase: 1
+        ]
+        f: func [a b] [a + b]
+        g: func [a] [a + b]
+        h: does [g 2]
+        test: does [
+            reduce [
+                enbase "bla bla"
+                d/enbase
+                b
+                h
+                g 3
+                f 2 2
+            ]
+        ]
+    ]
+]
+[
+    test
+]
+[
+    f
+]
+[
+    g
+]
+[
+    module [
+        imports: [my-module2]
+        globals: [test2 test3]
+    ] [
+        test2: does [
+            reduce [
+                f 2 2
+                g 2
+            ]
+        ]
+        test3: does [
+            h
+        ]
+    ]
+    test2
+]
+[
+    test3
+]
+[
+    module?
+]
+[
+    module? system
+]
+[
+    module? 1
+]
+[
+    module? func [a b] [a + b]
+]
+[
+    module? my-module
+]
+[
+    load-module/from clean-path %tests/data/
+    load-module %module1.r
+    module1? and module2?
+]
+[
+    print "^-Attempt loading again..."
+    form load-module %module2.r
+]
+[
+    confirm "^-Did it get loaded again? "
+]
+[
+    load-module %module3.r
+]
+[
+    module [
+        imports: [%module3.r]
+    ] [
+        print "^-Should not be here"
+    ]
+]
+[
+    module [
+        imports: [%module1.r %module2.r]
+        globals: [test]
+    ] [
+        test: does [
+            reduce [f 2 g]
+        ]
+    ]
+    test
+]
+[
+    load-module %non-module.r
+]
+[
+    module [
+        imports: [%non-module.r]
+    ] [
+        print "^-Should not be here"
+    ]
+]
+[
+    load-module %does-not-exist.r
+]
+[
+    module [
+        imports: [%does-not-exist.r]
+    ] [
+        print "^-Should not be here"
+    ]
+]
+[
+    form all-exp: module [
+        exports: 'all
+    ] [
+        a: 1 b: 2 c: 3 d: 4
+    ]
+]
+[
+    module [
+        imports: [all-exp]
+        globals: [test]
+    ] [
+        test: reduce [a b c d]
+    ]
+    test
+]

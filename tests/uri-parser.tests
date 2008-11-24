@@ -1,0 +1,51 @@
+REBOL [
+    Title: "Tests for the URI parser"
+    Author: "Gabriele Santilli"
+    Tests: [%parsers/uri-parser.r %mezz/module.r]
+]
+
+[
+    do %mezz/module.r
+    load-module/from what-dir
+    module [
+        imports: [%parsers/uri-parser.r]
+        globals: [parse-uri* form-uri*]
+    ] [
+        parse-uri*: :parse-uri
+        form-uri*: :form-uri
+    ]
+    true
+]
+[
+    form parse-uri* "http://www.rebol.com"
+]
+[
+    form parse-uri* "https://www.qtask.com/quilt.fcgi#mail"
+]
+[
+    form-uri* [scheme: "imap" host: "somehost" path: ["a" "b" "c"]]
+]
+[
+    form parse-uri* "ftp://ftp.is.co.za/rfc/rfc1808.txt"
+]
+[
+    form parse-uri* "http://www.ietf.org/rfc/rfc2396.txt"
+]
+[
+    form parse-uri* "ldap://[2001:db8::7]/c=GB?objectClass?one"
+]
+[
+    form parse-uri* "mailto:John.Doe@example.com"
+]
+[
+    form parse-uri* "news:comp.infosystems.www.servers.unix"
+]
+[
+    form parse-uri* "tel:+1-816-555-1212"
+]
+[
+    form parse-uri* "telnet://192.0.2.16:80/"
+]
+[
+    form parse-uri* "urn:oasis:names:specification:docbook:dtd:xml:4.1.2"
+]

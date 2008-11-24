@@ -34,3 +34,4 @@ parsers/common-rules.html
 parsers/common-rules.r
 test.html
 .conf
+tools/last-file.tmp

@@ -1,0 +1,8 @@
+integer! 2 string! #{E9E3E22E7F880BF427A3578EAFE4FEA14A7E97E4} binary! #{F47C45BDAA5974CCF8AA84D7669C90E92A32C544} object! #[object! [
+    a: 1
+    b: 2
+]] error! 
+{** Math Error: Attempt to divide by zero
+** Where: run-test-file
+** Near: 1 / 0
+} throw throw
