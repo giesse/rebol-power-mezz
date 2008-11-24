@@ -195,3 +195,14 @@ REBOL [
     ]
     test
 ]
+[
+    ; bug with importing module that does not export anything
+    module1: module [ ] [
+        a: 1 b: 2
+    ]
+    form module2: module [
+        imports: [module1]
+    ] [
+        c: 3 d: 4
+    ]
+]
