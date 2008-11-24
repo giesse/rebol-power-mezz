@@ -33,3 +33,4 @@ mezz/text-encoding.r
 parsers/common-rules.html
 parsers/common-rules.r
 test.html
+.conf

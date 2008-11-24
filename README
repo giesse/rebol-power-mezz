@@ -1,0 +1,17 @@
+If you have GNU make available, you can use the remake.r script
+to generate a Makefile and then use make to build all the files
+as needed. E.g.:
+
+    make tests
+
+to run tests for any updated file.
+
+How to run remake.r:
+
+From a command line, just run:
+
+    rebol -qws remake.r
+
+It will ask you some questions and create a .conf file for future use.
+You only have to run remake the first time to get the Makefile.
+After that, the Makefile gets regenerated as needed automatically.
