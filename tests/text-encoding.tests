@@ -299,3 +299,26 @@ REBOL [
     output: ""
     decode-text*/to html-string 'html-utf8 output
 ]
+[
+    long-text: read %tests/data/fairy.r
+    encode-text* long-text 'quoted-printable
+]
+[
+    tmp: copy long-text
+    encode-text*/to tmp 'quoted-printable tmp
+]
+[
+    output: ""
+    encode-text*/to long-text 'quoted-printable output
+]
+[
+    encode-text* long-text 'quoted-printable+
+]
+[
+    tmp: copy long-text
+    encode-text*/to tmp 'quoted-printable+ tmp
+]
+[
+    output: ""
+    encode-text*/to long-text 'quoted-printable+ output
+]

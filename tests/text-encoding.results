@@ -22,28 +22,18 @@ logic! #[true] string! {This is a test - Questo è un test - これわテスト�
 } string! {VGhpcyBpcyBhIHRlc3QgLSBRdWVzdG8gw6ggdW4gdGVzdCAtIOOBk+OCjOOCj+ODhuOCueODiOOBp+OBmeOAgg==} string! {This is a test - Questo è un test - これわテストです。} error! 
 {** User Error: base64 encoding does not support decoding in place
 ** Near: decode-text*/to tmp 'base64 tmp
-} string! {This is a test - Questo è un test - これわテストです。} error! 
-{** User Error: Quoted printable encoding not supported yet
-** Near: encode-text* utf8-string 'quoted-printable
-} error! 
+} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo =C3=A8 un test - =E3=81=93=E3=82=8C=E3=82=8F=
+=E3=83=86=E3=82=B9=E3=83=88=E3=81=A7=E3=81=99=E3=80=82} error! 
 {** User Error: quoted-printable encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'quoted-printable tmp
-} error! 
-{** User Error: Quoted printable encoding not supported yet
-** Near: encode-text*/to utf8-string 'quoted-printable output
-} string! {This is a test - Questo è un test - これわテストです。} error! 
+} string! {This is a test - Questo =C3=A8 un test - =E3=81=93=E3=82=8C=E3=82=8F=
+=E3=83=86=E3=82=B9=E3=83=88=E3=81=A7=E3=81=99=E3=80=82} string! {This is a test - Questo è un test - これわテストです。} error! 
 {** User Error: quoted-printable encoding does not support decoding in place
 ** Near: decode-text*/to tmp 'quoted-printable tmp
-} string! {This is a test - Questo è un test - これわテストです。} error! 
-{** User Error: Quoted printable encoding not supported yet
-** Near: encode-text* utf8-string 'quoted-printable+
-} error! 
+} string! {This is a test - Questo è un test - これわテストです。} string! {This_is_a_test_-_Questo_=C3=A8_un_test_-_=E3=81=93=E3=82=8C=E3=82=8F=E3=83=86=E3=82=B9=E3=83=88=E3=81=A7=E3=81=99=E3=80=82} error! 
 {** User Error: quoted-printable+ encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'quoted-printable+ tmp
-} error! 
-{** User Error: Quoted printable encoding not supported yet
-** Near: encode-text*/to utf8-string 'quoted-printable+ output
-} string! {This is a test - Questo è un test - これわテストです。} error! 
+} string! {This_is_a_test_-_Questo_=C3=A8_un_test_-_=E3=81=93=E3=82=8C=E3=82=8F=E3=83=86=E3=82=B9=E3=83=88=E3=81=A7=E3=81=99=E3=80=82} string! {This is a test - Questo è un test - これわテストです。} error! 
 {** User Error: quoted-printable+ encoding does not support decoding in place
 ** Near: decode-text*/to tmp 'quoted-printable+ tmp
 } string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo &egrave; un test - &#12371;&#12428;&#12431;&#12486;&#12473;&#12488;&#12391;&#12377;&#12290;} error! 
@@ -55,4 +45,10 @@ logic! #[true] string! {This is a test - Questo è un test - これわテスト�
 } string! {This is a test - Questo &egrave; un test - &#12371;&#12428;&#12431;&#12486;&#12473;&#12488;&#12391;&#12377;&#12290;} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo &egrave; un test - これわテストです。} error! 
 {** User Error: html-utf8 encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'html-utf8 tmp
-} string! {This is a test - Questo &egrave; un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。}
+} string! {This is a test - Questo &egrave; un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! #{6014F315B932F078C5CA8BE7698DB79CE3EF5D12} error! 
+{** User Error: quoted-printable encoding does not support encoding in place
+** Near: encode-text*/to tmp 'quoted-printable tmp
+} string! #{6014F315B932F078C5CA8BE7698DB79CE3EF5D12} string! #{4DC4CA01BB4C19D95227843176FFAD46C7DCB211} error! 
+{** User Error: quoted-printable+ encoding does not support encoding in place
+** Near: encode-text*/to tmp 'quoted-printable+ tmp
+} string! #{4DC4CA01BB4C19D95227843176FFAD46C7DCB211}

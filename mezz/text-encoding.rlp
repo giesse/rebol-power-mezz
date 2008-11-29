@@ -8,7 +8,7 @@ Text encoding and decoding functions
     }
     Author: "Gabriele Santilli"
     File: %text-encoding.r
-    Version: 1.0.0
+    Version: 1.1.0
     Imports: [
         %parsers/common-rules.r
     ]
@@ -248,13 +248,14 @@ encodes spaces, and can be used in email headers.
     -encodings-:
     quoted-printable: quoted-printable+: make-encoding [
         underscore: no
+        special: charset [#"^(00)" - #"^(20)" "=_"]
         qp-chars: complement charset "=_"
         decode: func [result text /local mk1 mk2] [
             parse/all text [
                 some [
                     mk1: some qp-chars mk2: (insert/part tail result mk1 mk2)
                     |
-                    #"=" newline ; ignore
+                    "=^M^J" | "=^J" ; ignore 
                     |
                     #"=" copy mk1 2 skip (append result debase/base mk1 16)
                     |
@@ -263,7 +264,32 @@ encodes spaces, and can be used in email headers.
             ]
             result
         ]
-        encode: func [text] [throw make error! "Quoted printable encoding not supported yet"]
+        add-newline: func [output /local pos] [
+            if underscore [exit]
+            pos: any [find/last output newline output]
+            if 60 < length? pos [
+                append output "=^/"
+            ]
+        ]
+        encode-ascii: func [output start end] [
+            insert/part tail output start end
+            add-newline output
+        ]
+        encode-sequence: func [output start end] [
+            start: copy/part start end
+            switch/default start [
+                " " [append output pick [#"_" #" "] underscore]
+                "_" [append output pick ["=5F" #"_"] underscore]
+                "^/" [append output pick ["=0A" #"^/"] underscore]
+                "^M" [append output pick ["=0D" #"^M"] underscore]
+            ] [
+                start: enbase/base start 16
+                forskip start 2 [
+                    insert/part insert tail output #"=" start 2
+                ]
+            ]
+            add-newline output
+        ]
     ]
     quoted-printable+: make quoted-printable+ [underscore: yes]
 
@@ -279,6 +305,7 @@ and so on, as UTF-8 is more space efficient than HTML entities).
     -encodings-:
     html: html-ascii: html-utf8: make-encoding [
         utf8?: no
+        special: html-special-char
         encode-ascii: func [output start end] [insert/part tail output start end]
         encode-sequence: func [output start end /local char nm] [
             char: as-binary copy/part start end
@@ -312,24 +339,20 @@ and so on, as UTF-8 is more space efficient than HTML entities).
         decode: func [output text /local txt mk1 mk2] [
             parse/all text [
                 any [
-                    [
-                        #"&" [
-                            copy txt name #";" (append output entity-to-char txt)
-                            |
-                            "#x" copy txt some hexdigit #";" (append output hex-to-utf8char txt)
-                            |
-                            #"#" copy txt some digit #";" (append output dec-to-utf8char txt)
-                            |
-                            none (append output #"&")
-                        ]
+                    mk1: to #"&" mk2: (insert/part tail output mk1 mk2)
+                    #"&" [
+                        copy txt name #";" (append output entity-to-char txt)
+                        |
+                        "#x" copy txt some hexdigit #";" (append output hex-to-utf8char txt)
+                        |
+                        #"#" copy txt some digit #";" (append output dec-to-utf8char txt)
+                        |
+                        none (append output #"&")
                     ]
                     |
-                    mk1: some [
-                        ascii-minus-html-special | utf8-seq2 utf8-seq |
-                        utf8-seq3 2 utf8-seq | utf8-seq4 3 utf8-seq
-                    ] mk2: (insert/part tail output mk1 mk2)
-                    |
-                    mk1: skip (append output mk1/1)
+                    ; copy to end
+                    (append output mk1)
+                    end skip
                 ]
             ]
             output
@@ -399,18 +422,27 @@ the supported text encodings.
 |parse-utf8| drives the UTF-8 encoding process in the most common case.
 The functions |encode-ascii| and |encode-sequence| in the |encoding| object
 are called to respectively encode an ascii string and a single Unicode 
-character represented as a UTF-8 sequence. (Note that in order to greatly
-simplify the HTML encoder, HTML special chars also go to |encode-sequence|
-although they are technically ASCII.)
+character represented as a UTF-8 sequence. 
+
+The function also supports a set of "special" ASCII characters
+that need to be handled separately from the rest; for example, see
+the |html| and the |quoted-printable| encodings.
 
     -support-functions-:
-    parse-utf8: func [text output encoding /local mk1 mk2] [
+    empty-charset: charset ""
+    parse-utf8: func [text output encoding /local ascii-minus-special special mk1 mk2] [
+        either in encoding 'special [
+            ascii-minus-special: exclude ascii-char special: encoding/special
+        ] [
+            ascii-minus-special: ascii-char
+            special: empty-charset
+        ]
         parse/all text [
             some [
-                mk1: some ascii-minus-html-special mk2: (encoding/encode-ascii output mk1 mk2)
+                mk1: some ascii-minus-special mk2: (encoding/encode-ascii output mk1 mk2)
                 |
                 mk1: [
-                    html-special-char | utf8-seq2 utf8-seq |
+                    special | utf8-seq2 utf8-seq |
                     utf8-seq3 2 utf8-seq | utf8-seq4 3 utf8-seq
                 ] mk2: (encoding/encode-sequence output mk1 mk2)
                 |
