@@ -1,58 +1,58 @@
 logic! #[true] string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo ? un test - ?????????" error! 
-{** User Error: Encoding in place not supported
+{** User Error: ascii encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'ascii tmp
 } error! 
-{** User Error: Encoding in place not supported
+{** User Error: us-ascii encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'us-ascii tmp
 } string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo ? un test - ?????????" string! "This is a test - Questo � un test - ?????????" string! "This is a test - Questo � un test - ?????????" error! 
-{** User Error: Encoding in place not supported
+{** User Error: latin1 encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'latin1 tmp
 } error! 
-{** User Error: Encoding in place not supported
+{** User Error: iso-8859-1 encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'iso-8859-1 tmp
 } string! "This is a test - Questo � un test - ?????????" string! "This is a test - Questo � un test - ?????????" string! "This is a test - Questo è un test - ?????????" string! "This is a test - Questo è un test - ?????????" string! "This is a test - Questo è un test - ?????????" string! "This is a test - Questo è un test - ?????????" string! "This is a test - Questo è un test - ?????????" string! "This is a test - Questo è un test - ?????????" string! "This is a test - Questo � un test - ?????????" error! 
-{** User Error: Encoding in place not supported
+{** User Error: windows-1252 encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'windows-1252 tmp
 } string! "This is a test - Questo � un test - ?????????" string! "This is a test - Questo è un test - ?????????" error! 
-{** User Error: Decoding in place not supported
+{** User Error: windows-1252 encoding does not support decoding in place
 ** Near: decode-text*/to tmp 'windows-1252 tmp
 } string! "This is a test - Questo è un test - ?????????" string! {VGhpcyBpcyBhIHRlc3QgLSBRdWVzdG8gw6ggdW4gdGVzdCAtIOOBk+OCjOOCj+ODhuOCueODiOOBp+OBmeOAgg==} error! 
-{** User Error: Encoding in place not supported
+{** User Error: base64 encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'base64 tmp
 } string! {VGhpcyBpcyBhIHRlc3QgLSBRdWVzdG8gw6ggdW4gdGVzdCAtIOOBk+OCjOOCj+ODhuOCueODiOOBp+OBmeOAgg==} string! {This is a test - Questo è un test - これわテストです。} error! 
-{** User Error: Decoding in place not supported
+{** User Error: base64 encoding does not support decoding in place
 ** Near: decode-text*/to tmp 'base64 tmp
 } string! {This is a test - Questo è un test - これわテストです。} error! 
 {** User Error: Quoted printable encoding not supported yet
 ** Near: encode-text* utf8-string 'quoted-printable
 } error! 
-{** User Error: Encoding in place not supported
+{** User Error: quoted-printable encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'quoted-printable tmp
 } error! 
 {** User Error: Quoted printable encoding not supported yet
 ** Near: encode-text*/to utf8-string 'quoted-printable output
 } string! {This is a test - Questo è un test - これわテストです。} error! 
-{** User Error: Decoding in place not supported
+{** User Error: quoted-printable encoding does not support decoding in place
 ** Near: decode-text*/to tmp 'quoted-printable tmp
 } string! {This is a test - Questo è un test - これわテストです。} error! 
 {** User Error: Quoted printable encoding not supported yet
 ** Near: encode-text* utf8-string 'quoted-printable+
 } error! 
-{** User Error: Encoding in place not supported
+{** User Error: quoted-printable+ encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'quoted-printable+ tmp
 } error! 
 {** User Error: Quoted printable encoding not supported yet
 ** Near: encode-text*/to utf8-string 'quoted-printable+ output
 } string! {This is a test - Questo è un test - これわテストです。} error! 
-{** User Error: Decoding in place not supported
+{** User Error: quoted-printable+ encoding does not support decoding in place
 ** Near: decode-text*/to tmp 'quoted-printable+ tmp
 } string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo &egrave; un test - &#12371;&#12428;&#12431;&#12486;&#12473;&#12488;&#12391;&#12377;&#12290;} error! 
-{** User Error: Encoding in place not supported
+{** User Error: html encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'html tmp
 } string! {This is a test - Questo &egrave; un test - &#12371;&#12428;&#12431;&#12486;&#12473;&#12488;&#12391;&#12377;&#12290;} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo &egrave; un test - &#12371;&#12428;&#12431;&#12486;&#12473;&#12488;&#12391;&#12377;&#12290;} error! 
-{** User Error: Encoding in place not supported
+{** User Error: html-ascii encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'html-ascii tmp
 } string! {This is a test - Questo &egrave; un test - &#12371;&#12428;&#12431;&#12486;&#12473;&#12488;&#12391;&#12377;&#12290;} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo &egrave; un test - これわテストです。} error! 
-{** User Error: Encoding in place not supported
+{** User Error: html-utf8 encoding does not support encoding in place
 ** Near: encode-text*/to tmp 'html-utf8 tmp
 } string! {This is a test - Questo &egrave; un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。}

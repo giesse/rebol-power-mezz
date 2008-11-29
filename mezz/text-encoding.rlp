@@ -19,9 +19,30 @@ Text encoding and decoding functions
 
 ===Introduction
 
-Introduction to be written.
+This program defines two functions to encode and decode UTF-8 text to and from
+various other charsets and encodings.
 
 ===Overview
+
+|encode-text| takes a UTF-8 text string, and encodes it according to the specified
+encoding. (See |-encodings-| for the list of available encodings.) By default,
+a new string value is returned; you can use the |/to| refinement to have the
+function output the encoded string to the tail of the specified |output| string.
+This is a very useful optimization of the common idiom:
+
+    append output encode-text text 'ascii
+
+which would copy the text twice; instead, you would use:
+
+    encode-text/to text 'ascii output
+
+which is more efficient. Some encodings (see below) also support encoding in place;
+you can encode in place by passing the input string as output too:
+
+    encode-text/to text 'ascii text
+
+Please note that if the specified encoding does not support encoding in place,
+an error will occur.
 
     -main-:
     -support-functions-
@@ -30,59 +51,122 @@ Introduction to be written.
         "Encode UTF-8 text to the specified encoding or charset" [catch]
         text [any-string!]
         encoding [word!] "Name of the target encoding - see docs"
-
         /to output [any-string!] "Output to this buffer"
+        
+        /local -et-locals-
     ] [
         -encode-text-
     ]
+
+|decode-text| takes a string encoded with the specified encoding, and decodes 
+it to UTF-8. By default a new string value is returned, but you can use the
+|/to| refinement in the same ways as shown above for the |encode-text| function.
+    
+    -main-:
     decode-text: func [
         "Decode text from the specified encoding or charset to UTF-8" [catch]
         text [any-string!]
         encoding [word!] "Name of TEXT's encoding or charset"
-
         /to output [any-string!] "Output to this buffer"
+        
+        /local -dt-locals-
     ] [
         -decode-text-
     ]
 
 ===Encode |text| to the specified |encoding|
 
+We use the |encoding| word to get the object that defines the desired
+encoding from the |encodings| object defined in |-encodings-|.
+If encoding in place is desired, we check for the |encode-inplace| function
+in the encoding object; if it does not exist, it means that the encoding
+does not support encoding in place.
+
+We also check if a custom |encode| function is available, and if so we
+just call it; otherwise, we use the |parse-utf8| function to drive the
+encoding (see below).
+
     -encode-text-:
-    encoding: encodings/:encoding
+    unless encobj: get in encodings encoding [
+        throw make error! join "Invalid encoding name: " encoding
+    ]
     unless output [output: make string! length? text]
     either same? head text head output [
-        unless in encoding 'encode-inplace [throw make error! "Encoding in place not supported"]
-        encoding/encode-inplace text
+        unless enc: get in encobj 'encode-inplace [
+            throw make error! rejoin [encoding " encoding does not support encoding in place"]
+        ]
+        enc text
     ] [
-        either in encoding 'encode [
-            encoding/encode output text
+        either enc: get in encobj 'encode [
+            enc output text
         ] [
-            parse-utf8 text output encoding
+            parse-utf8 text output encobj
         ]
     ]
 
+---|encode-text|'s locals
+
+    -et-locals-:
+    encobj enc
+
 ===Decode |text| from the specified |encoding|
 
+The |decode-text| function works almost exactly like |encode-text|;
+we get the encoding object, and use |decode-inplace| if in place decoding
+is desired, and that is available; otherwise we just call the |decode|
+function.
+
     -decode-text-:
-    encoding: encodings/:encoding
+    unless encobj: get in encodings encoding [
+        throw make error! join "Invalid encoding name: " encoding
+    ]
     unless output [output: make string! length? text]
     either same? head text head output [
-        unless in encoding 'decode-inplace [throw make error! "Decoding in place not supported"]
-        encoding/decode-inplace text
+        unless dec: get in encobj 'decode-inplace [
+            throw make error! rejoin [encoding " encoding does not support decoding in place"]
+        ]
+        dec text
     ] [
-        encoding/decode output text
+        encobj/decode output text
     ]
+
+---|decode-text|'s locals
+
+    -dt-locals-:
+    encobj dec
 
 ===List of supported encodings
 
+Here we define all the encoding objects that hold the actual
+encoding and decoding code. We use the |make-encoding| function
+as a shortcut to create them, see |-support-functions-|. See
+also |parse-utf8| for how the object is used for encoding.
+
+The |utf-8| encoding is a no-op (obviously) and is provided
+for completeness.
+
     -encodings-:
     utf-8: utf8: make-encoding none
+
+The |us-ascii| encoding is a subset of UTF-8, so the encoding
+and decoding code is very simple. When encoding, we replace all non-ascii characters
+with a question mark.
+
+    -encodings-:
     us-ascii: ascii: make-encoding [
         decode-inplace: func [text] [text]
         decode: func [output text] [append output text]
         encode-ascii: func [output start end] [insert/part tail output start end]
         encode-sequence: func [output start end] [append output #"?"]
     ]
+
+The |latin1| encoding can represent the first 256 Unicode code points
+directly. When encoding, we replace all characters above 255 with a question
+mark. Decoding in place is supported, since it is very common to have
+latin1 strings that are basically just ascii, which means that the
+decoding in place is very fast.
+
+    -encodings-:
     iso-8859-1: latin1: make-encoding [
         decode-inplace: func [text /local mk1] [
             parse/all text [
@@ -112,6 +196,12 @@ Introduction to be written.
             ]
         ]
     ]
+
+The |windows-1252| encoding is Microsoft's variant of latin1 (because
+they could not obviously use a standard). We use a simple map since
+it's a 8-bit encoding.
+
+    -encodings-:
     windows-1252: make-encoding [
 		#{00} #{01} #{02} #{03} #{04} #{05} #{06} #{07} #{08} #{09} #{0A}
 		#{0B} #{0C} #{0D} #{0E} #{0F} #{10} #{11} #{12} #{13} #{14} #{15}
@@ -142,10 +232,20 @@ Introduction to be written.
 		#{C3B1} #{C3B2} #{C3B3} #{C3B4} #{C3B5} #{C3B6} #{C3B7} #{C3B8}
 		#{C3B9} #{C3BA} #{C3BB} #{C3BC} #{C3BD} #{C3BE} #{C3BF}
 	]
+
+|base64| is included for completeness.
+
+    -encodings-:
     base64: make-encoding [
         encode: func [output text] [append output enbase text]
         decode: func [output text] [append output debase text]
     ]
+
+The |quoted-printable| encoding is used in email to encode 8-bit
+charsets into 7-bit ascii. The |quoted-printable+| version also
+encodes spaces, and can be used in email headers.
+
+    -encodings-:
     quoted-printable: quoted-printable+: make-encoding [
         underscore: no
         qp-chars: complement charset "=_"
@@ -166,6 +266,17 @@ Introduction to be written.
         encode: func [text] [throw make error! "Quoted printable encoding not supported yet"]
     ]
     quoted-printable+: make quoted-printable+ [underscore: yes]
+
+The |html| encoding is used in HTML to encode all Unicode characters
+in 7-bit ascii, and to escape HTML's special characters. |html| is
+an alias for |html-ascii| that encodes all non-ASCII characters (plus,
+of course, the HTML special characters) into an HTML entity. |html-utf8|
+instead will only encode named entities, and leave any other UTF-8 sequence
+intact (use this if the browser can display UTF-8 correctly, and your
+text has a lot of non-ASCII characters, for example Chinese or Japanese text
+and so on, as UTF-8 is more space efficient than HTML entities).
+
+    -encodings-:
     html: html-ascii: html-utf8: make-encoding [
         utf8?: no
         encode-ascii: func [output start end] [insert/part tail output start end]
@@ -213,7 +324,10 @@ Introduction to be written.
                         ]
                     ]
                     |
-                    mk1: some [ascii-minus-html-special | utf8-seq2 utf8-seq | utf8-seq3 2 utf8-seq | utf8-seq4 3 utf8-seq] mk2: (insert/part tail output mk1 mk2)
+                    mk1: some [
+                        ascii-minus-html-special | utf8-seq2 utf8-seq |
+                        utf8-seq3 2 utf8-seq | utf8-seq4 3 utf8-seq
+                    ] mk2: (insert/part tail output mk1 mk2)
                     |
                     mk1: skip (append output mk1/1)
                 ]
@@ -224,6 +338,9 @@ Introduction to be written.
     html-utf8: make html-utf8 [utf8?: yes]
 
 ===Support functions
+
+The |make-encoding| function is used above to factor out a number of
+recurring cases for the encoding objects.
 
     -support-functions-:
     make-encoding: func [spec [none! block!]] [
@@ -270,18 +387,42 @@ Introduction to be written.
             ]
         ]
     ]
+
+The |encodings| object contains all the encoding objects that represent
+the supported text encodings.
+
+    -support-functions-:
+    encodings: context [
+        -encodings-
+    ]
+
+|parse-utf8| drives the UTF-8 encoding process in the most common case.
+The functions |encode-ascii| and |encode-sequence| in the |encoding| object
+are called to respectively encode an ascii string and a single Unicode 
+character represented as a UTF-8 sequence. (Note that in order to greatly
+simplify the HTML encoder, HTML special chars also go to |encode-sequence|
+although they are technically ASCII.)
+
+    -support-functions-:
     parse-utf8: func [text output encoding /local mk1 mk2] [
         parse/all text [
             some [
                 mk1: some ascii-minus-html-special mk2: (encoding/encode-ascii output mk1 mk2)
                 |
-                mk1: [html-special-char | utf8-seq2 utf8-seq | utf8-seq3 2 utf8-seq | utf8-seq4 3 utf8-seq] mk2: (encoding/encode-sequence output mk1 mk2)
+                mk1: [
+                    html-special-char | utf8-seq2 utf8-seq |
+                    utf8-seq3 2 utf8-seq | utf8-seq4 3 utf8-seq
+                ] mk2: (encoding/encode-sequence output mk1 mk2)
                 |
                 skip
             ]
         ]
         output
     ]
+
+The following functions are helpers used by the HTML encoding object.
+
+    -support-functions-:
     rselect: func [series value] [
         all [
             series: find series value
@@ -300,9 +441,12 @@ Introduction to be written.
     dec-to-utf8char: func [dec] [
         encode-utf8 to integer! dec
     ]
-    encodings: context [
-        -encodings-
-    ]
+
+|encode-utf8| and |decode-utf8| are used by the various encoding
+to respectively encode a Unicode character to its UTF-8 representation,
+and to decode a UTF-8 sequence to the Unicode character it represents.
+
+    -support-functions-:
     encode-utf8: func [
         "Encode a code point in UTF-8 format"
         char [integer!] "Unicode code point"
