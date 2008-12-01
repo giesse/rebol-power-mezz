@@ -248,7 +248,7 @@ encodes spaces, and can be used in email headers.
     -encodings-:
     quoted-printable: quoted-printable+: make-encoding [
         underscore: no
-        special: charset [#"^(00)" - #"^(20)" "=_"]
+        special: charset [#"^(00)" - #"^(20)" "=_?"]
         qp-chars: complement charset "=_"
         decode: func [result text /local mk1 mk2] [
             parse/all text [
@@ -280,6 +280,7 @@ encodes spaces, and can be used in email headers.
             switch/default start [
                 " " [append output pick [#"_" #" "] underscore]
                 "_" [append output pick ["=5F" #"_"] underscore]
+                "?" [append output pick ["=3F" #"?"] underscore]
                 "^/" [append output pick ["=0A" #"^/"] underscore]
                 "^M" [append output pick ["=0D" #"^M"] underscore]
             ] [
