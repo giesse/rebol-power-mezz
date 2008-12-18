@@ -322,3 +322,47 @@ REBOL [
     output: ""
     encode-text*/to long-text 'quoted-printable+ output
 ]
+[
+    url-string: encode-text* utf8-string 'url
+]
+[
+    tmp: copy utf8-string
+    encode-text*/to tmp 'url tmp
+]
+[
+    output: ""
+    encode-text*/to utf8-string 'url output
+]
+[
+    decode-text* url-string 'url
+]
+[
+    tmp: copy url-string
+    decode-text*/to tmp 'url tmp
+]
+[
+    output: ""
+    decode-text*/to url-string 'url output
+]
+[
+    url-string: encode-text* utf8-string 'url+
+]
+[
+    tmp: copy utf8-string
+    encode-text*/to tmp 'url+ tmp
+]
+[
+    output: ""
+    encode-text*/to utf8-string 'url+ output
+]
+[
+    decode-text* url-string 'url+
+]
+[
+    tmp: copy url-string
+    decode-text*/to tmp 'url+ tmp
+]
+[
+    output: ""
+    decode-text*/to url-string 'url+ output
+]

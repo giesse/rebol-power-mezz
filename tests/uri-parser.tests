@@ -1,7 +1,7 @@
 REBOL [
     Title: "Tests for the URI parser"
     Author: "Gabriele Santilli"
-    Tests: [%parsers/uri-parser.r %mezz/module.r]
+    Tests: [%parsers/uri-parser.r %mezz/module.r %mezz/text-encoding.r]
 ]
 
 [

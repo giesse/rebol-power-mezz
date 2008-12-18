@@ -8,7 +8,7 @@ Text encoding and decoding functions
     }
     Author: "Gabriele Santilli"
     File: %text-encoding.r
-    Version: 1.1.0
+    Version: 1.1.1
     Imports: [
         %parsers/common-rules.r
     ]
@@ -957,7 +957,7 @@ encodes spaces, and can be used in email headers.
     -encodings-:
     quoted-printable: quoted-printable+: make-encoding [
         underscore: no
-        special: charset [#"^(00)" - #"^(20)" "=_?"]
+        special: charset [#"^(00)" - #"^(20)" "=_?^~"]
         qp-chars: complement charset "=_"
         decode: func [result text /local mk1 mk2] [
             parse/all text [
@@ -1069,6 +1069,90 @@ and so on, as UTF-8 is more space efficient than HTML entities).
         ]
     ]
     html-utf8: make html-utf8 [utf8?: yes]
+
+The |url| encoding is used in URIs to encode reserved characters and non-ascii
+characters using "percent encoding". The |url+| encoding encodes spaces with
+a "+" instead of "%20", and decodes "+" as a space.
+
+    -encodings-:
+    url: url+: make-encoding [
+        plus?: no
+        special: charset [#"^(00)" - #"^(20)" {!"#$%&'()*+,/:;<=>?@[\]^^`{|}^~}]
+        unreserved: union alpha-char union digit charset "-._~"
+        url-chars: complement charset "+%"
+        decode-inplace: func [string /local here] [
+            parse/all string [
+                any [
+                    some url-chars
+                    |
+                    #"%" here: 2 hexdigit :here (
+                        change/part
+                            back here
+                            debase/base copy/part here 2 16
+                            skip here 2
+                    )
+                    |
+                    here: #"+" (
+                        if plus? [
+                            here/1: #" "
+                        ]
+                    )
+                    |
+                    skip
+                ]
+            ]
+            string
+        ]
+        encode-inplace: func [string /local here] [
+            parse/all string [
+                any [
+                    some unreserved
+                    |
+                    here: skip (
+                        either all [plus? here/1 = #" "] [
+                            here/1: #"+"
+                            here: next here
+                        ] [
+                            here: change/part
+                                here
+                                join "%" enbase/base copy/part here 1 16
+                                next here
+                        ]
+                    ) :here
+                ]
+            ]
+            string
+        ]
+        decode: func [output text /local start end] [
+            parse/all text [
+                any [
+                    start: some url-chars end: (insert/part tail output start end)
+                    |
+                    #"%" copy start 2 hexdigit (
+                        append output debase/base start 16
+                    )
+                    |
+                    #"+" (append output pick [#" " #"+"] plus?)
+                    |
+                    copy start skip (append output start)
+                ]
+            ]
+            output
+        ]
+        encode-ascii: func [output start end] [insert/part tail output start end]
+        encode-sequence: func [output start end] [
+            start: copy/part start end
+            either all [plus? start = " "] [
+                append output #"+"
+            ] [
+                start: enbase/base start 16
+                forskip start 2 [
+                    insert/part insert tail output #"%" start 2
+                ]
+            ]
+        ]
+    ]
+    url+: make url [plus?: yes]
 
 ===Support functions
 

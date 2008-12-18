@@ -43,6 +43,7 @@ A standards-compliant URI parser
     Version: 1.4.0
     Imports: [
         %parsers/common-rules.r
+        %mezz/text-encoding.r
     ]
     Exports: [
         parse-uri   "Parse a URI into its components"
@@ -328,39 +329,13 @@ characters per string (most usually zero), so they work in place.
     -parse-rules-:
     percent-decode: func [
         string [any-string!]
-
-        /local here
     ] [
-        parse/all string [
-            any [
-                thru "%" here: 2 hexdigit :here (
-                    change/part
-                        back here
-                        debase/base copy/part here 2 16
-                        skip here 2
-                )
-            ]
-        ]
-        string
+        decode-text/to string 'url string
     ]
     percent-encode: func [
         string [any-string!]
-
-        /local here
     ] [
-        parse/all string [
-            any [
-                some unreserved
-                |
-                here: skip (
-                    here: change/part
-                        here
-                        join "%" enbase/base copy/part here 1 16
-                        next here
-                ) :here
-            ]
-        ]
-        string
+        encode-text/to string 'url string
     ]
 
 ===Form an URI string from its components
