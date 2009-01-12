@@ -1,0 +1,89 @@
+Simple plain text to HTML converter
+
+    Type: Module
+    Purpose: {
+        Prepares a string of plain text for inclusion into an HTML page;
+        makes links clickable, encodes to HTML, and so on.
+    }
+    Author: "Gabriele Santilli"
+    File: %text-to-html.r
+    Version: 1.0.0
+    Imports: [
+        %parsers/common-rules.r
+        %mezz/text-encoding.r
+    ]
+    Globals: [
+        text-to-html    "Made global so that it is easy to use from non-modules"
+    ]
+
+===Introduction
+
+When showing a plain text document (e.g. an email message) inside a HTML page,
+it is very often desirable to make links clickable, and do other adjustments.
+This program provides a function to do just that.
+
+===Overview
+
+    -main-:
+    -parse-rules-
+
+    text-to-html: func [
+        "Prepare a plain text string for inclusion in HTML"
+        text [string!]
+        /utf8 "Use the 'html-utf8 encoding instead of the 'html-ascii encoding"
+        
+        /local -tth-locals-
+    ] [
+        -text-to-html-
+    ]
+
+===Find URLs in the text and turn them into links, encode everything else to HTML
+
+Not as efficient as I'd like it to be...
+
+    -text-to-html-:
+    output: make string! length? text
+    encoding: either utf8 ['html-utf8] ['html-ascii]
+    parse/all text [
+        copy str any [punct | space-char] (if str [encode-text/to str encoding output])
+        any [
+            copy str url-rule (
+                insert insert tail output {<a href="} add-scheme
+                encode-text/to str encoding output
+                append output {">}
+                encode-text/to str encoding output
+                append output {</a>}
+            )
+            copy str any [punct | space-char] (if str [encode-text/to str encoding output])
+            |
+            copy str text-rule (encode-text/to str encoding output)
+        ]
+    ]
+    output
+
+---|text-to-html|'s locals
+    
+    -tth-locals-:
+    output str encoding
+
+===Parse rules to find URLs inside some text
+
+    -parse-rules-:
+    scheme: [
+        "http://" | "https://" | "ftp://" | "mailto:"
+    ]
+    punct-char: charset ".,!()[];:?{}" ; ' and " intentionally left out - but we may need to add them back
+    punct: [punct-char | "¿" | "¡"] ; please note that ¿ and ¡ are strings because they are actually UTF-8 sequences
+    unreserved: union alpha-char union digit charset "-_~/$&*+="
+    unreserved+: union unreserved charset "@"
+    name-or-host: [some unreserved any [some punct some unreserved]]
+    url-rule: [
+        [scheme (add-scheme: "") | "www." (add-scheme: "http://") | "ftp." (add-scheme: "ftp://")]
+        some unreserved+ any [some punct some unreserved+]
+        |
+        name-or-host #"@" name-or-host (add-scheme: "mailto:")
+    ]
+    non-space: complement space-char
+    text-rule: [
+        some non-space any [space-char | punct]
+    ]

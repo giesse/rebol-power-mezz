@@ -1,0 +1,30 @@
+REBOL [
+    Title: "Tests for text-to-html"
+    Author: "Gabriele Santilli"
+    Tests: [%parsers/common-rules.r %mezz/text-encoding.r %mezz/text-to-html.r]
+]
+
+[
+    do %mezz/module.r
+    load-module/from what-dir
+    load-module %mezz/text-to-html.r
+    true
+]
+[
+    text-to-html "This is a test"
+]
+[
+    text-to-html "   This  is a test   "
+]
+[
+    text-to-html "Did you have a look at www.qtask.com?"
+]
+[
+    text-to-html {Click on http://www.host.com/some/file.ext?bla=1&bla=2. Then click on "something".}
+]
+[
+    text-to-html {Send an email to support@qtask.com if you need assistance.}
+]
+[
+    text-to-html "{[(www.qtask.com)]}"
+]
