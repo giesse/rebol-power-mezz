@@ -86,3 +86,6 @@ REBOL [
 	"Missing newline after implicit </p>"
 	normalize-html* [<p> "Paragraph" <p> "Other paragraph"]
 ]
+[
+	normalize-html* [<pre> "Some text" </pre>]
+]

@@ -7,7 +7,7 @@ HTML Normalizer
     }
     Author: "Gabriele Santilli"
     File: %normalize-html.r
-    Version: 1.1.1
+    Version: 1.1.2
     Imports: [
         %dialects/fsm.r "Finite State Machine dialect"
     ]
@@ -288,7 +288,7 @@ cannot contain other *p* elements and so on.
         <h1> <h2> <h3> <h4> <h5> <h6> <address> <p> <li> <dt> <dd>
         <td> <th> <legend> <caption>
             (open-tag block-stack event data) in-inline (close-all inline-stack)
-        <pre> (open-tag block-stack event data) in-pre (close-all inline-stace)
+        <pre> (open-tag block-stack event data) in-pre (close-all inline-stack)
         
         <ul> <ol> <dl> <div> <center>
         <blockquote> <form> <fieldset> <table> <noscript>
