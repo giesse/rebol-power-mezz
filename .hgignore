@@ -35,3 +35,5 @@ parsers/common-rules.r
 test.html
 .conf
 tools/last-file.tmp
+mezz/text-to-html.html
+mezz/text-to-html.r
