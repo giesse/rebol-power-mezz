@@ -49,3 +49,6 @@ REBOL [
 [
     filter-html/all read %tests/data/10.html
 ]
+[
+    filter-html/all read %tests/data/11.html
+]
