@@ -28,3 +28,6 @@ REBOL [
 [
     text-to-html "{[(www.qtask.com)]}"
 ]
+[
+    text-to-html {<www.qtask.com> "www.qtask.com" 'www.qtask.com'}
+]

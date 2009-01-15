@@ -7,7 +7,7 @@ Simple plain text to HTML converter
     }
     Author: "Gabriele Santilli"
     File: %text-to-html.r
-    Version: 1.0.0
+    Version: 1.0.1
     Imports: [
         %parsers/common-rules.r
         %mezz/text-encoding.r
@@ -72,7 +72,7 @@ Not as efficient as I'd like it to be...
     scheme: [
         "http://" | "https://" | "ftp://" | "mailto:"
     ]
-    punct-char: charset ".,!()[];:?{}" ; ' and " intentionally left out - but we may need to add them back
+    punct-char: charset {.,!()[];:?{}'"<>}
     punct: [punct-char | "¿" | "¡"] ; please note that ¿ and ¡ are strings because they are actually UTF-8 sequences
     unreserved: union alpha-char union digit charset "-_~/$&*+="
     unreserved+: union unreserved charset "@"
