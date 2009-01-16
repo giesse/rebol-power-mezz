@@ -7,13 +7,14 @@ Simple plain text to HTML converter
     }
     Author: "Gabriele Santilli"
     File: %text-to-html.r
-    Version: 1.0.1
+    Version: 2.0.0
     Imports: [
         %parsers/common-rules.r
         %mezz/text-encoding.r
+        %parsers/uri-parser.r   "Used in case of URL filtering"
     ]
     Globals: [
-        text-to-html    "Made global so that it is easy to use from non-modules"
+        text-to-html            "Made global so that it is easy to use from non-modules"
     ]
 
 ===Introduction
@@ -26,15 +27,37 @@ This program provides a function to do just that.
 
     -main-:
     -parse-rules-
+    -options-
 
     text-to-html: func [
         "Prepare a plain text string for inclusion in HTML"
         text [string!]
-        /utf8 "Use the 'html-utf8 encoding instead of the 'html-ascii encoding"
+        /with options [block!] "Specify options for the conversion"
         
         /local -tth-locals-
     ] [
         -text-to-html-
+    ]
+
+---Available options
+
+The |/with| refinement can be used to specify the following options:
+
+:|utf8| - set to |true| to use the |html-utf8| encoding instead of the |html-ascii| encoding
+for all text.
+
+:|custom-handler| - you can set it to a function that will be called to handle all links
+in the text. The function must take one argument, an object, that the function can modify. The argument
+is the object returned by |parse-uri| (which is called on the link being processed), with the addition
+of the fields |target| and |contents|. The former can be used to set the "target" attribute of the
+resulting <a> tag; the latter can be used to change the link text, and by default it is the original
+URL as it appears on the text. Please note that you are responsible for the correct HTML encoding of
+the |contents| string, as you are allowed to put arbitrary HTML in there.
+
+    -options-:
+    default-options: context [
+        utf8: no
+        custom-handler: none
     ]
 
 ===Find URLs in the text and turn them into links, encode everything else to HTML
@@ -42,17 +65,37 @@ This program provides a function to do just that.
 Not as efficient as I'd like it to be...
 
     -text-to-html-:
+    options: make default-options any [options [ ]]
     output: make string! length? text
-    encoding: either utf8 ['html-utf8] ['html-ascii]
+    encoding: either options/utf8 ['html-utf8] ['html-ascii]
+    custom-handler?: any-function? get in options 'custom-handler
     parse/all text [
         copy str any [punct | space-char] (if str [encode-text/to str encoding output])
         any [
             copy str url-rule (
-                insert insert tail output {<a href="} add-scheme
-                encode-text/to str encoding output
-                append output {">}
-                encode-text/to str encoding output
-                append output {</a>}
+                either custom-handler? [
+                    options/custom-handler obj: make parse-uri join add-scheme str [
+                        target: none
+                        contents: encode-text str encoding
+                    ]
+                    append output {<a href="}
+                    encode-text/to form-uri obj encoding output
+                    append output #"^""
+                    if string? obj/target [
+                        append output { target="}
+                        encode-text/to obj/target encoding output
+                        append output #"^""
+                    ]
+                    repend output [
+                        #">" obj/contents </a>
+                    ]
+                ] [
+                    insert insert tail output {<a href="} add-scheme
+                    encode-text/to str encoding output
+                    append output {">}
+                    encode-text/to str encoding output
+                    append output {</a>}
+                ]
             )
             copy str any [punct | space-char] (if str [encode-text/to str encoding output])
             |
@@ -64,7 +107,7 @@ Not as efficient as I'd like it to be...
 ---|text-to-html|'s locals
     
     -tth-locals-:
-    output str encoding
+    output str encoding custom-handler? obj
 
 ===Parse rules to find URLs inside some text
 

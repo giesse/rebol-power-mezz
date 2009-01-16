@@ -31,3 +31,15 @@ REBOL [
 [
     text-to-html {<www.qtask.com> "www.qtask.com" 'www.qtask.com'}
 ]
+[
+    text-to-html/with {Send an email to support@qtask.com if you need assistance.} [
+        custom-handler: func [url] [
+            if url/scheme = "mailto" [
+                url/scheme: "javascript"
+                url/path: reduce [
+                    join "sendEmailTo('" [url/path/1 "')"]
+                ]
+            ]
+        ]
+    ]
+]
