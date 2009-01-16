@@ -40,11 +40,12 @@ Finite State Machine interpreter
         ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
         POSSIBILITY OF SUCH DAMAGE.
     }
-    Version: 2.0.0
+    Version: 2.1.0
     Exports: [
         make-fsm
         reset-fsm
         process-event
+        inherit     "Just a handy shortcut"
     ]
 
 ===Introduction
@@ -64,6 +65,7 @@ in a wide range of cases where stateful processing of asynchronous events is des
     -event-function-
     -init-function-
     -end-function-
+    -inherit-function-
 
 ===The |process-event| function
 
@@ -380,6 +382,23 @@ we only reset the state to |initial-state|, without performing a stack rewind.
         ]
         clear fsm/state-stack: head fsm/state-stack
         fsm/state: fsm/initial-state
+    ]
+
+===The |inherit| function
+
+|inherit| is just a handy shortcut that can be used when creating state blocks that are similar
+to each other. We make use of the fact that the order of rules in the state blocks is significant;
+we just append the rules of the "parent" state to the "child" state, so that any rule in |child|
+takes precedence, and otherwise the state behaves just like |parent| does. Please note that |child|
+is modified, as this is not a problem in the most common usage.
+
+    -inherit-function-:
+    inherit: func [
+        "Handy shortcut that simulates inheritance between FSM state blocks"
+        parent [block!]
+        child [block!]
+    ] [
+        append child parent
     ]
 
 ===Example usage
