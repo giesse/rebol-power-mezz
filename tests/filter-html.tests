@@ -52,3 +52,50 @@ REBOL [
 [
     filter-html/all read %tests/data/11.html
 ]
+[
+    filter-html {<p>This is a simple test.}
+]
+[
+    filter-html/all {<p>This is a simple test.}
+]
+[
+    filter-html/with {<p>This is a simple test.} [
+        all: yes
+    ]
+]
+[
+    filter-html/all/with {<p>This is a simple test.} [ ]
+]
+[
+    filter-html/with {<p id="mypara">This is a simple test.} [
+        id-prefix: "id-prefix"
+    ]
+]
+[
+    filter-html/with {このほんはだれのほん？} [
+        emit-utf8: yes
+    ]
+]
+[
+    filter-html/with {このほんはだれのほん？} [
+        emit-utf8: no
+    ]
+]
+[
+
+    filter-html/with {<a href="http://www.qtask.com/quilt.fcgi/report">Reports</a> <a href="http://www.other.com/">Other</a>} [
+        filter-uris: func [uri] [
+            if system/words/all [
+                uri/tag-name = "a" uri/attribute-name = 'href
+                uri/scheme = "http" uri/host = "www.qtask.com"
+                not empty? uri/path uri/path/1 = "quilt.fcgi"
+            ] [
+                if 1 < length? uri/path [
+                    uri/fragment: uri/path/2
+                    clear next uri/path
+                ]
+                uri
+            ]
+        ]
+    ]
+]

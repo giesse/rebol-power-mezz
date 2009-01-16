@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 1.0.0
+    Version: 2.0.0
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -46,16 +46,9 @@ If the |/all| refinement is used, a complete XHTML 1.0 document is returned; oth
 the text returned contains only the "body" part of the document and can be embedded
 directly inside another XHTML document.
 
-The |/with| refinement can be used to prepend a prefix to all tag IDs (or anchor names,
-and so on) that are specified in the source document (thus preventing clashes with IDs
-in the host document). If you are embedding the filtered HTML in a document that makes use
-of IDs, anchors etc., then you **should** use the |/with| refinement providing a prefix that
-ensures no clashes. (Note: currently the CSS is not being parsed, so references to IDs in
-the CSS will break when using |/with|.)
-
-The |/utf8| refinement can be used to disable the conversion of all non-ASCII characters
-to HTML entities (e.g. if your page is in Japanese then you don't want every character
-to be encoded as an HTML entity, as that would take much more space than UTF-8).
+More options can be specified with the |/with| refinement, followed by a block
+containing |set-word!|'s and values. See below for the list of available options
+you can set.
 
 \note Note:
 
@@ -63,7 +56,7 @@ The source |html| string is assumed to use the UTF-8 encoding. If your text uses
 other encoding, you **must** convert it to UTF-8 before calling this function.
 
 The output string will always be ASCII (all non-ASCII characters will be converted
-to a character entity), unless the |/utf8| refinement is used, in which case the output
+to a character entity), unless the |emit-utf8| option is set to |true|, in which case the output
 string will be UTF-8 encoded.
 
 /note
@@ -75,10 +68,40 @@ string will be UTF-8 encoded.
         "Sanitize HTML text"
         html [string!]
         /all "Return a complete HTML document (including <html> tag, <head> etc.)"
-        /with prefix "Prepend the given prefix to all IDs"
-        /utf8 "Return UTF-8 text instead of ASCII"
+        /with options [block!] "Specify options for the filter"
     ] [
         -filter-html-
+    ]
+
+---Filtering options
+
+The |/with| refinement of |filter-html| allows passing a block of |set-word!|'s to set
+specific filtering options. The available options are:
+
+:|all| - equivalent to the |/all| refinement (|logic!|).
+
+:|id-prefix| - Allows specifying a prefix to be prepended to all tag IDs (or anchor names,
+and so on) that are specified in the source document (thus preventing clashes with IDs
+in the host document). If you are embedding the filtered HTML in a document that makes use
+of IDs, anchors etc., then you **should** specify an |id-prefix| that
+ensures no clashes. (Note: currently the CSS is not being parsed, so references to IDs in
+the CSS will break when using this is used.) If specified, it must be a |string!| value,
+and be valid as an HTML tag ID encoded in UTF-8.
+
+:|emit-utf8| - can be used to disable the conversion of all non-ASCII characters
+to HTML entities (e.g. if your page is in Japanese then you don't want every character
+to be encoded as an HTML entity, as that would take much more space than UTF-8). Should
+be a |logic!| value.
+
+:|filter-uris| - allows specifying a handler function for all URIs that appear in the document.
+See |-uri-filtering-| for more details.
+
+    -filter-options-:
+    default-options: context [
+        all: no
+        id-prefix: none
+        emit-utf8: no
+        filter-uris: none
     ]
 
 ===Parse and regenerate the |html| text
@@ -91,7 +114,9 @@ via the |process-tag| function; that in turn sends the normalized elements
 to the |stage3| function.
 
     -filter-html-:
-    init-stage3 all prefix utf8
+    options: make default-options any [options [ ]]
+    if all [options/all: yes]
+    init-stage3 options
     init-normalizer :stage3
     parse-ml html :process-tag
     reset-normalizer
@@ -103,22 +128,19 @@ to the |stage3| function.
     stage3: func [cmd data] [
         process-event stage3-fsm cmd data
     ]
-    init-stage3: func [all prefix utf8] [
+    init-stage3: func [options] [
         out: make string! 1024
-        emit-full-doc?: all
-        id-prefix: prefix
-        emit-utf8?: utf8
+        current-options: options
+        filter-uris?: any-function? get in current-options 'filter-uris
         reset-fsm/only stage3-fsm
-        if emit-full-doc? [
+        if options/all [
             emit <?xml version="1.0" encoding="UTF-8"?>
             emit newline
             emit <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
             emit newline
         ]
     ]
-    emit-full-doc?: no
-    id-prefix: none
-    emit-utf8?: no
+    -filter-options-
     end-stage3: does [
         reset-fsm stage3-fsm
         out
@@ -128,16 +150,16 @@ to the |stage3| function.
             ; whitespace before <html> removed
             comment: (emit data)
             <html> (
-                if emit-full-doc? [emit-tag <html> data [xmlns force http://www.w3.org/1999/xhtml]]
+                if current-options/all [emit-tag <html> data [xmlns force http://www.w3.org/1999/xhtml]]
             ) in-html (
-                if emit-full-doc? [emit </html>]
+                if current-options/all [emit </html>]
             )
         ]
         in-html: [
             comment: whitespace: (emit data)
-            <head> (if emit-full-doc? [emit-tag <head> data [ ]]) in-head (if emit-full-doc? [emit </head>])
+            <head> (if current-options/all [emit-tag <head> data [ ]]) in-head (if current-options/all [emit </head>])
             <body> (
-                if emit-full-doc? [
+                if current-options/all [
                     emit-tag <body> data [
                         background [style* uri   "background-image"] none
                         text       [style* color "color"]            none
@@ -146,15 +168,15 @@ to the |stage3| function.
                         alink      color                             none
                     ]
                 ]
-            ) in-body (if emit-full-doc? [emit </body>])
+            ) in-body (if current-options/all [emit </body>])
             </html> return
         ]
         in-head: [
             comment: whitespace: (emit data)
             </head> return
-            <title> (if emit-full-doc? [emit-tag <title> data [ ]]) in-title (if emit-full-doc? [emit </title>])
+            <title> (if current-options/all [emit-tag <title> data [ ]]) in-title (if current-options/all [emit </title>])
             <base/> (
-                if emit-full-doc? [
+                if current-options/all [
                     emit-tag <base/> data [
                         href   uri             none
                         target [enum "_blank"] none
@@ -162,17 +184,17 @@ to the |stage3| function.
                 ]
             )
             <style> (
-                if emit-full-doc? [
+                if current-options/all [
                     emit-tag <style> data [
                         type  force      "text/css"
                         media media-desc none
                     ]
                     emit {^//* <![CDATA[ */^/}
                 ]
-            ) in-style (if emit-full-doc? [emit ["^//* ]]> */^/" </style>]])
+            ) in-style (if current-options/all [emit ["^//* ]]> */^/" </style>]])
             ;<meta/>
             <link/> (
-                if emit-full-doc? [
+                if current-options/all [
                     emit-tag <link/> data [
                         href     uri             none
                         hreflang name*           none
@@ -188,11 +210,11 @@ to the |stage3| function.
         ]
         in-style: [
             ; inside <![CDATA[...]]> so no need to escape
-            text: whitespace: (if emit-full-doc? [emit replace/all data "]]>" ""])
+            text: whitespace: (if current-options/all [emit replace/all data "]]>" ""])
             </style> return
         ]
         in-title: [
-            text: whitespace: (if emit-full-doc? [encode-entities out data emit-utf8?])
+            text: whitespace: (if current-options/all [encode-entities out data current-options/emit-utf8])
             </title> return
         ]
         in-body: [
@@ -201,14 +223,14 @@ to the |stage3| function.
             </body> return
 
             <style> (
-                if emit-full-doc? [
+                if current-options/all [
                     emit-tag <style> data [
                         type  force      "text/css"
                         media media-desc none
                     ]
                     emit {^//* <![CDATA[ */^/}
                 ]
-            ) in-style (if emit-full-doc? [emit ["^//* ]]> */^/" </style>]])
+            ) in-style (if current-options/all [emit ["^//* ]]> */^/" </style>]])
 
             <h1> <h2> <h3> <h4> <h5> <h6> <address> <p>
             <pre> <legend>
@@ -385,7 +407,7 @@ to the |stage3| function.
             </ins> </del> ; should be treated specially, but noone uses them so...
                 (emit lowercase event)
             
-            text: (encode-entities out data emit-utf8?)
+            text: (encode-entities out data current-options/emit-utf8)
         ]
         in-item: inherit in-body inherit in-para [
             </li> </td> </th> </dd> (emit lowercase event) return
@@ -500,7 +522,7 @@ to the |stage3| function.
         in-option: [
             comment: whitespace: (emit data)
 
-            text: (encode-entities out data emit-utf8?)
+            text: (encode-entities out data current-options/emit-utf8)
             
             </option> </textarea> (emit lowercase event) return
         ]
@@ -591,11 +613,18 @@ to the |stage3| function.
             ]
         ]
         uri: func [value opts] [
-            all [
-                value: parse-uri/relative value
-                find [#[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"] value/scheme
-                ; should warn on userinfo
-                form-uri value
+            if value: parse-uri/relative value [
+                either opts [
+                    value: current-options/filter-uris make value [
+                        tag-name: opts/1
+                        attribute-name: opts/2
+                    ]
+                    either object? value [form-uri value] [value]
+                ] [
+                    if find [#[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"] value/scheme [
+                        form-uri value
+                    ]
+                ]
             ]
         ]
         cdata: func [value opts] [if value [trim/lines value]]
@@ -728,10 +757,16 @@ to the |stage3| function.
         ]
         style: make string! 256
         foreach [name type defvalue] union/skip valid-attrs global-attrs 3 [
+            if all [filter-uris? type = 'uri] [
+                type: reduce ['uri tag name]
+            ]
             value: process-attr select attrs name type defvalue
             if value [
                 emit [" " name {="}]
-                encode-entities out value emit-utf8?
+                if all [name = 'id string? current-options/id-prefix] [
+                    encode-entities out current-options/id-prefix current-options/emit-utf8
+                ]
+                encode-entities out value current-options/emit-utf8
                 emit {"}
             ]
         ]
@@ -740,11 +775,47 @@ to the |stage3| function.
         ]
         if not empty? style [
             emit { style="}
-            encode-entities out style emit-utf8?
+            encode-entities out style current-options/emit-utf8
             emit {"}
         ]
         either #"/" = last tag [emit " />"] [emit ">"]
     ]
     encode-entities: func [output text only /local mk1 mk2] [
         encode-text/to text pick [html-utf8 html-ascii] to logic! only output
+    ]
+
+---URI filtering
+
+You can provide a filter function for all URIs in the HTML document via the |filter-uris| option.
+The option must be set to a function taking one object as argument and returning |none|, a string, or
+an object. The object passed as argument is what is returned by |parse-uri|, with the addition of two
+fields: |tag-name| and |attribute-name|, set to the name of the tag (a string, that may end in "/"
+for empty tags) and the name of the attribute (as a |word!|) the URI is in.
+
+If your function returns |none|, the attribute is discarded. If a |string!| value is returned, that
+is used as the value for the attribute (should be a correctly formed URI); otherwise, you can return
+an object that is passed to |form-uri| (for eg. you can just modify the object passed as argument and
+return it).
+
+    -uri-filtering-:
+    uri-filter: func [uri] [
+        case [
+            all [uri/tag-name = "img/" uri/attribute-name = 'src] [
+                ; disable images
+                none
+            ]
+            uri/host = "www2.site.com" [
+                ; replace domain
+                uri/host: "www.site.com"
+                uri
+            ]
+            uri/scheme = "javascript" [
+                ; disable javascript: urls
+                none
+            ]
+            ; and so on...
+        ]
+    ]
+    filter-html/with {...} [
+        filter-uris: :uri-filter
     ]
