@@ -99,3 +99,9 @@ REBOL [
         ]
     ]
 ]
+[
+    filter-html/all read %tests/data/12.html
+]
+[
+    filter-html read %tests/data/12.html
+]
