@@ -40,7 +40,7 @@ A standards-compliant URI parser
         ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
         POSSIBILITY OF SUCH DAMAGE.
     }
-    Version: 1.4.0
+    Version: 1.5.0
     Imports: [
         %parsers/common-rules.r
         %mezz/text-encoding.r
@@ -96,7 +96,10 @@ word is omitted. Unless the |/only| refinement is used, the URI components are a
 to have the following usual syntax: |userinfo| is subdelimited by |":"| and gets
 parsed to a block of segments (usually, username and password), and |query| is
 subdelimited by |"&"| and |"="| and gets parsed to a block of blocks (in the form
-|[["name1" "value1"] ["name2" "value2"] ...]|); all segments are then percent-decoded.
+|[["name1" "value1"] ["name2" "value2"] ...]|); the fragment is also checked
+for the common Web 2.0 usage of |"?"|, |"&"| and |"="| and parsed to a block
+if that's the case, with the format |["fragment" ["name1" "value1"] ["name2" "value2"] ...]|;
+all segments are then percent-decoded.
 
 If the |/only| refinement is used, then no further decoding is done (percent-encoded
 characters are left encoded). This is to allow schemes that use different subdelimiters
@@ -110,7 +113,8 @@ the |/only| refinement if the components are already percent-encoded and should 
 as they are; otherwise, |userinfo| (if not |none|) should be a block and its elements will be joined and
 separated by a |":"|, |query| (if not |none|) should be a block of name/value pairs like
 the one returned by |parse-uri| and it will be formed into a query using |"&"| and |"="| with
-each name and value percent-encoded, and the other components will be percent-encoded.
+each name and value percent-encoded, |fragment| can also be a block as described above,
+and the other components will be percent-encoded.
 Please note that |scheme| (if not |none|) **must** be a valid URI scheme name and that |port|
 (if not |none|) **must** only contain digits.
 
@@ -277,7 +281,7 @@ Decoding the URI fields in the most common case (which is applied unless the
 *split the query into |[name value]| pairs using |"&"| and |"="| as delimiters, and
 decode them;
 
-*decode the |fragment|.
+*decode the |fragment|, and split it if necessary (see above).
 
     -decode-fields-:
     if obj/userinfo [
@@ -298,9 +302,9 @@ decode them;
                 copy name some query-chars [
                     #"=" copy val some query-chars
                     |
-                    #"=" (val: "")
+                    #"=" (val: copy "")
                     |
-                    (val: "")
+                    (val: copy "")
                 ]
                 (append/only obj/query reduce [percent-decode name percent-decode val])
                 [#"&" | end]
@@ -309,7 +313,29 @@ decode them;
             ]
         ]
     ]
-    if obj/fragment [percent-decode obj/fragment]
+    if obj/fragment [
+        either parse/all obj/fragment [
+            (fragments: make block! 5)
+            copy name to #"?" skip (append fragments percent-decode name)
+            some [
+                copy name some query-chars [
+                    #"=" copy val some query-chars
+                    |
+                    #"=" (val: copy "")
+                    |
+                    (val: copy "")
+                ]
+                (append/only fragments reduce [percent-decode name percent-decode val])
+                [#"&" | end]
+                |
+                some [#"&" | #"="]
+            ]
+        ] [
+            obj/fragment: fragments
+        ] [
+            percent-decode obj/fragment
+        ]
+    ]
 
 We need a charset in the rule for decoding the |query|:
 
@@ -319,7 +345,7 @@ We need a charset in the rule for decoding the |query|:
 +++|decode-fields|' locals
 
     -df-locals-:
-    name val
+    name val fragments
 
 ===The |percent-decode| and |percent-encode| functions
 
@@ -429,4 +455,18 @@ The code follows the pseudo-code in the specifications.
         ]
         obj/query: result
     ]
-    if obj/fragment [percent-encode obj/fragment]
+    case [
+        all [block? obj/fragment 1 < length? obj/fragment] [
+            result: percent-encode copy obj/fragment/1
+            repend result [
+                #"?" percent-encode obj/fragment/2/1 #"=" percent-encode obj/fragment/2/2
+            ]
+            foreach pair next next obj/fragment [
+                repend result [
+                    #"&" percent-encode pair/1 #"=" percent-encode pair/2
+                ]
+            ]
+            obj/fragment: result
+        ]
+        string? obj/fragment [percent-encode obj/fragment]
+    ]

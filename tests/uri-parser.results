@@ -68,4 +68,11 @@ port: none
 path: ["oasis:names:specification:docbook:dtd:xml:4.1.2"]
 query: none
 fragment: none
-}
+} string! {scheme: "http"
+userinfo: none
+host: "www.qtask.com"
+port: none
+path: ["quilt.fcgi"]
+query: none
+fragment: ["mail" ["compose" "gabriele@qtask.com"] ["subject" "Prova"] ["from" "luca@truffarelli.it"]]
+} string! {http://www.qtask.com/quilt.fcgi#mail?compose=gabriele%40qtask.com&subject=Prova&from=luca%40truffarelli.it}

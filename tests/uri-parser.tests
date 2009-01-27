@@ -49,3 +49,10 @@ REBOL [
 [
     form parse-uri* "urn:oasis:names:specification:docbook:dtd:xml:4.1.2"
 ]
+[
+    obj: parse-uri* "http://www.qtask.com/quilt.fcgi#mail?compose=gabriele@qtask.com&subject=Prova&from=luca@truffarelli.it"
+    form obj
+]
+[
+    form-uri* obj
+]
