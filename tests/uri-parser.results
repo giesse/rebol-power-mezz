@@ -31,7 +31,7 @@ userinfo: none
 host: "[2001:db8::7]"
 port: none
 path: ["c=GB"]
-query: [["objectClass?one" ""]]
+query: "objectClass?one"
 fragment: none
 } string! {scheme: "mailto"
 userinfo: none
@@ -75,4 +75,11 @@ port: none
 path: ["quilt.fcgi"]
 query: none
 fragment: ["mail" ["compose" "gabriele@qtask.com"] ["subject" "Prova"] ["from" "luca@truffarelli.it"]]
-} string! {http://www.qtask.com/quilt.fcgi#mail?compose=gabriele%40qtask.com&subject=Prova&from=luca%40truffarelli.it}
+} string! {http://www.qtask.com/quilt.fcgi#mail?compose=gabriele%40qtask.com&subject=Prova&from=luca%40truffarelli.it} string! {scheme: "http"
+userinfo: none
+host: "cts.vresp.com"
+port: none
+path: ["c" ""]
+query: "Qtask/39cea2f03e/b8e2c188c7/91d76f340f"
+fragment: none
+} string! {http://cts.vresp.com/c/?Qtask/39cea2f03e/b8e2c188c7/91d76f340f}

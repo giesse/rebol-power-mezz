@@ -9,10 +9,12 @@ REBOL [
     load-module/from what-dir
     module [
         imports: [%parsers/uri-parser.r]
-        globals: [parse-uri* form-uri*]
+        globals: [parse-uri* form-uri* decode-uri-fields* encode-uri-fields*]
     ] [
         parse-uri*: :parse-uri
         form-uri*: :form-uri
+        decode-uri-fields*: :decode-uri-fields
+        encode-uri-fields*: :encode-uri-fields
     ]
     true
 ]
@@ -20,7 +22,7 @@ REBOL [
     form parse-uri* "http://www.rebol.com"
 ]
 [
-    form parse-uri* "https://www.qtask.com/quilt.fcgi#mail"
+    form decode-uri-fields* parse-uri* "https://www.qtask.com/quilt.fcgi#mail"
 ]
 [
     form-uri* [scheme: "imap" host: "somehost" path: ["a" "b" "c"]]
@@ -50,9 +52,16 @@ REBOL [
     form parse-uri* "urn:oasis:names:specification:docbook:dtd:xml:4.1.2"
 ]
 [
-    obj: parse-uri* "http://www.qtask.com/quilt.fcgi#mail?compose=gabriele@qtask.com&subject=Prova&from=luca@truffarelli.it"
+    obj: decode-uri-fields* parse-uri* "http://www.qtask.com/quilt.fcgi#mail?compose=gabriele@qtask.com&subject=Prova&from=luca@truffarelli.it"
     form obj
 ]
 [
-    form-uri* obj
+    form-uri* encode-uri-fields* obj
+]
+[
+	obj: parse-uri* "http://cts.vresp.com/c/?Qtask/39cea2f03e/b8e2c188c7/91d76f340f"
+	form obj
+]
+[
+	form-uri* obj
 ]

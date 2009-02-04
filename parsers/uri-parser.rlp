@@ -8,7 +8,7 @@ A standards-compliant URI parser
     Author: "Gabriele Santilli"
     File: %uri-parser.r
     License: {
-        Copyright (c) 2006-2008, Gabriele Santilli
+        Copyright (c) 2006-2009, Gabriele Santilli
         All rights reserved.
 
         Redistribution and use in source and binary forms, with or without
@@ -40,14 +40,16 @@ A standards-compliant URI parser
         ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
         POSSIBILITY OF SUCH DAMAGE.
     }
-    Version: 1.5.0
+    Version: 2.0.0
     Imports: [
         %parsers/common-rules.r
         %mezz/text-encoding.r
     ]
     Exports: [
-        parse-uri   "Parse a URI into its components"
-        form-uri    "Form an URI string from its components"
+        parse-uri           "Parse a URI into its components"
+        form-uri            "Form an URI string from its components"
+        decode-uri-fields   "Decode the fields of a URI object"
+        encode-uri-fields   "Encode the fields of a URI object"
     ]
 
 ===Introduction
@@ -92,34 +94,17 @@ The |parse-uri| function takes a URI as input (relative URIs are accepted if the
 that only |path| is guaranteed to never be |none|, and is always a block of path
 segments; if it is an absolute path, then the first element of the block is the
 word |'root|; if a |host| is present, then the path is always absolute, so the |'root|
-word is omitted. Unless the |/only| refinement is used, the URI components are assumed
-to have the following usual syntax: |userinfo| is subdelimited by |":"| and gets
+word is omitted.
+
+No syntax is assumed for the URI components. The |decode-uri-fields| function can
+be used to further decode the URI components according to the following syntax: 
+|userinfo| is subdelimited by |":"| and gets
 parsed to a block of segments (usually, username and password), and |query| is
 subdelimited by |"&"| and |"="| and gets parsed to a block of blocks (in the form
 |[["name1" "value1"] ["name2" "value2"] ...]|); the fragment is also checked
 for the common Web 2.0 usage of |"?"|, |"&"| and |"="| and parsed to a block
 if that's the case, with the format |["fragment" ["name1" "value1"] ["name2" "value2"] ...]|;
 all segments are then percent-decoded.
-
-If the |/only| refinement is used, then no further decoding is done (percent-encoded
-characters are left encoded). This is to allow schemes that use different subdelimiters
-than the usual ones and thus need custom handling before percent-decoding etc.
-
-The |form-uri| function is the inverse of |parse-uri|. It takes an object like the
-one resulting from |parse-uri| as input and returns a |string!| (we don't use |url!|
-for the problem cited above, to avoid percent-encoding confusions). (You can also
-supply a |block!| like in |[scheme: "http" host: "www.rebol.com" ...]|.) You need to use
-the |/only| refinement if the components are already percent-encoded and should be left
-as they are; otherwise, |userinfo| (if not |none|) should be a block and its elements will be joined and
-separated by a |":"|, |query| (if not |none|) should be a block of name/value pairs like
-the one returned by |parse-uri| and it will be formed into a query using |"&"| and |"="| with
-each name and value percent-encoded, |fragment| can also be a block as described above,
-and the other components will be percent-encoded.
-Please note that |scheme| (if not |none|) **must** be a valid URI scheme name and that |port|
-(if not |none|) **must** only contain digits.
-
-Note that in the current implementation when |/only| is not used the components are
-percent-encoded in place, thus *the passed object is modified*.
 
     -main-:
     -parse-rules-
@@ -128,17 +113,51 @@ percent-encoded in place, thus *the passed object is modified*.
         "Parse a URI into its components"
         uri [any-string!]
         /relative "Allow relative URIs"
-        /only "Don't decode percent-encoded chars, userinfo and query"
 
         /local -pu-locals-
     ] [
         -parse-uri-body-
     ]
-    
+    decode-uri-fields: func [
+        "Decode the fields of a URI object (see docs)"
+        obj [object!]
+
+        /local -df-locals-
+    ] [
+        -decode-fields-
+    ]
+
+The |form-uri| function is the inverse of |parse-uri|. It takes an object like the
+one resulting from |parse-uri| as input and returns a |string!| (we don't use |url!|
+for the problem cited above, to avoid percent-encoding confusions). (You can also
+supply a |block!| like in |[scheme: "http" host: "www.rebol.com" ...]|.) 
+
+All the components are assumed to be already percent-encoded etc., otherwise you must
+use the |encode-uri-fields| function to properly encode them: in that case, |userinfo|
+(if not |none|) should be a block and its elements will be joined and
+separated by a |":"|, |query| (if not |none|) should be a block of name/value pairs like
+the one returned by |decode-uri-fields| and it will be formed into a query using |"&"| and |"="| with
+each name and value percent-encoded, |fragment| can also be a block as described above,
+and the other components will be percent-encoded.
+
+Please note that |scheme| (if not |none|) **must** be a valid URI scheme name and that |port|
+(if not |none|) **must** only contain digits.
+
+Note that in the current implementation of |encode-uri-fields| is not used the components are
+percent-encoded in place, thus *the passed object is modified*.
+
+    -main-:
+    encode-uri-fields: func [
+        "Encode the fields of a URI object (see docs)"
+        obj [object! block!]
+
+        /local -ef-locals-
+    ] [
+        -encode-fields-
+    ]
     form-uri: func [
         "Form an URI string from its components"
         obj [object! block!] "URI components (scheme, userinfo, host, port, path, query, fragment)"
-        /only "Don't percent-encode fields"
 
         /local -fu-locals-
     ] [
@@ -240,9 +259,7 @@ to an empty block. (A path is always present in an URI, but can be empty.)
 
 Depending on the use of the |/relative| refinement, we use the |uri-reference|
 or the |uri-rule| rule to parse the URI; if parsing is successfull, we return
-an object containing the words in |vars|. Unless the |/only| refinement is used,
-the |decode-fields| function is called to decode the URI fields (as described in
-|-main-|).
+an object containing the words in |vars|.
 
     -parse-uri-body-:
     set vars none
@@ -251,15 +268,7 @@ the |decode-fields| function is called to decode the URI fields (as described in
         set obj: context [
             scheme: userinfo: host: port: path: query: fragment: none
         ] reduce vars
-        unless only [decode-fields obj]
         obj
-    ]
-
-The function is using:
-
-    -parse-rules-:
-    decode-fields: func [obj /local -df-locals-] [
-        -decode-fields-
     ]
 
 +++|parse-uri|'s locals
@@ -269,8 +278,7 @@ The function is using:
 
 ---Decode |obj|'s fields into subfields
 
-Decoding the URI fields in the most common case (which is applied unless the
-|/only| refinement of |parse-uri| is used) means:
+Decoding the URI fields in the most common case means:
 
 *splitting |userinfo| into parts separated by |":"|, and |percent-decode| them;
 
@@ -336,13 +344,14 @@ decode them;
             percent-decode obj/fragment
         ]
     ]
+    obj
 
 We need a charset in the rule for decoding the |query|:
 
     -parse-rules-:
     query-chars: complement charset "&="
 
-+++|decode-fields|' locals
++++|decode-uri-fields|' locals
 
     -df-locals-:
     name val fragments
@@ -373,10 +382,6 @@ The code follows the pseudo-code in the specifications.
         obj: make context [
             scheme: userinfo: host: port: path: query: fragment: none
         ] obj
-    ]
-
-    unless only [
-        -encode-fields-
     ]
 
     result: make string! 256
@@ -429,6 +434,11 @@ The code follows the pseudo-code in the specifications.
 ---Encode the URI's fields
 
     -encode-fields-:
+    if block? obj [
+        obj: make context [
+            scheme: userinfo: host: port: path: query: fragment: none
+        ] obj
+    ]
     if all [block? obj/userinfo not empty? obj/userinfo] [
         result: percent-encode copy obj/userinfo/1
         foreach value next obj/userinfo [
@@ -470,3 +480,9 @@ The code follows the pseudo-code in the specifications.
         ]
         string? obj/fragment [percent-encode obj/fragment]
     ]
+    obj
+
++++|encode-uri-fields|' locals
+
+    -ef-locals-:
+    result

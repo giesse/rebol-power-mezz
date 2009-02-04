@@ -1077,8 +1077,8 @@ a "+" instead of "%20", and decodes "+" as a space.
     -encodings-:
     url: url+: make-encoding [
         plus?: no
-        special: charset [#"^(00)" - #"^(20)" {!"#$%&'()*+,/:;<=>?@[\]^^`{|}^~}]
-        unreserved: union alpha-char union digit charset "-._~"
+        special: charset [#"^(00)" - #"^(20)" {!"#$%&'()*+,:;<=>?@[\]^^`{|}^~}]
+        unreserved: union alpha-char union digit charset "-._~/"
         url-chars: complement charset "+%"
         decode-inplace: func [string /local here] [
             parse/all string [
