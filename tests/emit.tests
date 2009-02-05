@@ -17,7 +17,6 @@ REBOL [
     true
 ]
 [
-    out: ""
     tag: macro* [name style contents] [
         #"<" name if style [{ style="} style #"^""] #">" emit contents "</" name #">"
     ]
@@ -30,7 +29,7 @@ REBOL [
     span: macro* [contents] [
         tag 'span none contents
     ]
-    emit* out [
+    emit* "" [
         div [
             p [
                 span "In a span"
@@ -46,16 +45,14 @@ REBOL [
     ]
 ]
 [
-    out: ""
-    emit* out [
+    emit* "" [
         "You are running REBOL/" system/product " version " system/version ".^/"
         "Those values are available in " 'system/product " and " 'system/version ".^/"
         "3 * 2 = " (3 * 2)
     ]
 ]
 [
-    out: []
-    emit* out [
+    emit* [] [
         1 2 3
         emit [4 (2 + 3) 6]
         emit/only [7 (4 + 4) 9]
@@ -63,5 +60,53 @@ REBOL [
         if false [12 11 10]
         either true [13 (10 + 4) 15] [no no no]
         either false [hopefully no] [16 (8 * 2 + 1) 18]
+    ]
+]
+[
+    tag: macro*/custom [name contents attr-name value here] [
+        set name word!
+        (emit* output [#"<" name])
+        any [
+            set attr-name set-word!
+            here: (
+                set [value here] do/next here
+                emit* output [
+                    #" " (form attr-name) {="} encode-text value 'html #"^""
+                ]
+            ) :here
+        ]
+        set contents block! (
+            emit* output [#">" emit contents "</" name #">"]
+        )
+    ]
+    drop-down*: macro*/custom [name value] [
+        some [
+            [set name set-word! | (name: none)]
+            set value string!
+            (emit* output [
+                either name [
+                    tag option value: form name [
+                        value
+                    ]
+                ] [
+                    tag option [value]
+                ]
+            ])
+        ]
+    ]
+    drop-down: macro* [
+        values
+    ] [
+        tag select [
+            apply 'drop-down* values
+        ]
+    ]
+    emit* "" [
+        drop-down [
+            "First"
+            "Second"
+            third: "Third"
+            "Fourth"
+        ]
     ]
 ]

@@ -6,7 +6,7 @@ Dialected EMIT function
     }
     Author: "Gabriele Santilli"
     File: %emit.r
-    Version: 1.0.0
+    Version: 1.0.1
     Imports: [
         %mezz/text-encoding.r "Used by the encode-text and decode-text keywords"
     ]
@@ -150,6 +150,16 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             append/only output :values
         ]
     ]
+    apply: keyword [
+        "Call a macro with the arguments in the supplied block"
+        name
+        arguments
+    ] [
+        name: get name
+        if macro? :name [
+            call-macro output arguments name
+        ]
+    ]
     encode-text: keyword [
         "Encode and emit text"
         text
@@ -231,9 +241,6 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
     -macro-:
     spec*: make block! 3 + length? spec
     types: make block! 3 + length? spec
-    if custom [
-        set [body rule] reduce [rule body]
-    ]
     parse spec [
         some [
             set name set-word! set val skip [set type block! | (type: none)] (
@@ -254,8 +261,22 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
         ]
     ]
     unless mandatory [mandatory: length? types]
+    spec*: context spec*
+    bind body spec*
     reduce [
-        'macro spec*: context spec* get spec* either custom [bind rule spec*] [mandatory] types bind body spec* spec
+        'macro spec* get spec* mandatory types
+        either custom [
+            func [output args] compose/deep/only [
+                parse args [
+                    (body)
+                    args:
+                ]
+                args
+            ]
+        ] [
+            body
+        ]
+        spec
     ]
 
 ---|macro|'s locals
@@ -269,7 +290,7 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
     macro?: func [value] [
         all [
             block? :value
-            parse value ['macro object! block! [integer! | block!] block! block! block!]
+            parse value ['macro object! block! integer! block! [block! | function!] block!]
         ]
     ]
     call-macro: func [
@@ -277,20 +298,19 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
         args [block!]
         macro [block!]
         /options
-        /local saved rule values value types
+        /local saved values value types
     ] [
-        ; 1     2   3        4            5     6    7
-        ; macro ctx defaults rule/numargs types body spec
+        ; 1     2   3        4       5     6         7
+        ; macro ctx defaults numargs types body/func spec
         saved: get macro/2
-        either block? rule: macro/4 [
+        either function? pick macro 6 [
             ; reset to defaults
             set macro/2 macro/3
-            parse args [rule args:]
-            emit output macro/6
+            args: macro/6 output args
         ] [
             values: copy macro/3
             types: macro/5
-            loop rule [
+            loop macro/4 [
                 set [value args] do/next args
                 ; !!! problem !!!
                 if all [types/1 not find types/1 type?/word :value] [make error! "invalid type"]
