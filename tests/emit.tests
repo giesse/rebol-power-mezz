@@ -1,0 +1,67 @@
+REBOL [
+    Title: "Tests for the EMIT function"
+    Author: "Gabriele Santilli"
+    Tests: [%dialects/emit.r]
+]
+
+[
+    do %mezz/module.r
+    load-module/from what-dir
+    module [
+        Imports: [%dialects/emit.r]
+        Globals: [macro* emit*]
+    ] [
+        macro*: :macro
+        emit*: :emit
+    ]
+    true
+]
+[
+    out: ""
+    tag: macro* [name style contents] [
+        #"<" name if style [{ style="} style #"^""] #">" emit contents "</" name #">"
+    ]
+    div: macro* [contents /options style] [
+        tag 'div style contents
+    ]
+    p: macro* [contents] [
+        tag 'p none contents
+    ]
+    span: macro* [contents] [
+        tag 'span none contents
+    ]
+    emit* out [
+        div [
+            p [
+                span "In a span"
+                " and out of it..."
+            ]
+            p "...and so on..."
+            div/options [
+                p "This can be used in many ways..."
+            ] [
+                style: "background-color: red; color: yellow;"
+            ]
+        ]
+    ]
+]
+[
+    out: ""
+    emit* out [
+        "You are running REBOL/" system/product " version " system/version ".^/"
+        "Those values are available in " 'system/product " and " 'system/version ".^/"
+        "3 * 2 = " (3 * 2)
+    ]
+]
+[
+    out: []
+    emit* out [
+        1 2 3
+        emit [4 (2 + 3) 6]
+        emit/only [7 (4 + 4) 9]
+        if true [10 11 12]
+        if false [12 11 10]
+        either true [13 (10 + 4) 15] [no no no]
+        either false [hopefully no] [16 (8 * 2 + 1) 18]
+    ]
+]

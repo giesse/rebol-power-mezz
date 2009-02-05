@@ -1,0 +1,363 @@
+Dialected EMIT function
+
+    Type: Module
+    Purpose: {
+        Defines a EMIT function and a dialect that can be extended with "macros".
+    }
+    Author: "Gabriele Santilli"
+    File: %emit.r
+    Version: 1.0.0
+    Imports: [
+        %mezz/text-encoding.r "Used by the encode-text and decode-text keywords"
+    ]
+    Exports: [
+        macro   "Used to create new macros for EMIT"
+        emit    "Append values to a series according to a dialect"
+    ]
+
+===Introduction
+
+It is common in REBOL to create dialects that generate some output (for e.g. HTML, or PDF,
+and so on). This program defines a function that generalizes this concept into a "emit dialect"
+that can be easily extended with "macros".
+
+===Overview
+
+The |emit| function appends values to |output| according to the contents of the
+|values| block. The values contained in this block are simply appended to the 
+output except for the following cases:
+
+:keywords - words that are keywords for the emit dialect trigger the associated
+action (see |-keywords-|);
+
+:macros - words that refer to a macro defined with the |macro| function trigger
+the evaluation of the macro (see below);
+
+:|word!|'s - for all other words, their value is appended to the output;
+
+:|path!|'s - they are evaluated and the result is appended to the output;
+
+:|paren!|'s - they are evaluated and the result is appended to the output;
+
+:|lit-word!|'s - the respective word is appended to the output;
+
+:|lit-path!|'s - the respective path is appended to the output;
+
+    -main-:
+    emit: func [
+        "Append values to a series according to a dialect"
+        output [series!]
+        values [block!] "EMIT dialect block (see docs)"
+
+        /local -emit-locals-
+    ] [
+        -emit-
+    ]
+
+The |macro| function defines a macro that can be used in the emit dialect.
+Macros can work in two ways: "normal" or |/custom|. Normal macros work in a
+similar way to REBOL functions: you specify arguments in the |spec| block,
+they are evaluated when the macro is evaluated and assigned to the words
+you have specified in the context of the macro. Then the values in the
+|body| block are |emit|'ted just like if they were there in place of where
+the macro has been called.
+
+In the case of |/custom| macros, you still specify the context for the macro
+using the |spec| block, but the body is a |parse| rule that is applied directly
+after the call to the macro, to collect "arguments" and emit values in the parens
+inside the rule.
+
+    -main-:
+    macro: func [
+        "Define a macro for the EMIT dialect"
+        spec [block!] "Spec for the macro arguments, options and local words"
+        body [block!] "Body of the macro (EMIT dialect)"
+        /custom "The body is a PARSE rule"
+
+        /local -macro-locals-
+    ] [
+        -macro-
+    ]
+
+The syntax for the |spec| block is very similar to that of spec blocks for
+REBOL functions, with the following differences:
+
+:no refinements - macros do not currently support refinements; they
+are generally replaced by |/options|, which work better in the case
+of having many refinemnts, and by the usage of |/custom| macros
+most other cases;
+
+:|/options| - it is possible to specify a set of optional arguments, by using
+the |/options| refinement in the spec; these arguments can be specified by
+calling the macro with the |/options| refinement which takes a block as argument;
+this block specifies the values for the options as in |[option: value]|;
+
+:default values - default values for optional arguments can be defined specifying
+the argument with a |set-word!| and following it with the default value;
+
+See |-support-functions-| for the functions used by |emit| and |macro|.
+
+    -main-:
+    -support-functions-
+
+===Examples
+
+(Examples to be provided.)
+
+===Dialect keywords
+
+    -keywords-:
+    emit: keyword [
+        "Emit the argument, evaluating the dialect if it's a block"
+        value "If block, contents is interpreted as EMIT dialect"
+        /only "When output is block, emit as a sub-block"
+    ] [
+        either block? :value [
+            either all [only any-block? output] [
+                append/only output make block! 8
+                emit last output value
+            ] [
+                emit output value
+            ]
+        ] [
+            do either only ['append/only] ['append] output :value
+        ]
+    ]
+    if: keyword [
+        "If condition is not false or none, emit the given values"
+        condition
+        values "Value to emit or emit dialect block"
+    ] [
+        if :condition [
+            either block? :values [
+                emit output values
+            ] [
+                append/only output :values
+            ]
+        ]
+    ]
+    either: keyword [
+        "Depending on condition, emit on-true or on-false"
+        condition
+        on-true "Value to emit or emit dialect block"
+        on-false "Value to emit or emit dialect block"
+        /local values
+    ] [
+        values: either :condition [:on-true] [:on-false]
+        either block? :values [
+            emit output values
+        ] [
+            append/only output :values
+        ]
+    ]
+    encode-text: keyword [
+        "Encode and emit text"
+        text
+        encoding
+    ] [
+        either any-string? output [
+            encode-text/to text encoding output
+        ] [
+            append output encode-text text encoding
+        ]
+    ]
+    decode-text: keyword [
+        "Decode and emit text"
+        text
+        encoding
+    ] [
+        either any-string? output [
+            decode-text/to text encoding output
+        ] [
+            append output decode-text text encoding
+        ]
+    ]
+
+===Append values to |output| according to the contents of |values|
+
+    -emit-:
+    parse values [
+        some [
+            ; lit-words and lit-paths are automatically converted by REBOL
+            set value lit-word! (append output value)
+            |
+            set value lit-path! (append/only output value)
+            |
+            here: path! :here into [set value word! 'options] here: (
+                value: get value
+                either macro? :value [
+                    here: call-macro/options output here value
+                ] [
+                    append output value/options
+                ]
+            ) :here
+            |
+            set value path! here: (
+                either tmp: in emit-keywords value/1 [
+                    value/1: tmp
+                    here: do value output here
+                ] [
+                    append output do value
+                ]
+            ) :here
+            |
+            set value word! here: (
+                either tmp: in emit-keywords value [
+                    here: do tmp output here
+                ] [
+                    value: get value
+                    either macro? :value [
+                        here: call-macro output here value
+                    ] [
+                        append output :value
+                    ]
+                ]
+            ) :here
+            |
+            set value paren! (append output do value)
+            |
+            set value skip (append/only output :value)
+        ]
+    ]
+    output
+
+---|emit|'s locals
+
+    -emit-locals-:
+    value here tmp
+
+===Define a macro for the EMIT dialect
+
+    -macro-:
+    spec*: make block! 3 + length? spec
+    types: make block! 3 + length? spec
+    if custom [
+        set [body rule] reduce [rule body]
+    ]
+    parse spec [
+        some [
+            set name set-word! set val skip [set type block! | (type: none)] (
+                insert/only insert tail spec* name :val
+                append/only types type
+            )
+            |
+            set name word! [set type block! | (type: none)] (
+                insert insert tail spec* to set-word! name none
+                append/only types type
+            )
+            |
+            [/local | /options] (unless mandatory [mandatory: length? types])
+            |
+            refinement! (make error! "Refinements not supported.")
+            |
+            skip
+        ]
+    ]
+    unless mandatory [mandatory: length? types]
+    reduce [
+        'macro spec*: context spec* get spec* either custom [bind rule spec*] [mandatory] types bind body spec* spec
+    ]
+
+---|macro|'s locals
+
+    -macro-locals-:
+    spec* name val type types mandatory
+
+===Support functions
+
+    -support-functions-:
+    macro?: func [value] [
+        all [
+            block? :value
+            parse value ['macro object! block! [integer! | block!] block! block! block!]
+        ]
+    ]
+    call-macro: func [
+        output [series!]
+        args [block!]
+        macro [block!]
+        /options
+        /local saved rule values value types
+    ] [
+        ; 1     2   3        4            5     6    7
+        ; macro ctx defaults rule/numargs types body spec
+        saved: get macro/2
+        either block? rule: macro/4 [
+            ; reset to defaults
+            set macro/2 macro/3
+            parse args [rule args:]
+            emit output macro/6
+        ] [
+            values: copy macro/3
+            types: macro/5
+            loop rule [
+                set [value args] do/next args
+                ; !!! problem !!!
+                if all [types/1 not find types/1 type?/word :value] [make error! "invalid type"]
+                values/1: :value
+                values: next values
+                types: next types
+            ]
+            set macro/2 head values
+            if options [
+                set [value args] do/next args
+                unless block? :value [make error! "invalid type"]
+                do bind value macro/2
+                ; !!! problem type checking?? !!!
+            ]
+            emit output macro/6
+        ]
+        set macro/2 saved
+        args
+    ]
+    make-keywords: func [
+        keywords [block!]
+        /local result name spec body actual-spec actual-body value
+    ] [
+        result: clear [ ]
+        parse keywords [
+            some [
+                set name set-word! 'keyword block! block!
+                (append result name)
+            ]
+        ]
+        append result none
+        result: context result
+        parse keywords [
+            some [
+                set name set-word! 'keyword set spec block! set body block! (
+                    actual-spec: copy [
+                        output [series!]
+                        args [block!]
+                        /local
+                    ]
+                    actual-body: make block! 16
+                    parse spec [
+                        some [
+                            set value word! (
+                                append actual-spec value
+                                append actual-body compose/deep [
+                                    set [(value) args] do/next args
+                                ]
+                            )
+                            |
+                            /local some [set value word! (append actual-spec value) | skip]
+                            |
+                            set value refinement! (
+                                insert find actual-spec /local value
+                            )
+                            |
+                            skip
+                        ]
+                    ]
+                    append actual-body body
+                    append actual-body 'args
+                    result/(to word! name): func actual-spec actual-body
+                )
+            ]
+        ]
+        result
+    ]
+    emit-keywords: make-keywords [
+        -keywords-
+    ]

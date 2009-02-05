@@ -37,3 +37,5 @@ test.html
 tools/last-file.tmp
 mezz/text-to-html.html
 mezz/text-to-html.r
+dialects/emit.html
+dialects/emit.r
