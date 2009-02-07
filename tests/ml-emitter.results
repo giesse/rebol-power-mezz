@@ -1,0 +1,8 @@
+logic! #[true] string! {<html>
+<head>
+<title lang="IT-it">This is a test</title>
+</head>
+<body>
+<p class="normal">Look here: <img src="http://www.qtask.com/some-image.png" alt="Some image" /></p>
+</body>
+</html>} string! #{5BBB8A7F5801A2ED1E8A9FB0B30591621704F525}

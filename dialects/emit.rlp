@@ -182,6 +182,15 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             append output decode-text text encoding
         ]
     ]
+    ; needs optimization
+    foreach: keyword [
+        "Emits values for each value in a series"
+        word "Word or block of words to set each time (local)"
+        data "The series to traverse"
+        body "The values to emit at each iteration"
+    ] [
+        foreach :word data compose/only [emit output (body)]
+    ]
 
 ===Append values to |output| according to the contents of |values|
 

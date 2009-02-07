@@ -16,6 +16,8 @@ HTML Filter
         %mezz/normalize-html.r  "Used to normalize the HTML before regenerating it"
         %parsers/uri-parser.r   "Used to check and normalize the URLs"
         %mezz/text-encoding.r   "Used to encode HTML entities"
+        %dialects/emit.r        "Used to generate output"
+        %dialects/ml-emitter.r  "Used to generate HTML"
     ]
     Globals: [
         filter-html             "Made global so that it's easy to use in non-modules"
@@ -132,12 +134,13 @@ to the |stage3| function.
         out: make string! 1024
         current-options: options
         filter-uris?: any-function? get in current-options 'filter-uris
+        set-ml-encoding pick [html-utf8 html-ascii] to logic! options/emit-utf8
         reset-fsm/only stage3-fsm
         if options/all [
-            emit <?xml version="1.0" encoding="UTF-8"?>
-            emit newline
-            emit <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-            emit newline
+            emit [
+                <?xml version="1.0" encoding="UTF-8"?> newline
+                <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> newline
+            ]
         ]
     ]
     -filter-options-
@@ -145,6 +148,7 @@ to the |stage3| function.
         reset-fsm stage3-fsm
         out
     ]
+    close-tag: macro [name] [tag name [ ] 'close]
     stage3-fsm: make-fsm [
         initial-state: [
             ; whitespace before <html> removed
@@ -152,12 +156,12 @@ to the |stage3| function.
             <html> (
                 if current-options/all [emit-tag <html> data [xmlns force http://www.w3.org/1999/xhtml]]
             ) in-html (
-                if current-options/all [emit </html>]
+                if current-options/all [emit [close-tag 'html]]
             )
         ]
         in-html: [
             comment: whitespace: (emit data)
-            <head> (if current-options/all [emit-tag <head> data [ ]]) in-head (if current-options/all [emit </head>])
+            <head> (if current-options/all [emit-tag <head> data [ ]]) in-head (if current-options/all [emit [close-tag 'head]])
             <body> (
                 if current-options/all [
                     emit-tag <body> data [
@@ -168,13 +172,13 @@ to the |stage3| function.
                         alink      color                             none
                     ]
                 ]
-            ) in-body (if current-options/all [emit </body>])
+            ) in-body (if current-options/all [emit [close-tag 'body]])
             </html> return
         ]
         in-head: [
             comment: whitespace: (emit data)
             </head> return
-            <title> (if current-options/all [emit-tag <title> data [ ]]) in-title (if current-options/all [emit </title>])
+            <title> (if current-options/all [emit-tag <title> data [ ]]) in-title (if current-options/all [emit [close-tag 'title]])
             <base/> (
                 if current-options/all [
                     emit-tag <base/> data [
@@ -189,9 +193,9 @@ to the |stage3| function.
                         type  force      "text/css"
                         media media-desc none
                     ]
-                    emit {^//* <![CDATA[ */^/}
+                    emit [cdata/options 'open [commented: yes]]
                 ]
-            ) in-style (if current-options/all [emit ["^//* ]]> */^/" </style>]])
+            ) in-style (if current-options/all [emit [cdata/options 'close [commented: yes] close-tag 'style]])
             ;<meta/>
             <link/> (
                 if current-options/all [
@@ -214,7 +218,7 @@ to the |stage3| function.
             </style> return
         ]
         in-title: [
-            text: whitespace: (if current-options/all [encode-entities out data current-options/emit-utf8])
+            text: whitespace: (if current-options/all [emit [text data]])
             </title> return
         ]
         in-body: [
@@ -228,9 +232,9 @@ to the |stage3| function.
                         type  force      "text/css"
                         media media-desc none
                     ]
-                    emit {^//* <![CDATA[ */^/}
+                    emit [cdata/options 'open [commented: yes]]
                 ]
-            ) in-style (if current-options/all [emit ["^//* ]]> */^/" </style>]])
+            ) in-style (if current-options/all [emit [cdata/options 'close [commented: yes] close-tag 'style]])
 
             <h1> <h2> <h3> <h4> <h5> <h6> <address> <p>
             <pre> <legend>
@@ -268,7 +272,7 @@ to the |stage3| function.
                 border      [style* pixels "border-width"] none
                 cellspacing length                         none
                 cellpadding length                         none
-            ]) in-table (emit </table>)
+            ]) in-table (emit [close-tag 'table])
             
             <ins> <del> (emit-tag event data [
                 cite     uri   none
@@ -286,7 +290,7 @@ to the |stage3| function.
             
             </div> </blockquote> </form> </fieldset> </ins> </del>
                 (emit lowercase event)
-            </center> (emit </div>)
+            </center> (emit [close-tag 'div])
         ]
         in-para: [
             comment: whitespace: (emit data)
@@ -318,7 +322,7 @@ to the |stage3| function.
                 color [style* color     "color"]       none
                 face  [style* cdata     "font-family"] none
             ])
-            </font> (emit </span>)
+            </font> (emit [close-tag 'span])
 
             <span> (emit-tag event data [ ])
 
@@ -337,7 +341,7 @@ to the |stage3| function.
                 size     number            none
                 multiple [bool "multiple"] none
                 disabled force             "disabled"
-            ]) in-select (emit </select>)
+            ]) in-select (emit [close-tag 'select])
             <textarea> (emit-tag event data [
                 name     name*             none
                 rows     number            none
@@ -407,7 +411,7 @@ to the |stage3| function.
             </ins> </del> ; should be treated specially, but noone uses them so...
                 (emit lowercase event)
             
-            text: (encode-entities out data current-options/emit-utf8)
+            text: (emit [text data])
         ]
         in-item: inherit in-body inherit in-para [
             </li> </td> </th> </dd> (emit lowercase event) return
@@ -420,13 +424,13 @@ to the |stage3| function.
                 value number                                none
             ]) in-item
 
-            <ul> (emit <li> emit-tag event data [
+            <ul> (emit [tag 'li [] 'open] emit-tag event data [
                 type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
-            ]) in-list (emit </li>)
-            <ol> (emit <li> emit-tag event data [
+            ]) in-list (emit [close-tag 'li])
+            <ol> (emit [tag 'li [] 'open] emit-tag event data [
                 type  [style* list-style "list-style-type"] none
                 start number                                none
-            ]) in-list (emit </li>)
+            ]) in-list (emit [close-tag 'li])
 
             </ul> </ol> (emit lowercase event) return
         ]
@@ -436,7 +440,7 @@ to the |stage3| function.
             <dt> (emit-tag event data [ ]) in-para
             <dd> (emit-tag event data [ ]) in-item
 
-            </dl> (emit </dl>) return
+            </dl> (emit [close-tag 'dl]) return
         ]
         in-table: [
             comment: whitespace: (emit data)
@@ -447,7 +451,7 @@ to the |stage3| function.
                 span   number       none
                 width  multi-length none
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-colgroup (emit </colgroup>)
+            ]) in-colgroup (emit [close-tag 'colgroup])
             <col/> (emit-tag event data [
                 span   number       none
                 width  multi-length none
@@ -458,7 +462,7 @@ to the |stage3| function.
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
             ]) in-rows
 
-            <tr> (emit <tbody>) continue in-rows (emit </tbody>)
+            <tr> (emit [tag 'tbody [] 'open]) continue in-rows (emit [close-tag 'tbody])
 
             </table> return
         ]
@@ -478,7 +482,7 @@ to the |stage3| function.
 
             <tr> (emit-tag event data [
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-cells (emit </tr>)
+            ]) in-cells (emit [close-tag 'tr])
             
             </thead> </tfoot> </tbody> (emit lowercase event) return
 
@@ -515,14 +519,14 @@ to the |stage3| function.
             <optgroup> (emit-tag event data [
                 label    cdata none
                 disabled force "disabled"
-            ]) in-optgroup (emit </optgroup>)
+            ]) in-optgroup (emit [close-tag 'optgroup])
 
             </select> return
         ]
         in-option: [
             comment: whitespace: (emit data)
 
-            text: (encode-entities out data current-options/emit-utf8)
+            text: (emit [text data])
             
             </option> </textarea> (emit lowercase event) return
         ]
@@ -540,7 +544,8 @@ to the |stage3| function.
         ]
     ]
     out: {}
-    emit: func [value] [repend out value]
+    emit*: :emit
+    emit: func [values] [either block? values [emit* out values] [emit* out [values]]]
     global-attrs: [
         dir     [enum "LTR" "RTL"]                none
         id      name*                             none
@@ -743,42 +748,47 @@ to the |stage3| function.
         type: get in attr-types type
         value: any [type value opts defvalue]
     ]
-    emit-tag: func [tag attrs valid-attrs /local value lang] [
-        tag: as-string lowercase tag
-        emit "<"
-        insert/part tail out tag either #"/" = last tag [back tail tag] [tail tag]
+    emit-tag: func [tag-name attrs valid-attrs /local value lang type] [
+        parse tag-name [
+            #"/" copy tag-name to end (type: 'close)
+            |
+            copy tag-name to #"/" (type: 'empty)
+            |
+            copy tag-name to end (type: 'open)
+        ]
+        lowercase tag-name
         if not block? attrs [attrs: [ ]]
         lang: any [
             process-attr select attrs 'xml/lang 'name* none
             process-attr select attrs 'lang     'name* none
         ]
-        if lang [
-            emit [{ lang="} lang {" xml:lang="} lang {"}]
-        ]
         style: make string! 256
-        foreach [name type defvalue] union/skip valid-attrs global-attrs 3 [
-            if all [filter-uris? type = 'uri] [
-                type: reduce ['uri tag name]
-            ]
-            value: process-attr select attrs name type defvalue
-            if value [
-                emit [" " name {="}]
-                if all [name = 'id string? current-options/id-prefix] [
-                    encode-entities out current-options/id-prefix current-options/emit-utf8
+        emit [
+            tag/options tag-name [
+                if lang [tag-attribute 'lang lang tag-attribute 'xml/lang lang]
+                foreach [name type defvalue] union/skip valid-attrs global-attrs 3 [
+                    (if all [filter-uris? type = 'uri] [
+                        type: reduce ['uri tag-name name]
+                    ] [ ])
+                    if value: process-attr select attrs name type defvalue [
+                        tag-attribute name [
+                            if all [name = 'id string? current-options/id-prefix] [
+                                text current-options/id-prefix
+                            ]
+                            text value
+                        ]
+                    ]
                 ]
-                encode-entities out value current-options/emit-utf8
-                emit {"}
+                (if value: select attrs 'style [
+                    append style value
+                ] [ ])
+                if not empty? style [
+                    tag-attribute 'style style
+                ]
+            ] type [
+                custom-attributes: yes
             ]
         ]
-        if value: select attrs 'style [
-            append style value
-        ]
-        if not empty? style [
-            emit { style="}
-            encode-entities out style current-options/emit-utf8
-            emit {"}
-        ]
-        either #"/" = last tag [emit " />"] [emit ">"]
     ]
     encode-entities: func [output text only /local mk1 mk2] [
         encode-text/to text pick [html-utf8 html-ascii] to logic! only output
@@ -800,7 +810,7 @@ return it).
     -uri-filtering-:
     uri-filter: func [uri] [
         case [
-            all [uri/tag-name = "img/" uri/attribute-name = 'src] [
+            all [uri/tag-name = "img" uri/attribute-name = 'src] [
                 ; disable images
                 none
             ]

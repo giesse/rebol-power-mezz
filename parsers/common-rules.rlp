@@ -7,6 +7,9 @@ Common PARSE rules
     Author: "Gabriele Santilli"
     File: %common-rules.r
     Version: 1.0.0
+    Imports: [
+        %parsers/rule-arguments.r
+    ]
     Exports: All
 
 ===Introduction
@@ -15,6 +18,8 @@ This file just collects a number of charsets and parse rules that are
 commonly used in other modules.
 
 ===Overview
+
+Charsets that are very useful for string parsing:
 
     -main-:
     ascii-char: charset [#"^(00)" - #"^(7F)"]
@@ -32,3 +37,16 @@ commonly used in other modules.
     alphanum: union alpha-char digit
     letter+: union union letter digit charset {.-_}
     name: [letter* any letter+]
+
+Some useful rules for block parsing:
+
+    -main-:
+    do-next: make-rule [
+        "Evaluate the next value, and set the given word to it"
+        word
+        /local here
+    ] [
+        here: (
+            set reduce [word 'here] do/next here
+        ) :here
+    ]

@@ -1,0 +1,93 @@
+Macros to emit [X][HT]ML
+
+    Type: Module
+    Purpose: {
+        Defines EMIT macros to generate XML, HTML etc.
+    }
+    Author: "Gabriele Santilli"
+    File: %ml-emitter.r
+    Version: 1.0.0
+    Imports: [
+        %dialects/emit.r
+        %parsers/rule-arguments.r
+        %parsers/common-rules.r
+    ]
+    Exports: [
+        tag text tag-attribute set-ml-encoding cdata
+    ]
+
+===Introduction
+
+Generating XML, XHTML etc. is a very common task; this module defines |emit| macros
+to generate *ML code.
+
+===Overview
+
+    -main-:
+    encoding: 'html-ascii
+    set-ml-encoding: func [new-encoding [word!]] [
+        if find [html-ascii html-utf8] new-encoding [encoding: new-encoding]
+    ]
+    tag-attribute: macro [
+        name ;[any-word! any-path!]
+        value
+    ] [
+        #" " either any [path? name set-path? name] [name/1 #":" name/2] [name] {="} either block? :value :value [text :value] #"^""
+    ]
+    tag-attributes: macro/custom [
+        name value
+    ] [
+        some [
+            set name [set-word! | set-path!]
+            (push-arguments ['value]) do-next
+            (emit output [tag-attribute name :value])
+        ]
+    ]
+    tag: macro [
+        "Emit a tag"
+        name
+        attributes [block!]
+        contents [word! block!] "'open, 'close, 'empty, or block with contents"
+        /options
+            custom-attributes [logic!]
+    ] [
+        #"<" if contents = 'close #"/" either path? name [name/1 #":" name/2] [name]
+        either custom-attributes [emit attributes] [apply 'tag-attributes attributes]
+        if contents = 'empty " /" #">"
+        if block? contents [
+            emit contents
+            tag name [ ] 'close
+        ]
+    ]
+    text: macro [
+        "Emit text"
+        text
+    ] [
+        encode-text (form :text) encoding
+    ]
+    cdata: macro [
+        "Emit a CDATA section"
+        contents [word! block!] "'open, 'close, or block with contents"
+        /options
+            commented "Use /* */ comments"
+    ] [
+        either block? contents [
+            either commented [
+                cdata/options 'open [commented: yes]
+                emit contents
+                cdata/options 'close [commented: yes]
+            ] [
+                cdata 'open
+                emit contents
+                cdata 'close
+            ]
+        ] [
+            if commented ["^//* "]
+            either contents = 'open [
+                "<![CDATA["
+            ] [
+                "]]>"
+            ]
+            if commented [" */^/"]
+        ]
+    ]
