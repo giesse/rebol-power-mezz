@@ -7,9 +7,11 @@ Arguments for PARSE rules
     }
     Author: "Gabriele Santilli"
     File: %rule-arguments.r
-    Version: 1.0.0
+    Version: 1.1.0
     Exports: [
         push-arguments
+        push-result
+        pop-result
         make-rule
     ]
 
@@ -31,13 +33,19 @@ pass arguments around.
     -main-:
     stack: [ ]
     push-arguments: func [
-        "Push values into the arguments stack"
+        "Push values into the arguments/results stack"
         values [block!]
     ] [
         repend stack values
     ]
+    push-result: func [
+        "Push one value into the arguments/results stack"
+        value
+    ] [
+        append/only stack :value
+    ]
     pop-arguments: func [
-        "Pop and set values from the arguments stack" [catch]
+        "Pop and set values from the arguments/results stack" [catch]
         names [block!] "Words to set to the values from the stack"
     ] [
         if greater? length? names length? stack [
@@ -45,6 +53,14 @@ pass arguments around.
         ]
         set names names: skip tail stack negate length? names
         clear names
+    ]
+    pop-result: func [
+        "Pop one value from the arguments/results stack" [catch]
+    ] [
+        throw-on-error [
+            also last stack
+                remove back tail stack
+        ]
     ]
 
 Then, |make-rule| is just a shortcut for the common case of defining a rule

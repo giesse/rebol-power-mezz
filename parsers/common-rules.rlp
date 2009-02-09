@@ -6,7 +6,7 @@ Common PARSE rules
     }
     Author: "Gabriele Santilli"
     File: %common-rules.r
-    Version: 1.0.0
+    Version: 1.1.0
     Imports: [
         %parsers/rule-arguments.r
     ]
@@ -42,11 +42,11 @@ Some useful rules for block parsing:
 
     -main-:
     do-next: make-rule [
-        "Evaluate the next value, and set the given word to it"
-        word
-        /local here
+        "Evaluate the next value, push result to the stack"
+        /local here value
     ] [
         here: (
-            set reduce [word 'here] do/next here
+            set [value here] do/next here
+            push-result :value
         ) :here
     ]

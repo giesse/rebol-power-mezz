@@ -35,12 +35,12 @@ to generate *ML code.
         #" " either any [path? name set-path? name] [name/1 #":" name/2] [name] {="} either block? :value :value [text :value] #"^""
     ]
     tag-attributes: macro/custom [
-        name value
+        name
     ] [
         some [
             set name [set-word! | set-path!]
-            (push-arguments ['value]) do-next
-            (emit output [tag-attribute name :value])
+            do-next
+            (emit output [tag-attribute name pop-result])
         ]
     ]
     tag: macro [
