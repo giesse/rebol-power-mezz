@@ -29,16 +29,70 @@ form-error:
         ]
     ]
 
-run-test-file: func [file force /local results results-file result type human passed failed disp] [
+list-dependencies: func [
+    module [object! file!]
+    /to result
+] [
+    unless result [result: make block! 16]
+    unless object? module [module: load-module module]
+    if module/imports [
+        foreach file module/imports [
+            if file? file [
+                append result file
+                list-dependencies/to file result
+            ]
+        ]
+    ]
+    result
+]
+
+run-test-file: func [file force /local results results-file result type human passed failed disp mod files-to-test err] [
 	print file
 	file: clean-path join %tests/ file
 	passed: failed: 0
 	results-file: append copy/part file skip tail file -6 %.results
 	if all [exists? results-file (modified? file) > modified? results-file] [force: true]
 	file: load/header file
+    either all [in file/1 'Type file/1/Type = 'Module] [
+        unless value? 'module [
+            do %mezz/module.r
+            load-module/from what-dir
+        ]
+        if error? set/any 'err try [
+            mod: module [
+                Imports: get in file/1 'Imports
+            ] reduce [file]
+        ] [
+            print "^-UNABLE TO MAKE MODULE!"
+            print form-error/all disarm :err
+            return [0 1]
+        ]
+        files-to-test: unique list-dependencies mod
+    ] [
+        if files-to-test: get in file/1 'Tests [
+            foreach file files-to-test [
+				switch/default file [
+					%tests/run.r [ ]
+					%mezz/module.r [
+						unless value? 'module [
+							do %mezz/module.r
+							load-module/from what-dir
+						]
+					]
+				] [
+					if error? set/any 'err try [do file] [
+						print ["^-UNABLE TO DO" file]
+						print form-error/all disarm :err
+						return [0 1]
+					]
+				]
+            ]
+        ]
+    ]
+    print ["^-TESTS:" files-to-test]
 	results: either exists? results-file [
-		if get in file/1 'Tests [
-			foreach source get in file/1 'Tests [
+		if files-to-test [
+			foreach source files-to-test [
 				if (modified? source) > modified? results-file [
 					force: true
 				]
@@ -72,34 +126,43 @@ run-test-file: func [file force /local results results-file result type human pa
 					human: mold/all :result
 					:result
 				]
-				either any [tail? results results/1 <> type :result <> pick results 2] [
-					view layout [
-						area 600x200 (mold/only file/1)
-						text "For string results, only the first 20k are shown."
-						disp: area 600x400 human
-						across
-						text "Do:" field 500 [
-							disp/text: mold/all do value
-							clear face/text
-							show [face disp]
-						] return
-						button "Browse" [
-							write %test.html human
-							browse %test.html
+				case [
+					any [tail? results :result <> pick results 2] [
+						view layout [
+							area 600x200 (mold/only file/1)
+							text "For string results, only the first 20k are shown."
+							disp: area 600x400 human
+							across
+							text "Do:" field 500 [
+								disp/text: mold/all do value
+								clear face/text
+								show [face disp]
+							] return
+							button "Browse" [
+								write %test.html human
+								browse %test.html
+							]
+							button "Diff" [
+								save %tests/data/a pick results 2
+								save %tests/data/b :result
+								call/console "diff tests/data/a tests/data/b"
+							]
+							button green "PASS" [
+								passed: passed + 1
+								change results reduce [type :result]
+								unview/all
+							]
+							button red "FAIL" [
+								failed: failed + 1
+								change results reduce ['fail :result]
+								unview/all
+							] return
 						]
-						button green "PASS" [
-							passed: passed + 1
-							change results reduce [type :result]
-							unview/all
-						]
-						button red "FAIL" [
-							failed: failed + 1
-							change results [fail fail]
-							unview/all
-						] return
 					]
-				] [
-					passed: passed + 1
+					type <> results/1 [
+						failed: failed + 1
+					]
+					'else [passed: passed + 1]
 				]
 			] [
 				; there has been a throw

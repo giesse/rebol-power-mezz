@@ -1,27 +1,26 @@
 REBOL [
+	Type: Module
     Title: "Tests for make-rule and push-arguments"
     Author: "Gabriele Santilli"
-    Tests: [%parsers/rule-arguments.r]
+    Imports: [%parsers/rule-arguments.r]
 ]
 
+[true] ; compatibility with old test file
 [
-    do %mezz/module.r
-    load-module/from what-dir
-    module [
-        Imports: [%parsers/rule-arguments.r]
-        Globals: [push make-rule*]
-    ] [
-        push: :push-arguments
-        make-rule*: :make-rule
-    ]
-    true
-]
-[
-    tag: make-rule* [word /local name] [
+    tag: make-rule [word /local name] [
         #"<" copy name to #">" skip (set word name)
     ]
     parse "<tag>" [
-        (push ['tag-name]) tag
+        (push-arguments ['tag-name]) tag
     ]
     tag-name
+]
+[
+	tag: make-rule [/local name] [
+		#"<" copy name to #">" skip (push-result name)
+	]
+	parse "<tag>" [
+		tag
+	]
+	pop-result
 ]

@@ -1,15 +1,11 @@
 REBOL [
+	Type: Module
     Title: "Tests for text-to-html"
     Author: "Gabriele Santilli"
-    Tests: [%parsers/common-rules.r %mezz/text-encoding.r %mezz/text-to-html.r]
+    Imports: [%mezz/text-to-html.r]
 ]
 
-[
-    do %mezz/module.r
-    load-module/from what-dir
-    load-module %mezz/text-to-html.r
-    true
-]
+[true] ; compatibility with old test file
 [
     text-to-html "This is a test"
 ]

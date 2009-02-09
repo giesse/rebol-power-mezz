@@ -1,35 +1,25 @@
 REBOL [
+    Type: Module
     Title: "Tests for the EMIT function"
     Author: "Gabriele Santilli"
-    Tests: [%dialects/emit.r]
+    Imports: [%dialects/emit.r]
 ]
 
+[true] ; compatibility with old test file
 [
-    do %mezz/module.r
-    load-module/from what-dir
-    module [
-        Imports: [%dialects/emit.r]
-        Globals: [macro* emit*]
-    ] [
-        macro*: :macro
-        emit*: :emit
-    ]
-    true
-]
-[
-    tag: macro* [name style contents] [
+    tag: macro [name style contents] [
         #"<" name if style [{ style="} style #"^""] #">" emit contents "</" name #">"
     ]
-    div: macro* [contents /options style] [
+    div: macro [contents /options style] [
         tag 'div style contents
     ]
-    p: macro* [contents] [
+    p: macro [contents] [
         tag 'p none contents
     ]
-    span: macro* [contents] [
+    span: macro [contents] [
         tag 'span none contents
     ]
-    emit* "" [
+    emit "" [
         div [
             p [
                 span "In a span"
@@ -45,14 +35,14 @@ REBOL [
     ]
 ]
 [
-    emit* "" [
+    emit "" [
         "You are running REBOL/" system/product " version " system/version ".^/"
         "Those values are available in " 'system/product " and " 'system/version ".^/"
         "3 * 2 = " (3 * 2)
     ]
 ]
 [
-    emit* [] [
+    emit [] [
         1 2 3
         emit [4 (2 + 3) 6]
         emit/only [7 (4 + 4) 9]
@@ -63,27 +53,27 @@ REBOL [
     ]
 ]
 [
-    tag: macro*/custom [name contents attr-name value here] [
+    tag: macro/custom [name contents attr-name value here] [
         set name word!
-        (emit* output [#"<" name])
+        (emit output [#"<" name])
         any [
             set attr-name set-word!
             here: (
                 set [value here] do/next here
-                emit* output [
+                emit output [
                     #" " (form attr-name) {="} encode-text value 'html #"^""
                 ]
             ) :here
         ]
         set contents block! (
-            emit* output [#">" emit contents "</" name #">"]
+            emit output [#">" emit contents "</" name #">"]
         )
     ]
-    drop-down*: macro*/custom [name value] [
+    drop-down*: macro/custom [name value] [
         some [
             [set name set-word! | (name: none)]
             set value string!
-            (emit* output [
+            (emit output [
                 either name [
                     tag option value: form name [
                         value
@@ -94,14 +84,14 @@ REBOL [
             ])
         ]
     ]
-    drop-down: macro* [
+    drop-down: macro [
         values
     ] [
         tag select [
             apply 'drop-down* values
         ]
     ]
-    emit* "" [
+    emit "" [
         drop-down [
             "First"
             "Second"

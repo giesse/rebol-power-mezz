@@ -1,15 +1,11 @@
 REBOL [
+	Type: Module
     Title: "Tests for the HTML to text converter"
     Author: "Gabriele Santilli"
-    Tests: [%mezz/html-to-text.r %dialects/fsm.r %mezz/module.r %parsers/ml-parser.r %mezz/normalize-html.r]
+    Imports: [%mezz/html-to-text.r]
 ]
 
-[
-    do %mezz/module.r
-    load-module/from what-dir
-    load-module %mezz/html-to-text.r
-    true
-]
+[true] ; compatibility with old test file
 [
     html-to-text read %tests/data/rebol.com.html
 ]

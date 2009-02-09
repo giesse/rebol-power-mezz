@@ -1,368 +1,358 @@
 REBOL [
+	Type: Module
     Title: "Tests for encode-text and decode-text"
     Author: "Gabriele Santilli"
-    Tests: [%mezz/module.r %mezz/text-encoding.r]
+    Imports: [%mezz/text-encoding.r]
 ]
 
-[
-    do %mezz/module.r
-    load-module/from what-dir
-    module [
-        Imports: [%mezz/text-encoding.r]
-        Globals: [encode-text* decode-text*]
-    ] [
-        encode-text*: :encode-text
-        decode-text*: :decode-text
-    ]
-    true
-]
+[true] ; compatibility with old test file
 [
     utf8-string: "This is a test - Questo è un test - これわテストです。"
-    encode-text* utf8-string 'utf8
+    encode-text utf8-string 'utf8
 ]
 [
-    encode-text* utf8-string 'utf-8
+    encode-text utf8-string 'utf-8
 ]
 [
-    decode-text* utf8-string 'utf8
+    decode-text utf8-string 'utf8
 ]
 [
-    decode-text* utf8-string 'utf-8
+    decode-text utf8-string 'utf-8
 ]
 [
-    encode-text*/to utf8-string 'utf8 utf8-string
+    encode-text/to utf8-string 'utf8 utf8-string
 ]
 [
-    encode-text*/to utf8-string 'utf-8 utf8-string
+    encode-text/to utf8-string 'utf-8 utf8-string
 ]
 [
-    decode-text*/to utf8-string 'utf8 utf8-string
+    decode-text/to utf8-string 'utf8 utf8-string
 ]
 [
-    decode-text*/to utf8-string 'utf-8 utf8-string
-]
-[
-    output: ""
-    encode-text*/to utf8-string 'utf8 output
+    decode-text/to utf8-string 'utf-8 utf8-string
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'utf-8 output
+    encode-text/to utf8-string 'utf8 output
 ]
 [
     output: ""
-    decode-text*/to utf8-string 'utf8 output
+    encode-text/to utf8-string 'utf-8 output
 ]
 [
     output: ""
-    decode-text*/to utf8-string 'utf-8 output
+    decode-text/to utf8-string 'utf8 output
 ]
 [
-    ascii-string: encode-text* utf8-string 'ascii
+    output: ""
+    decode-text/to utf8-string 'utf-8 output
 ]
 [
-    encode-text* utf8-string 'us-ascii
+    ascii-string: encode-text utf8-string 'ascii
+]
+[
+    encode-text utf8-string 'us-ascii
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'ascii tmp
+    encode-text/to tmp 'ascii tmp
 ]
 [
-    encode-text*/to tmp 'us-ascii tmp
-]
-[
-    output: ""
-    encode-text*/to utf8-string 'ascii output
+    encode-text/to tmp 'us-ascii tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'us-ascii output
-]
-[
-    decode-text* ascii-string 'ascii
-]
-[
-    decode-text* ascii-string 'us-ascii
-]
-[
-    decode-text*/to ascii-string 'ascii ascii-string
-]
-[
-    decode-text*/to ascii-string 'us-ascii ascii-string
+    encode-text/to utf8-string 'ascii output
 ]
 [
     output: ""
-    decode-text*/to ascii-string 'ascii output
+    encode-text/to utf8-string 'us-ascii output
+]
+[
+    decode-text ascii-string 'ascii
+]
+[
+    decode-text ascii-string 'us-ascii
+]
+[
+    decode-text/to ascii-string 'ascii ascii-string
+]
+[
+    decode-text/to ascii-string 'us-ascii ascii-string
 ]
 [
     output: ""
-    decode-text*/to ascii-string 'us-ascii output
+    decode-text/to ascii-string 'ascii output
 ]
 [
-    latin1-string: encode-text* utf8-string 'latin1
+    output: ""
+    decode-text/to ascii-string 'us-ascii output
 ]
 [
-    encode-text* utf8-string 'iso-8859-1
+    latin1-string: encode-text utf8-string 'latin1
+]
+[
+    encode-text utf8-string 'iso-8859-1
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'latin1 tmp
+    encode-text/to tmp 'latin1 tmp
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'iso-8859-1 tmp
+    encode-text/to tmp 'iso-8859-1 tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'latin1 output
+    encode-text/to utf8-string 'latin1 output
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'iso-8859-1 output
+    encode-text/to utf8-string 'iso-8859-1 output
 ]
 [
-    decode-text* latin1-string 'latin1
+    decode-text latin1-string 'latin1
 ]
 [
-    decode-text* latin1-string 'iso-8859-1
+    decode-text latin1-string 'iso-8859-1
 ]
 [
     tmp: copy latin1-string
-    decode-text*/to tmp 'latin1 tmp
+    decode-text/to tmp 'latin1 tmp
 ]
 [
     tmp: copy latin1-string
-    decode-text*/to tmp 'iso-8859-1 tmp
+    decode-text/to tmp 'iso-8859-1 tmp
 ]
 [
     output: ""
-    decode-text*/to latin1-string 'latin1 output
+    decode-text/to latin1-string 'latin1 output
 ]
 [
     output: ""
-    decode-text*/to latin1-string 'iso-8859-1 output
+    decode-text/to latin1-string 'iso-8859-1 output
 ]
 [
-    win-string: encode-text* utf8-string 'windows-1252
+    win-string: encode-text utf8-string 'windows-1252
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'windows-1252 tmp
+    encode-text/to tmp 'windows-1252 tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'windows-1252 output
+    encode-text/to utf8-string 'windows-1252 output
 ]
 [
-    decode-text* win-string 'windows-1252
+    decode-text win-string 'windows-1252
 ]
 [
     tmp: copy win-string
-    decode-text*/to tmp 'windows-1252 tmp
+    decode-text/to tmp 'windows-1252 tmp
 ]
 [
     output: ""
-    decode-text*/to win-string 'windows-1252 output
+    decode-text/to win-string 'windows-1252 output
 ]
 [
-    base64-string: encode-text* utf8-string 'base64
+    base64-string: encode-text utf8-string 'base64
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'base64 tmp
+    encode-text/to tmp 'base64 tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'base64 output
+    encode-text/to utf8-string 'base64 output
 ]
 [
-    decode-text* base64-string 'base64
+    decode-text base64-string 'base64
 ]
 [
     tmp: copy base64-string
-    decode-text*/to tmp 'base64 tmp
+    decode-text/to tmp 'base64 tmp
 ]
 [
     output: ""
-    decode-text*/to base64-string 'base64 output
+    decode-text/to base64-string 'base64 output
 ]
 [
-    qp-string: encode-text* utf8-string 'quoted-printable
+    qp-string: encode-text utf8-string 'quoted-printable
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'quoted-printable tmp
+    encode-text/to tmp 'quoted-printable tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'quoted-printable output
+    encode-text/to utf8-string 'quoted-printable output
 ]
 [
     qp-string: {This is a test - Questo =C3=A8 un test - =
 =E3=81=93=E3=82=8C=E3=82=8F=E3=83=86=E3=82=B9=E3=83=88=E3=81=A7=E3=81=99=E3=80=82}
-    decode-text* qp-string 'quoted-printable
+    decode-text qp-string 'quoted-printable
 ]
 [
     tmp: copy qp-string
-    decode-text*/to tmp 'quoted-printable tmp
+    decode-text/to tmp 'quoted-printable tmp
 ]
 [
     output: ""
-    decode-text*/to qp-string 'quoted-printable output
+    decode-text/to qp-string 'quoted-printable output
 ]
 [
-    qp-string: encode-text* utf8-string 'quoted-printable+
+    qp-string: encode-text utf8-string 'quoted-printable+
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'quoted-printable+ tmp
+    encode-text/to tmp 'quoted-printable+ tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'quoted-printable+ output
+    encode-text/to utf8-string 'quoted-printable+ output
 ]
 [
     qp-string: {This_is_a_test_-_Questo_=C3=A8_un_test_-_=E3=81=93=E3=82=8C=E3=82=8F=E3=83=86=E3=82=B9=E3=83=88=E3=81=A7=E3=81=99=E3=80=82}
-    decode-text* qp-string 'quoted-printable+
+    decode-text qp-string 'quoted-printable+
 ]
 [
     tmp: copy qp-string
-    decode-text*/to tmp 'quoted-printable+ tmp
+    decode-text/to tmp 'quoted-printable+ tmp
 ]
 [
     output: ""
-    decode-text*/to qp-string 'quoted-printable+ output
+    decode-text/to qp-string 'quoted-printable+ output
 ]
 [
-    html-string: encode-text* utf8-string 'html
+    html-string: encode-text utf8-string 'html
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'html tmp
+    encode-text/to tmp 'html tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'html output
+    encode-text/to utf8-string 'html output
 ]
 [
-    decode-text* html-string 'html
+    decode-text html-string 'html
 ]
 [
     tmp: copy html-string
-    decode-text*/to tmp 'html tmp
+    decode-text/to tmp 'html tmp
 ]
 [
     output: ""
-    decode-text*/to html-string 'html output
+    decode-text/to html-string 'html output
 ]
 [
-    html-string: encode-text* utf8-string 'html-ascii
+    html-string: encode-text utf8-string 'html-ascii
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'html-ascii tmp
+    encode-text/to tmp 'html-ascii tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'html-ascii output
+    encode-text/to utf8-string 'html-ascii output
 ]
 [
-    decode-text* html-string 'html-ascii
+    decode-text html-string 'html-ascii
 ]
 [
     tmp: copy html-string
-    decode-text*/to tmp 'html-ascii tmp
+    decode-text/to tmp 'html-ascii tmp
 ]
 [
     output: ""
-    decode-text*/to html-string 'html-ascii output
+    decode-text/to html-string 'html-ascii output
 ]
 [
-    html-string: encode-text* utf8-string 'html-utf8
+    html-string: encode-text utf8-string 'html-utf8
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'html-utf8 tmp
+    encode-text/to tmp 'html-utf8 tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'html-utf8 output
+    encode-text/to utf8-string 'html-utf8 output
 ]
 [
-    decode-text* html-string 'html-utf8
+    decode-text html-string 'html-utf8
 ]
 [
     tmp: copy html-string
-    decode-text*/to tmp 'html-utf8 tmp
+    decode-text/to tmp 'html-utf8 tmp
 ]
 [
     output: ""
-    decode-text*/to html-string 'html-utf8 output
+    decode-text/to html-string 'html-utf8 output
 ]
 [
     long-text: read %tests/data/fairy.r
-    encode-text* long-text 'quoted-printable
+    encode-text long-text 'quoted-printable
 ]
 [
     tmp: copy long-text
-    encode-text*/to tmp 'quoted-printable tmp
+    encode-text/to tmp 'quoted-printable tmp
 ]
 [
     output: ""
-    encode-text*/to long-text 'quoted-printable output
+    encode-text/to long-text 'quoted-printable output
 ]
 [
-    encode-text* long-text 'quoted-printable+
+    encode-text long-text 'quoted-printable+
 ]
 [
     tmp: copy long-text
-    encode-text*/to tmp 'quoted-printable+ tmp
+    encode-text/to tmp 'quoted-printable+ tmp
 ]
 [
     output: ""
-    encode-text*/to long-text 'quoted-printable+ output
+    encode-text/to long-text 'quoted-printable+ output
 ]
 [
-    url-string: encode-text* utf8-string 'url
+    url-string: encode-text utf8-string 'url
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'url tmp
+    encode-text/to tmp 'url tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'url output
+    encode-text/to utf8-string 'url output
 ]
 [
-    decode-text* url-string 'url
+    decode-text url-string 'url
 ]
 [
     tmp: copy url-string
-    decode-text*/to tmp 'url tmp
+    decode-text/to tmp 'url tmp
 ]
 [
     output: ""
-    decode-text*/to url-string 'url output
+    decode-text/to url-string 'url output
 ]
 [
-    url-string: encode-text* utf8-string 'url+
+    url-string: encode-text utf8-string 'url+
 ]
 [
     tmp: copy utf8-string
-    encode-text*/to tmp 'url+ tmp
+    encode-text/to tmp 'url+ tmp
 ]
 [
     output: ""
-    encode-text*/to utf8-string 'url+ output
+    encode-text/to utf8-string 'url+ output
 ]
 [
-    decode-text* url-string 'url+
+    decode-text url-string 'url+
 ]
 [
     tmp: copy url-string
-    decode-text*/to tmp 'url+ tmp
+    decode-text/to tmp 'url+ tmp
 ]
 [
     output: ""
-    decode-text*/to url-string 'url+ output
+    decode-text/to url-string 'url+ output
 ]

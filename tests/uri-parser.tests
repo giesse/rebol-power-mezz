@@ -1,67 +1,55 @@
 REBOL [
+	Type: Module
     Title: "Tests for the URI parser"
     Author: "Gabriele Santilli"
-    Tests: [%parsers/uri-parser.r %mezz/module.r %mezz/text-encoding.r]
+    Imports: [%parsers/uri-parser.r]
 ]
 
+[true] ; compatibility with old test file
 [
-    do %mezz/module.r
-    load-module/from what-dir
-    module [
-        imports: [%parsers/uri-parser.r]
-        globals: [parse-uri* form-uri* decode-uri-fields* encode-uri-fields*]
-    ] [
-        parse-uri*: :parse-uri
-        form-uri*: :form-uri
-        decode-uri-fields*: :decode-uri-fields
-        encode-uri-fields*: :encode-uri-fields
-    ]
-    true
+    form parse-uri "http://www.rebol.com"
 ]
 [
-    form parse-uri* "http://www.rebol.com"
+    form decode-uri-fields parse-uri "https://www.qtask.com/quilt.fcgi#mail"
 ]
 [
-    form decode-uri-fields* parse-uri* "https://www.qtask.com/quilt.fcgi#mail"
+    form-uri [scheme: "imap" host: "somehost" path: ["a" "b" "c"]]
 ]
 [
-    form-uri* [scheme: "imap" host: "somehost" path: ["a" "b" "c"]]
+    form parse-uri "ftp://ftp.is.co.za/rfc/rfc1808.txt"
 ]
 [
-    form parse-uri* "ftp://ftp.is.co.za/rfc/rfc1808.txt"
+    form parse-uri "http://www.ietf.org/rfc/rfc2396.txt"
 ]
 [
-    form parse-uri* "http://www.ietf.org/rfc/rfc2396.txt"
+    form parse-uri "ldap://[2001:db8::7]/c=GB?objectClass?one"
 ]
 [
-    form parse-uri* "ldap://[2001:db8::7]/c=GB?objectClass?one"
+    form parse-uri "mailto:John.Doe@example.com"
 ]
 [
-    form parse-uri* "mailto:John.Doe@example.com"
+    form parse-uri "news:comp.infosystems.www.servers.unix"
 ]
 [
-    form parse-uri* "news:comp.infosystems.www.servers.unix"
+    form parse-uri "tel:+1-816-555-1212"
 ]
 [
-    form parse-uri* "tel:+1-816-555-1212"
+    form parse-uri "telnet://192.0.2.16:80/"
 ]
 [
-    form parse-uri* "telnet://192.0.2.16:80/"
+    form parse-uri "urn:oasis:names:specification:docbook:dtd:xml:4.1.2"
 ]
 [
-    form parse-uri* "urn:oasis:names:specification:docbook:dtd:xml:4.1.2"
-]
-[
-    obj: decode-uri-fields* parse-uri* "http://www.qtask.com/quilt.fcgi#mail?compose=gabriele@qtask.com&subject=Prova&from=luca@truffarelli.it"
+    obj: decode-uri-fields parse-uri "http://www.qtask.com/quilt.fcgi#mail?compose=gabriele@qtask.com&subject=Prova&from=luca@truffarelli.it"
     form obj
 ]
 [
-    form-uri* encode-uri-fields* obj
+    form-uri encode-uri-fields obj
 ]
 [
-	obj: parse-uri* "http://cts.vresp.com/c/?Qtask/39cea2f03e/b8e2c188c7/91d76f340f"
+	obj: parse-uri "http://cts.vresp.com/c/?Qtask/39cea2f03e/b8e2c188c7/91d76f340f"
 	form obj
 ]
 [
-	form-uri* obj
+	form-uri obj
 ]

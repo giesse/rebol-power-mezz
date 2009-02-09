@@ -63,10 +63,10 @@ export-ctx: make object! [
 ** Where: test3
 ** Near: h
 } logic! #[false] logic! #[false] logic! #[false] logic! #[false] logic! #[true] logic! #[true] string! #{7A38671ECE2822CAF66EF948EAD677A508A7B257} logic! #[false] error! 
-{** User Error: Loading loop detected: aborted at %/Volumes/Work/Qtask/power-mezz/tests/data/module3.r
+{** User Error: Loading loop detected: aborted at %/home/giesse/Qtask/power-mezz/tests/data/module3.r
 ** Near: load-module module-name
 } error! 
-{** User Error: Loading loop detected: aborted at %/Volumes/Work/Qtask/power-mezz/tests/data/module3.r
+{** User Error: Loading loop detected: aborted at %/home/giesse/Qtask/power-mezz/tests/data/module3.r
 ** Near: load-module module-name
 } block! [6 2] error! 
 {** User Error: Not a module: %non-module.r

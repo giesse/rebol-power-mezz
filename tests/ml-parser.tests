@@ -1,15 +1,11 @@
 REBOL [
+	Type: Module
     Title: "Tests the ML Parser"
     Author: "Gabriele Santilli"
-    Tests: [%mezz/module.r %parsers/ml-parser.r]
+    Imports: [%parsers/ml-parser.r]
 ]
 
-[
-    do %mezz/module.r
-    load-module/from what-dir
-    load-module %parsers/ml-parser.r
-    true
-]
+[true] ; compatibility with old test file
 [
     load-markup {Some <b>html</b>. See <a href="http://www.example.com">link</a>.}
 ]

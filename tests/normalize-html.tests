@@ -1,91 +1,82 @@
 REBOL [
+	Type: Module
     Title: "Tests the NORMALIZE-HTML function"
     Author: "Gabriele Santilli"
-    Tests: [%mezz/normalize-html.r %dialects/fsm.r %mezz/module.r]
+    Imports: [%mezz/normalize-html.r]
 ]
 
+[true] ; compatibility with old test file
 [
-    do %mezz/module.r
-    load-module/from what-dir
-    module [
-        Imports: [%mezz/normalize-html.r]
-        Globals: [normalize-html*]
-    ] [
-        normalize-html*: :normalize-html
-    ]
-    true
+    normalize-html load %tests/data/rebol.com.r
 ]
 [
-    normalize-html* load %tests/data/rebol.com.r
+    normalize-html load %tests/data/w3.org.r
 ]
 [
-    normalize-html* load %tests/data/w3.org.r
+    normalize-html load %tests/data/fairy.r
 ]
 [
-    normalize-html* load %tests/data/fairy.r
+    normalize-html load %tests/data/1.r
 ]
 [
-    normalize-html* load %tests/data/1.r
+    normalize-html load %tests/data/2.r
 ]
 [
-    normalize-html* load %tests/data/2.r
+    normalize-html load %tests/data/3.r
 ]
 [
-    normalize-html* load %tests/data/3.r
+    normalize-html load %tests/data/4.r
 ]
 [
-    normalize-html* load %tests/data/4.r
+    normalize-html load %tests/data/5.r
 ]
 [
-    normalize-html* load %tests/data/5.r
+    normalize-html load %tests/data/6.r
 ]
 [
-    normalize-html* load %tests/data/6.r
+    normalize-html load %tests/data/7.r
 ]
 [
-    normalize-html* load %tests/data/7.r
+    normalize-html load %tests/data/8.r
 ]
 [
-    normalize-html* load %tests/data/8.r
+    normalize-html load %tests/data/9.r
 ]
 [
-    normalize-html* load %tests/data/9.r
-]
-[
-    normalize-html* load %tests/data/10.r
+    normalize-html load %tests/data/10.r
 ]
 [
 	"Missing newline after title"
-	normalize-html* [<title> "The title" </title>]
+	normalize-html [<title> "The title" </title>]
 ]
 [
 	"Missing newline after style"
-	normalize-html* [<style> "stylesheet" </style> "Text"]
+	normalize-html [<style> "stylesheet" </style> "Text"]
 ]
 [
 	"Missing newline after link"
-	normalize-html* [[<link> rel "stylesheet"] "Text"]
+	normalize-html [[<link> rel "stylesheet"] "Text"]
 ]
 [
 	"Missing newline after p"
-	normalize-html* [<p> "Paragraph" </p>]
+	normalize-html [<p> "Paragraph" </p>]
 ]
 [
 	"No newline after input because inline!"
-	normalize-html* [[<input> type "text"]]
+	normalize-html [[<input> type "text"]]
 ]
 [
 	"Messed up <a> and <font>"
-	normalize-html* [<a> "Text" <font> "Text" </a> "Text" </font>]
+	normalize-html [<a> "Text" <font> "Text" </a> "Text" </font>]
 ]
 [
 	"Center table with p"
-	normalize-html* [[<p> align "center"] <table> </table> </p>]
+	normalize-html [[<p> align "center"] <table> </table> </p>]
 ]
 [
 	"Missing newline after implicit </p>"
-	normalize-html* [<p> "Paragraph" <p> "Other paragraph"]
+	normalize-html [<p> "Paragraph" <p> "Other paragraph"]
 ]
 [
-	normalize-html* [<pre> "Some text" </pre>]
+	normalize-html [<pre> "Some text" </pre>]
 ]

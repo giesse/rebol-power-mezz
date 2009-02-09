@@ -13,13 +13,13 @@ if exists? %.conf [
 
 .hgignore: {.*~$
 .*\.swp$
-^^index.rlp$
-^^index.html$
+^^index.(rlp|html)$
 ^^Makefile$
 ^^output.r$
 ^^test.html$
 ^^.conf$
 ^^tools/last-file.tmp$
+^^tests/data/[ab]$
 }
 
 ask-default: func [question default] [

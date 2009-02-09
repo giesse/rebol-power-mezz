@@ -1,63 +1,53 @@
 REBOL [
+	Type: Module
     Title: "Tests for the *ML emitter"
     Author: "Gabriele Santilli"
-    Tests: [%dialects/emit.r %parsers/rule-arguments.r %parsers/common-rules.r %dialects/ml-emitter.r]
+    Imports: [%dialects/emit.r %dialects/ml-emitter.r]
 ]
 
+[true] ; compatibility with old test file
 [
-    do %mezz/module.r
-    load-module/from what-dir
-    module [
-        Imports: [%dialects/emit.r %dialects/ml-emitter.r]
-        Globals: [tag* emit* text*]
-    ] [
-        tag*: tag text*: text
-        emit*: :emit
-    ]
-    true
-]
-[
-    emit* "" [
-        tag* 'html [ ] 'open newline
-        tag* 'head [ ] [
+    emit "" [
+        tag 'html [ ] 'open newline
+        tag 'head [ ] [
             newline
-            tag* 'title [lang: "IT-it"] [
+            tag 'title [lang: "IT-it"] [
                 encode-text "This is a test" 'html
             ]
             newline
         ] newline
-        tag* 'body [ ] [
+        tag 'body [ ] [
             newline
-            tag* 'p [class: "normal"] [
+            tag 'p [class: "normal"] [
                 encode-text "Look here: " 'html
-                tag* 'img [src: http://www.qtask.com/some-image.png alt: "Some image"] 'empty
+                tag 'img [src: http://www.qtask.com/some-image.png alt: "Some image"] 'empty
             ]
             newline
         ] newline
-        tag* 'html [ ] 'close
+        tag 'html [ ] 'close
     ]
 ]
 [
-    emit* "" [
+    emit "" [
         <?xml version="1.0" encoding="UTF-8"?> newline
         <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> newline
-        tag* 'html [xmlns: http://www.w3.org/1999/xhtml] 'open newline
-        tag* 'head [ ] [
+        tag 'html [xmlns: http://www.w3.org/1999/xhtml] 'open newline
+        tag 'head [ ] [
             newline
-            tag* 'title [xml/lang: "US-en"] [
-                text* "This is a test"
+            tag 'title [xml/lang: "US-en"] [
+                text "This is a test"
             ]
             newline
         ] newline
-        tag* 'body [ ] [
+        tag 'body [ ] [
             newline
-            tag* 'p [class: "normal"] [
-                text* "Look here: "
-                tag* 'img [src: http://www.qtask.com/some-image.png alt: "Some image"] 'empty
+            tag 'p [class: "normal"] [
+                text "Look here: "
+                tag 'img [src: http://www.qtask.com/some-image.png alt: "Some image"] 'empty
             ]
             newline
-            tag* 'o/p [ ] [ ]
+            tag 'o/p [ ] [ ]
         ] newline
-        tag* 'html [ ] 'close
+        tag 'html [ ] 'close
     ]
 ]

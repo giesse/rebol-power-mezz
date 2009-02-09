@@ -1,15 +1,11 @@
 REBOL [
+	Type: Module
     Title: "Tests for the HTML filter"
     Author: "Gabriele Santilli"
-    Tests: [%mezz/filter-html.r %dialects/fsm.r %mezz/module.r %parsers/ml-parser.r %mezz/normalize-html.r %parsers/uri-parser.r]
+    Imports: [%mezz/filter-html.r]
 ]
 
-[
-    do %mezz/module.r
-    load-module/from what-dir
-    load-module %mezz/filter-html.r
-    true
-]
+[true] ; compatibility with old test file
 [
     filter-html/all read %tests/data/rebol.com.html
 ]
