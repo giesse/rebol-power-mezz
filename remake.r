@@ -44,7 +44,7 @@ foreach dir read %./ [
 		]
 	]
 ]
-foreach file files [
+foreach file sort files [
 	repend .hgignore [
 		#"^^" file ".html$" newline
 		#"^^" file ".r$" newline

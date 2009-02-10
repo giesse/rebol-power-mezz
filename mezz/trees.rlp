@@ -1,0 +1,422 @@
+Functions for handling trees
+
+    Type: Module
+    Purpose: {
+        Provides a set of functions that create or modify trees (data structure
+        composed of nodes, where each node has a parent node and zero or more child nodes).
+    }
+    Author: "Gabriele Santilli"
+    File: %trees.r
+    Version: 1.0.0
+    Imports: [
+        %parsers/rule-arguments.r
+        %parsers/common-rules.r
+    ]
+    Exports: [
+        make-node set-property get-property append-node
+        remove-node parent-node?  node-type?  next-sibling?
+        prev-sibling?  foreach-child merge-siblings
+        make-tree mold-tree load-tree save-tree first-child?
+        node? rewrite-tree
+    ]
+
+===Introduction
+
+A tree is a very common data structure that can be used in many ways
+by many different algorithms. This module defines a set of functions to
+create and modify trees. A tree is composed of nodes; each node has a type,
+some properties, a parent node (unless it's the root of the three), and 
+zero or more child nodes.
+
+===Overview
+
+    -main-:
+    make-node: func [
+        type [word!]
+    ] [
+        reduce [type none copy [ ]]
+    ]
+    node-type: 1 node-parent: 2 node-properties: 3 node-first-child: 4
+    node?: func [
+        node
+    ] [
+        all [block? :node parse node [word! [block! | none!] block! any block!]]
+    ]
+    set-property: func [
+        node [block!]
+        name [word!]
+        value
+        /local pos
+    ] [
+        either pos: find node/:node-properties name [
+            pos/2: :value
+        ] [
+            insert/only insert tail node/:node-properties name :value
+        ]
+        :value
+    ]
+    get-property: func [
+        node [block!]
+        name [word!]
+    ] [
+        select node/:node-properties name
+    ]
+    append-node: func [
+        [catch]
+        parent [block!]
+        node [block!]
+    ] [
+        if node/:node-parent [throw make error! "Node already part of a tree"]
+        insert/only node/:node-parent: tail parent node
+        parent
+    ]
+    remove-node: func [
+        node [block!]
+    ] [
+        if node/:node-parent [
+            remove node/:node-parent
+            node/:node-parent: none
+            node
+        ]
+    ]
+    parent-node?: func [
+        node [block!]
+    ] [
+        if node/:node-parent [head node/:node-parent]
+    ]
+    node-type?: func [
+        node [block!]
+    ] [
+        node/:node-type
+    ]
+    first-child?: func [
+        node [block!]
+    ] [
+        pick node node-first-child
+    ]
+    next-sibling?: func [
+        node [block!]
+    ] [
+        all [node/:node-parent node/:node-parent/2]
+    ]
+    prev-sibling?: func [
+        node [block!]
+    ] [
+        all [node/:node-parent node-first-child < index? node/:node-parent node/:node-parent/-1]
+    ]
+    foreach-child: func [
+        [catch throw]
+        'word [word!]
+        node [block!]
+        body [block!]
+    ] [
+        throw-on-error [foreach :word at node node-first-child body]
+    ]
+    merge-siblings: func [
+        node [block!]
+        /only types [block! none!]
+        /local pos
+    ] [
+        pos: at node node-first-child
+        while [not tail? next pos] [
+            merge-siblings/only pos/1 types
+            either all [types not find types pos/1/:node-type] [
+                pos: next pos
+            ] [
+                either all [pos/1/:node-type = pos/2/:node-type pos/1/:node-properties = pos/2/:node-properties] [
+                    merge-siblings/only pos/2 types
+                    append pos/1 at pos/2 node-first-child
+                    pos/2/:node-parent: none
+                    remove next pos
+                ] [
+                    pos: next pos
+                ]
+            ]
+        ]
+        unless tail? pos [
+            merge-siblings/only pos/1 types
+        ]
+    ]
+    append-node-rule: make-rule [
+        parent
+        child
+    ] [
+        (append-node parent child   push-result parent)
+    ]
+    node: make-rule [
+        /local type this-node name value
+    ] [
+        set type word! (this-node: make-node type)
+        into [
+            any [
+                set name set-word!
+                do-next
+                (set-property this-node to word! name pop-result)
+                |
+                set name word!
+                set value skip
+                (set-property this-node name :value)
+            ]
+        ]
+        (push-result this-node)
+        any [
+            into [
+                node append-node-rule
+            ]
+        ]
+    ]
+    make-tree: func [
+        spec [block!]
+    ] [
+        parse spec node
+        pop-result
+    ]
+    mold-tree*: func [
+        tree [block!]
+        /local result
+    ] [
+        result: reduce [tree/:node-type tree/:node-properties]
+        foreach-child node tree [
+            append/only result mold-tree* node
+        ]
+        result
+    ]
+    mold-tree: func [
+        tree [block!]
+    ] [
+        mold/all mold-tree* tree
+    ]
+    save-tree: func [
+        where [file! url!]
+        tree [block!]
+    ] [
+        save/all where mold-tree* tree
+    ]
+    load-tree: func [
+        tree [file! url! string! any-block!]
+    ] [
+        make-tree load tree
+    ]
+    make-node-path: func [node /local result] [
+        result: make path! 4
+        until [
+            insert result node/:node-type
+            any [
+                none? node/:node-parent
+                not node: head node/:node-parent
+            ]
+        ]
+        result
+    ]
+    match-path?: func [
+        current [word!]
+        pattern [word!]
+        path [path!]
+        pattern-path [path!]
+    ] [
+        forever [
+            if all [not find [* **] pattern  pattern <> current] [return false]
+            if head? pattern-path [return true]
+            if head? path [return false]
+            either pattern = '** [
+                return any [
+                    match-path? current pattern-path/-1 path back pattern-path
+                    match-path? current '* path pattern-path
+                    match-path? path/-1 '** back path pattern-path
+                ]
+            ] [
+                pattern-path: back pattern-path
+                path: back path
+                current: path/1
+                pattern: pattern-path/1
+            ]
+        ]
+    ]
+    match-type?: func [
+        node [block!]
+        type [word! path!]
+        /local node-path
+    ] [
+        either path? type [
+            node-path: back tail make-node-path node
+            type: back tail type
+            match-path? node-path/1 type/1 node-path type
+        ] [
+            if find [* **] type [return true]
+            node/:node-type = type
+        ]
+    ]
+    match-node?: func [
+        node [block!]
+        types [block! word!]
+        properties [block!]
+    ] [
+        foreach [name value] properties [
+            if set-word? name [name: to word! name]
+            if :value <> get-property node name [
+                return false
+            ]
+        ]
+        unless block? types [types: reduce [types]]
+        foreach type types [
+            if match-type? node type [return true]
+        ]
+        false
+    ]
+    match-childs?: func [
+        childs [block!]
+        pattern [block!]
+    ] [
+        if pattern = [**] [return true]
+        if all [not empty? pattern empty? childs] [return false]
+        forall childs [
+            if tail? pattern [return false]
+            if set-word? pattern/1 [pattern: next pattern]
+            if all [
+                not find [* **] pattern/1
+                not match-node? childs/1 pattern/1/1 pattern/1/2
+            ] [
+                return false
+            ]
+            if pattern/1 = '** [
+                return if any [
+                    match-childs? childs next pattern
+                    match-childs? next childs next pattern
+                    match-childs? next childs pattern
+                ] [
+                    ; set to first child in the list
+                    ; in the case of **; note that this works
+                    ; because we do it AFTER all recursion is done
+                    ; (ie. the word is being set multiple times, but the last time
+                    ; it is being set tho the first in the list)
+                    if set-word? pattern/-1 [
+                        set pattern/-1 childs/1
+                    ]
+                    true
+                ]
+            ]
+            ; we have a match
+            if set-word? pattern/-1 [
+                ; note that we set words even if there wasn't a complete
+                ; match yet.
+                set pattern/-1 childs/1
+            ]
+            pattern: next pattern
+        ]
+        true
+    ]
+    rewrite-node: func [
+        tree [block!]
+        replacement [block!]
+        /local new-type new-properties old-childs old-properties node-spec filter filter-rule
+            from-node to-node rep filter-rep
+    ] [
+        set [new-type new-properties] replacement
+        replacement: skip replacement 2
+        if paren? :new-type [new-type: do new-type]
+        if function? :new-type [new-type: new-type tree]
+        if all [word? :new-type new-type <> '*] [tree/:node-type: new-type]
+        if word? :new-properties [new-properties: get new-properties]
+        switch type?/word :new-properties [
+            block! [
+                old-properties: tree/:node-properties
+                tree/:node-properties: make block! length? old-properties
+                foreach [name value] new-properties [
+                    if paren? :value [value: do value]
+                    if get-word? :value [value: get value]
+                    if set-word? name [name: to word! name]
+                    case [
+                        all [:name = '* :value = '*] [
+                            append tree/:node-properties old-properties
+                        ]
+                        name = '* [
+                            foreach [n v] old-properties [
+                                ; if value is function! it will be evaluated,
+                                ; otherwise v is just discarded
+                                set-property tree n value v
+                            ]
+                        ]
+                        word? :value [
+                            set-property tree name select old-properties value
+                        ]
+                        'else [
+                            ; same as above, if function evaluate, otherwise the select is discarded
+                            set-property tree name value select old-properties name
+                        ]
+                    ]
+                ]
+            ]
+            function! [
+                new-properties tree
+            ]
+        ]
+        old-childs: copy at tree node-first-child
+        foreach child old-childs [child/:node-parent: none]
+        clear at tree node-first-child
+        filter-rep: func [
+            tree
+            node
+        ] [
+            rewrite-node node rep
+            append-node tree node
+        ]
+        filter-rule: [set filter get-word! | 'rewritten-as set rep block! (filter: :filter-rep) | (filter: :append-node)]
+        parse replacement [
+            some [
+                set node-spec block! filter-rule (
+                    filter tree make-tree node-spec
+                )
+                |
+                '** filter-rule (
+                    foreach child old-childs [
+                        filter tree child
+                    ]
+                )
+                |
+                set node-spec word! filter-rule (
+                    if node? node-spec: get node-spec [
+                        filter tree node-spec
+                    ]
+                )
+                |
+                set from-node integer! ['to | '- | none] set to-node integer! filter-rule (
+                    if negative? from-node [
+                        from-node: from-node + 1 + length? old-childs
+                    ]
+                    if negative? to-node [
+                        to-node: to-node + 1 + length? old-childs
+                    ]
+                    for child at old-childs from-node at old-childs to-node 1 [
+                        filter tree child/1
+                    ]
+                )
+                |
+                set from-node integer! filter-rule (
+                    if negative? from-node [
+                        from-node: from-node + 1 + length? old-childs
+                    ]
+                    if old-childs/:from-node [filter tree old-childs/:from-node]
+                )
+            ]
+        ]
+    ]
+    rewrite-tree: func [
+        tree [block!]
+        rules [block!]
+    ] [
+        foreach-child node tree [
+            rewrite-tree node rules
+        ]
+        foreach [match replacement] rules [
+            if all [
+                match-node? tree match/1 match/2
+                match-childs? at tree node-first-child skip match 2
+            ] [
+                either replacement = 'remove [
+                    remove-node tree
+                ] [
+                    rewrite-node tree replacement
+                ]
+            ]
+        ]
+    ]

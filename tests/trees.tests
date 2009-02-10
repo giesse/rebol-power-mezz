@@ -1,0 +1,104 @@
+REBOL [
+    Type: Module
+    Title: "Tests for trees"
+    Author: "Gabriele Santilli"
+    Imports: [%mezz/trees.r]
+]
+
+[
+    mold n: make-node 'root
+]
+[
+	set-property n 'test 1
+]
+[
+	get-property n 'test
+]
+[
+	append-node n c: make-node 'child
+	n = parent-node? c
+]
+[
+	node-type? n
+]
+[
+	node-type? c
+]
+[
+	mold remove-node c
+]
+[
+	mold n
+]
+[
+	append-node n make-node 'child1
+	append-node n make-node 'child2
+	result: [ ]
+	foreach-child node n [
+		append result node-type? node
+	]
+	result
+]
+[
+	node-type? c: first-child? n
+]
+[
+	node-type? c: next-sibling? c
+]
+[
+	next-sibling? c
+]
+[
+	node-type? c: prev-sibling? c
+]
+[
+	prev-sibling? c
+]
+[
+	t: make-tree [
+		html []
+			[head []
+				[title []]
+				[meta [http-equiv: "Content-Type"]]
+			]
+			[body []
+				[div [class: "Main"]
+					[p []]
+					[p []]
+				]
+				[div [class: "Footer"]
+					[p [color: "grey"]]
+				]
+			]
+	]
+	mold-tree t
+]
+[
+	; REBOL enters endless loop... :(
+	;t = load-tree mold-tree t
+]
+[
+	merge-siblings t
+	mold-tree t
+]
+[
+    node? t
+]
+[
+    node? first-child? t
+]
+[
+    rewrite-tree t [
+        [p [color: "grey"]] [p [color: #808080]]
+    ]
+    mold-tree t
+]
+[
+    rewrite-tree t [
+        [body [] main: [div [class: "Main"] **] footer: [div [class: "Footer"] **]]
+            [body [*: *] footer rewritten-as [div [class: "Header"] [p [class: "Menu"]] **] main]
+        [meta [http-equiv: "Content-Type"]]
+            [meta [http-equiv: "Content-Type" value: "text/html; charset=UTF-8"]]
+    ]
+    mold-tree t
+]

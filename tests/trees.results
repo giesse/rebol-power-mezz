@@ -1,0 +1,9 @@
+string! "[root none []]" integer! 1 integer! 1 logic! #[true] word! root word! child string! "[child none []]" string! "[root none [test 1]]" block! [child1 child2] word! child1 word! child2 none! #[none] word! child1 none! #[none] string! {[
+    html [] [head [] [title []] [meta [http-equiv "Content-Type"]]] [body [] [div [class "Main"] [p []] [p []]] [div [class "Footer"] [p [color "grey"]]]]
+]} unset! unset! string! {[
+    html [] [head [] [title []] [meta [http-equiv "Content-Type"]]] [body [] [div [class "Main"] [p []]] [div [class "Footer"] [p [color "grey"]]]]
+]} logic! #[true] logic! #[true] string! {[
+    html [] [head [] [title []] [meta [http-equiv "Content-Type"]]] [body [] [div [class "Main"] [p []]] [div [class "Footer"] [p [color #808080]]]]
+]} string! {[
+    html [] [head [] [title []] [meta [http-equiv "Content-Type" value "text/html; charset=UTF-8"]]] [body [] [div [class "Header"] [p [class "Menu"]] [p [color #808080]]] [div [class "Main"] [p []]]]
+]}

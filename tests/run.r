@@ -160,6 +160,8 @@ run-test-file: func [file force /local results results-file result type human pa
 						]
 					]
 					type <> results/1 [
+						print "^-FAILURE:"
+						print mold/only file/1
 						failed: failed + 1
 					]
 					'else [passed: passed + 1]
