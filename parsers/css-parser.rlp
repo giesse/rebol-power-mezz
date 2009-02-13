@@ -1,0 +1,54 @@
+(Simple) CSS Parser
+
+    Type: Module
+    Purpose: {
+        Parses simple CSS strings like those inside a tag's style attribute.
+    }
+    Author: "Gabriele Santilli"
+    File: %css-parser.r
+    Version: 1.0.0
+    Imports: [
+        %parsers/common-rules.r "Needed for SPACE-CHAR and NAME"
+        %dialects/emit.r
+    ]
+    Exports: [
+        parse-css
+        form-css
+    ]
+
+===Introduction
+
+This module defines functions to handle simple CSS strings such as the ones found
+inside a HTML tag's style attribute. It is not yet capable of parsing an actual
+style sheet.
+
+===Overview
+
+    -main-:
+    non-special: complement charset ":;"
+    parse-css: func [
+        "Parse a simple CSS string"
+        css [string!]
+        /local result name* value
+    ] [
+        result: make block! 16
+        parse/all css [
+            any space-char some [
+                copy name* name #":" any space-char copy value any non-special [#";" | end]
+                (insert insert tail result to word! name* if value [trim/lines value])
+                any space-char
+            ]
+        ]
+        result
+    ]
+    form-css: func [
+        "Form a CSS string"
+        css [block!]
+        /local result
+    ] [
+        emit make string! 24 [
+            foreach [name value] css [
+                if value [name ": " value #";"]
+            ]
+        ]
+    ]

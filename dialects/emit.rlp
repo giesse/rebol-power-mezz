@@ -6,7 +6,7 @@ Dialected EMIT function
     }
     Author: "Gabriele Santilli"
     File: %emit.r
-    Version: 1.0.1
+    Version: 1.0.2
     Imports: [
         %mezz/text-encoding.r "Used by the encode-text and decode-text keywords"
     ]
@@ -190,6 +190,19 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
         body "The values to emit at each iteration"
     ] [
         foreach :word data compose/only [emit output (body)]
+    ]
+    ; warning: /default handling, other differences with SWITCH
+    switch: keyword [
+        "Selects a choice and emits the block that follows it"
+        value "Value to search for"
+        cases [block!] "Block of cases to search"
+        /local case
+    ] [
+        parse cases [
+            to value to block! set case block! (emit output case)
+            |
+            to /default skip set case block! (emit output case)
+        ]
     ]
 
 ===Append values to |output| according to the contents of |values|

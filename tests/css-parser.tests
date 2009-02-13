@@ -1,0 +1,13 @@
+REBOL [
+    Type: Module
+    Title: "Tests for the CSS parser"
+    Author: "Gabriele Santilli"
+    Imports: [%parsers/css-parser.r]
+]
+
+[
+    parse-css "font-weight: bold; font-style: italic; text-decoration: line-through;"
+]
+[
+    form-css [font-weight #[none] font-style "italic" text-decoration "line-through"]
+]

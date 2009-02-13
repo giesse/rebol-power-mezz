@@ -82,7 +82,7 @@ REBOL [
     filter-html/with {<a href="http://www.qtask.com/quilt.fcgi/report">Reports</a> <a href="http://www.other.com/">Other</a>} [
         filter-uris: func [uri] [
             if system/words/all [
-                uri/tag-name = "a" uri/attribute-name = 'href
+                uri/tag-name = 'a uri/attribute-name = 'href
                 uri/scheme = "http" uri/host = "www.qtask.com"
                 not empty? uri/path uri/path/1 = "quilt.fcgi"
             ] [
@@ -100,4 +100,50 @@ REBOL [
 ]
 [
     filter-html read %tests/data/12.html
+]
+[
+    filter-html/all {
+        <html>
+          <head><title>Test</title></head>
+          <body><div><style>style should not be here</style></div></body>
+        </html>
+    }
+]
+[
+	filter-html/with {<b>Bold Text<br><i>Bold+Italic Text<br></i><strike>Bold+Strikethrough Text</strike><i><br></i><u>Bold+Underline Text<br><i>Bold+Italic+Underline Text<br><strike>Bold+Italic+Strikethrough Text</strike><br></i></u></b><i>Italic Text<br><strike>Italic+Strikethrough Text</strike><br></i><u><i>Italic+Underline Text</i></u><b><u><i><br></i></u></b><u>Underline Text</u><b><u><i><br></i></u></b><strike>Strikethrough Text</strike><b><u><i><br></i></u></b>} [
+        target: 'editor
+    ]
+]
+[
+	filter-html/with {<span style="font-weight: bold;">Bold Text</span><br><span style="font-weight: bold; font-style: italic;">Bold+Italic Text</span><br><span style="font-weight: bold; text-decoration: line-through;">Bold+Strikethrough Text</span><br><span style="font-weight: bold; text-decoration: underline;">Bold+Underline Text</span><br><span style="font-weight: bold; font-style: italic; text-decoration: underline;">Bold+Italic+Underline Text</span><br><span style="font-weight: bold; font-style: italic; text-decoration: line-through;">Bold+Italic+Strikethrough Text</span><br><span style="font-style: italic;">Italic Text</span><br><span style="font-style: italic; text-decoration: line-through;">Italic+Strikethrough Text</span><br><span style="font-style: italic; text-decoration: underline;">Italic+Underline Text</span><br><span style="text-decoration: underline;">Underline Text</span><br><span style="text-decoration: line-through;">Strikethrough Text</span>} [
+        target: 'editor
+    ]
+]
+[
+	filter-html/with {<h1 class="qw-burbank-h1"><span>A </span>Header 1</h1><br><h2 class="qw-burbank-h2"><span>1 </span>Header 2</h2><br><h3 class="qw-burbank-h3"><span>1.1 </span>Header 3</h3><br><h4 class="qw-burbank-h4"><span>1.1.1 </span>Header 4</h4><br><h5 class="qw-burbank-h5"><span>1.1.1.1 </span>Header 5</h5><br><h6 class="qw-burbank-h6"><span>1.1.1.1.1 </span>Header 6</h6><br><span class="qw-burbank-normal-small">Normal Small</span><br><span class="qw-burbank-normal">Normal</span><br><span class="qw-burbank-normal-large">Normal Large</span><br><pre class="qw-burbank-pre">Preformatted</pre>} [
+		target: 'editor
+	]
+]
+[
+	filter-html/with {<ol class="qw-burbank-list"><li class="qw-burbank-list-ol">Ordered List, Item 1<br></li><ol class="qw-burbank-list"><li class="qw-burbank-list-ol">Ordered List, Item 1.1<br></li><li class="qw-burbank-list-ol">Ordered List, Item 1.2<br></li></ol><li class="qw-burbank-list-ol">Ordered List, Item 2<br></li><ol class="qw-burbank-list"><li class="qw-burbank-list-ol">Ordered List, Item 2.1<br></li><li class="qw-burbank-list-ol">Ordered List, Item 2.2</li></ol><li class="qw-burbank-list-ol">Ordered List, Item 3<br></li></ol><ul class="qw-burbank-list"><li class="qw-burbank-list-ul">Unordered List, Item 1<br></li><ul class="qw-burbank-list"><li class="qw-burbank-list-ul-nested">Unordered List, Item 1.1<br></li><li class="qw-burbank-list-ul-nested">Unordered List, Item 1.2<br></li></ul><li class="qw-burbank-list-ul">Unordered List, Item 2<br></li><ul class="qw-burbank-list"><li class="qw-burbank-list-ul-nested">Unordered List, Item 2.1<br></li><li class="qw-burbank-list-ul-nested">Unordered List, Item 2.2<br></li></ul><li class="qw-burbank-list-ul">Unordered List, Item 3<br></li></ul>} [
+		target: 'editor
+	]
+]
+[
+	filter-html {<blockquote>Indented Text<br><blockquote>Extra Indented Text<br></blockquote></blockquote>}
+]
+[
+	filter-html/with {<div style="margin-left: 40px;">Indented Text<br></div><div style="margin-left: 80px;">Extra Indented Text<br></div>} [
+		target: 'editor
+	]
+]
+[
+	filter-html/with {<div align="left">Left Aligned Text<br></div><div align="center">Center Aligned Text<br></div><div align="right">Right Aligned Text<br></div><div align="justify">Justified Text<br></div>} [
+		target: 'editor
+	]
+]
+[
+	filter-html/with {<div style="text-align: left;">Left Aligned Text<br></div><div style="text-align: center;">Center Aligned Text<br></div><div style="text-align: right;">Right Aligned Text<br></div><div style="text-align: justify;">Justified Text<br></div>} [
+		target: 'editor
+	]
 ]

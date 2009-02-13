@@ -6,7 +6,7 @@ Macros to emit [X][HT]ML
     }
     Author: "Gabriele Santilli"
     File: %ml-emitter.r
-    Version: 1.0.0
+    Version: 1.1.0
     Imports: [
         %dialects/emit.r
         %parsers/rule-arguments.r
@@ -35,12 +35,16 @@ to generate *ML code.
         #" " either any [path? name set-path? name] [name/1 #":" name/2] [name] {="} either block? :value :value [text :value] #"^""
     ]
     tag-attributes: macro/custom [
-        name
+        name value
     ] [
         some [
             set name [set-word! | set-path!]
             do-next
             (emit output [tag-attribute name pop-result])
+            |
+            set name [word! | path!]
+            set value skip
+            (if value [emit output [tag-attribute name :value]])
         ]
     ]
     tag: macro [

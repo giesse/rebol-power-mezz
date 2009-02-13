@@ -8,24 +8,22 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 2.0.0
+    Version: 3.0.0
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
+        %parsers/rule-arguments.r "We need POP-RESULT"
         %parsers/ml-parser.r    "Used to parse the HTML text"
         %mezz/normalize-html.r  "Used to normalize the HTML before regenerating it"
         %parsers/uri-parser.r   "Used to check and normalize the URLs"
-        %mezz/text-encoding.r   "Used to encode HTML entities"
         %dialects/emit.r        "Used to generate output"
         %dialects/ml-emitter.r  "Used to generate HTML"
+        %mezz/trees.r           "Used to represent the HTML document and for tree rewriting"
+        %parsers/css-parser.r   "Used to parse the style attribute"
     ]
     Globals: [
         filter-html             "Made global so that it's easy to use in non-modules"
     ]
-
-===TODO
-
-*Fix <style> outside <head>
 
 ===Introduction
 
@@ -98,12 +96,54 @@ be a |logic!| value.
 :|filter-uris| - allows specifying a handler function for all URIs that appear in the document.
 See |-uri-filtering-| for more details.
 
+:|target| - can be used to tweak the filtering for a specific target. The default is |xhtml|
+which produces generic, cross-browser XHTML 1.0 code. Currently, the only other supported
+target is |editor| which makes the output suitable for usage with Steve Ewing's Free Rich Text
+Editor.
+
     -filter-options-:
     default-options: context [
         all: no
         id-prefix: none
         emit-utf8: no
         filter-uris: none
+        target: 'xhtml
+    ]
+
+===URI filtering
+
+You can provide a filter function for all URIs in the HTML document via the |filter-uris| option.
+The option must be set to a function taking one object as argument and returning |none|, a string, or
+an object. The object passed as argument is what is returned by |parse-uri|, with the addition of two
+fields: |tag-name| and |attribute-name|, set to the name of the tag (a string, that may end in "/"
+for empty tags) and the name of the attribute (as a |word!|) the URI is in.
+
+If your function returns |none|, the attribute is discarded. If a |string!| value is returned, that
+is used as the value for the attribute (should be a correctly formed URI); otherwise, you can return
+an object that is passed to |form-uri| (for eg. you can just modify the object passed as argument and
+return it).
+
+    -uri-filtering-:
+    uri-filter: func [uri] [
+        case [
+            all [uri/tag-name = "img" uri/attribute-name = 'src] [
+                ; disable images
+                none
+            ]
+            uri/host = "www2.site.com" [
+                ; replace domain
+                uri/host: "www.site.com"
+                uri
+            ]
+            uri/scheme = "javascript" [
+                ; disable javascript: urls
+                none
+            ]
+            ; and so on...
+        ]
+    ]
+    filter-html/with {...} [
+        filter-uris: :uri-filter
     ]
 
 ===Parse and regenerate the |html| text
@@ -113,7 +153,9 @@ finite state machines (FSMs). The first stage uses |parse-ml| on
 the source text, parsing tags, text and character entities,
 and sends the parsed elements to the second stage, the |html-normalizer| module,
 via the |process-tag| function; that in turn sends the normalized elements
-to the |stage3| function.
+to the |stage3| function, which builds a tree to represent the whole document.
+The tree is then processed using the |rewrite-tree| function from the |trees| module,
+and then converted back to XHTML.
 
     -filter-html-:
     options: make default-options any [options [ ]]
@@ -124,141 +166,184 @@ to the |stage3| function.
     reset-normalizer
     end-stage3
 
-===Regeneration (stage 3)
+===Tree generation
+
+In this stage, we use a FSM to generate a tree from the output of the HTML Normalizer.
+The |stage3| function just calls |process-event|; |init-stage3| takes care of the initialization
+of this stage, while |end-stage3| resets the state machine, applies the tree rewriting rules
+to the generated tree, and finally converts it back to XHTML text.
 
     -stage3-:
+    -filter-options-
     stage3: func [cmd data] [
         process-event stage3-fsm cmd data
     ]
     init-stage3: func [options] [
-        out: make string! 1024
+        root: current-node: make-node 'root
         current-options: options
         filter-uris?: any-function? get in current-options 'filter-uris
-        set-ml-encoding pick [html-utf8 html-ascii] to logic! options/emit-utf8
         reset-fsm/only stage3-fsm
-        if options/all [
-            emit [
-                <?xml version="1.0" encoding="UTF-8"?> newline
-                <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> newline
-            ]
-        ]
     ]
-    -filter-options-
     end-stage3: does [
         reset-fsm stage3-fsm
-        out
+        -tree-rewriting-
+        -emitter-
     ]
-    close-tag: macro [name] [tag name [ ] 'close]
+    -state-machine-
+    -emitter-functions-
+
+---Finite State Machine to generate a tree from the parsed and normalized HTML
+
+    -state-machine-:
+    -fsm-support-functions-
     stage3-fsm: make-fsm [
         initial-state: [
             ; whitespace before <html> removed
-            comment: (emit data)
+            comment: (make-comment-node data)
             <html> (
-                if current-options/all [emit-tag <html> data [xmlns force http://www.w3.org/1999/xhtml]]
+                enter-tag 'html data [xmlns force http://www.w3.org/1999/xhtml]
             ) in-html (
-                if current-options/all [emit [close-tag 'html]]
+                leave-tag
             )
         ]
-        in-html: [
-            comment: whitespace: (emit data)
-            <head> (if current-options/all [emit-tag <head> data [ ]]) in-head (if current-options/all [emit [close-tag 'head]])
+        common: [
+            comment: (make-comment-node data)
+            whitespace: (make-text-node data)
+        ]
+        in-html: inherit common [
+            <head> (enter-tag 'head data [ ]) in-head (leave-tag)
             <body> (
-                if current-options/all [
-                    emit-tag <body> data [
-                        background [style* uri   "background-image"] none
-                        text       [style* color "color"]            none
-                        link       color                             none
-                        vlink      color                             none
-                        alink      color                             none
-                    ]
+                enter-tag 'body data [
+                    background [style* uri   "background-image"] none
+                    text       [style* color "color"]            none
+                    link       color                             none
+                    vlink      color                             none
+                    alink      color                             none
                 ]
-            ) in-body (if current-options/all [emit [close-tag 'body]])
+            ) in-body (leave-tag)
             </html> return
         ]
-        in-head: [
-            comment: whitespace: (emit data)
+        in-head: inherit common [
             </head> return
-            <title> (if current-options/all [emit-tag <title> data [ ]]) in-title (if current-options/all [emit [close-tag 'title]])
+            <title> (enter-tag 'title data [ ]) in-title (leave-tag)
             <base/> (
-                if current-options/all [
-                    emit-tag <base/> data [
-                        href   uri             none
-                        target [enum "_blank"] none
-                    ]
+                make-tag-node 'base data [
+                    href   uri             none
+                    target [enum "_blank"] none
                 ]
             )
             <style> (
-                if current-options/all [
-                    emit-tag <style> data [
-                        type  force      "text/css"
-                        media media-desc none
-                    ]
-                    emit [cdata/options 'open [commented: yes]]
+                enter-tag 'style data [
+                    type  force      "text/css"
+                    media media-desc none
                 ]
-            ) in-style (if current-options/all [emit [cdata/options 'close [commented: yes] close-tag 'style]])
+            ) in-style (leave-tag)
             ;<meta/>
             <link/> (
-                if current-options/all [
-                    emit-tag <link/> data [
-                        href     uri             none
-                        hreflang name*           none
-                        type     cdata           none
-                        rel      name-list       none
-                        rev      name-list       none
-                        charset  cdata           none
-                        target   [enum "_blank"] none
-                        media    media-desc      none
-                    ]
+                make-tag-node 'link data [
+                    href     uri             none
+                    hreflang name*           none
+                    type     cdata           none
+                    rel      name-list       none
+                    rev      name-list       none
+                    charset  cdata           none
+                    target   [enum "_blank"] none
+                    media    media-desc      none
                 ]
             )
         ]
         in-style: [
-            ; inside <![CDATA[...]]> so no need to escape
-            text: whitespace: (if current-options/all [emit replace/all data "]]>" ""])
+            text: whitespace: (make-text-node data)
             </style> return
         ]
         in-title: [
-            text: whitespace: (if current-options/all [emit [text data]])
+            text: whitespace: (make-text-node data)
             </title> return
         ]
-        in-body: [
-            comment: whitespace: (emit data)
-
+        in-body: inherit common [
             </body> return
 
             <style> (
-                if current-options/all [
-                    emit-tag <style> data [
-                        type  force      "text/css"
-                        media media-desc none
-                    ]
-                    emit [cdata/options 'open [commented: yes]]
+                ; move to HEAD
+                save-node: current-node
+                current-node: select-child root 'html/head
+                enter-tag 'style data [
+                    type  force      "text/css"
+                    media media-desc none
                 ]
-            ) in-style (if current-options/all [emit [cdata/options 'close [commented: yes] close-tag 'style]])
+            ) in-style (leave-tag current-node: save-node)
 
             <h1> <h2> <h3> <h4> <h5> <h6> <address> <p>
             <pre> <legend>
-                (emit-tag event data [ ]) in-para
+                (enter-tag tag-name? event data [ ]) in-para (leave-tag)
 
-            <ul> (emit-tag event data [
-                type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
-            ]) in-list
-            <ol> (emit-tag event data [
-                type  [style* list-style "list-style-type"] none
-                start number                                none
-            ]) in-list
-            <dl> (emit-tag event data [ ]) in-dlist
+            <ul> (
+                if current-options/target = 'editor [
+                    data: reduce [
+                        'class select data 'class
+                    ]
+                ]
+                enter-tag 'ul data [
+                    type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
+                ]
+            ) in-list (leave-tag)
+            <ol> (
+                if current-options/target = 'editor [
+                    data: reduce [
+                        'class select data 'class
+                    ]
+                ]
+                enter-tag 'ol data [
+                    type  [style* list-style "list-style-type"] none
+                    start number                                none
+                ]
+            ) in-list (leave-tag)
+            <dl> (enter-tag 'dl data [ ]) in-dlist (leave-tag)
 
-            <div> <fieldset> (emit-tag event data [ ])
-            <center> (emit-tag <div> append copy [align "center"] data [ ])
+            <div> (
+                created: 1
+                valid-attrs: [ ]
+                if current-options/target = 'editor [
+                    either div-style: select data 'style [
+                        div-style: parse-css div-style
+                        switch select div-style 'margin-left [
+                            "40px" [
+                                enter-tag 'blockquote [ ] [ ]
+                                created: 2
+                            ]
+                            "80px" [
+                                enter-tag 'blockquote [ ] [ ]
+                                enter-tag 'blockquote [ ] [ ]
+                                created: 3
+                            ]
+                        ]
+                        data: reduce [
+                            'align any [select div-style 'text-align select data 'align]
+                        ]
+                    ] [
+                        data: reduce ['align select data 'align]
+                    ]
+                    valid-attrs: [
+                        align [enum "left" "center" "right" "justify"] none
+                    ]
+                ]
+                enter-tag 'div data valid-attrs
+                set-property current-node 'created created
+            ) in-body (
+                created: get-property current-node 'created
+                set-property current-node 'created none
+                loop created [leave-tag]
+            )
+            <fieldset> (enter-tag 'fieldset data [ ]) in-body (leave-tag)
+            <center> (enter-tag 'div append copy [align "center"] data [ ]) in-body (leave-tag)
 
-            <blockquote> (emit-tag event data [cite uri none])
-            <form>  (emit-tag event data [
+            <blockquote> (enter-tag 'blockquote data [cite uri none]) in-body (leave-tag)
+            <form>  (enter-tag 'form data [
                 action  force "#" ; disable forms!
                 method  force "GET"
                 name    name* none
-            ])
-            <table> (emit-tag event data [
+            ]) in-body (leave-tag)
+            <table> (enter-tag 'table data [
                 summary     cdata                          none
                 align       [enum "left" "center" "right"] none
                 width       [style* lengthpx "width"]      none
@@ -272,14 +357,14 @@ to the |stage3| function.
                 border      [style* pixels "border-width"] none
                 cellspacing length                         none
                 cellpadding length                         none
-            ]) in-table (emit [close-tag 'table])
+            ]) in-table (leave-tag)
             
-            <ins> <del> (emit-tag event data [
+            <ins> <del> (enter-tag tag-name? event data [
                 cite     uri   none
                 datetime cdata none
-            ])
+            ]) in-body (leave-tag)
 
-            <hr/> (emit-tag event data [
+            <hr/> (make-tag-node 'hr data [
                 ; this is quite hard to convert to CSS automatically
                 ; so will keep the deprecated attributes
                 align   [enum "left" "right" "center"] none
@@ -288,23 +373,24 @@ to the |stage3| function.
                 width   length                         none
             ])
             
-            </div> </blockquote> </form> </fieldset> </ins> </del>
-                (emit lowercase event)
-            </center> (emit [close-tag 'div])
+            </div> </blockquote> </form> </fieldset> </ins> </del> </center> return
         ]
-        in-para: [
-            comment: whitespace: (emit data)
-
+        in-para: inherit common [
             </h1> </h2> </h3> </h4> </h5> </h6> </address> </p>
-            </dt> </pre> </caption> </legend>
-                (emit lowercase event) return
+            </dt> </pre> </caption> </legend> </font>
+            </tt> </i> </b> </u> </strike> </s> </big> </small> </sub> </sup>
+            </em> </strong> </dfn> </code> </samp> </kbd> </var> </cite>
+            </a> </map> </button> </label> </span>
+            </abbr> </acronym> </q> ;</object>
+            </ins> </del> ; should be treated specially, but noone uses them so...
+                return
 
             <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
             <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
             <abbr> <acronym>
-                (emit-tag event data [ ])
+                (enter-tag tag-name? event data [ ]) in-para (leave-tag)
 
-            <a> (emit-tag event data [
+            <a> (enter-tag 'a data [
                 name     name*                                   none
                 href     uri                                     none
                 hreflang name*                                   none
@@ -315,19 +401,55 @@ to the |stage3| function.
                 target   [enum "_blank"]                         none
                 shape    [enum "default" "rect" "circle" "poly"] none
                 coords   cdata                                   none
-            ])
+            ]) in-para (leave-tag)
 
-            <font> (emit-tag <span> data [
+            <font> (enter-tag 'span data [
                 size  [style* font-size "font-size"]   none
                 color [style* color     "color"]       none
                 face  [style* cdata     "font-family"] none
-            ])
-            </font> (emit [close-tag 'span])
+            ]) in-para (leave-tag)
 
-            <span> (emit-tag event data [ ])
+            <span> (
+                created: 1
+                if current-options/target = 'editor [
+                    data: reduce [
+                        'style select data 'style
+                        'class select data 'class
+                    ]
+                ]
+                enter-tag 'span data [ ]
+                span-node: current-node
+                if span-style: get-property span-node 'style [
+                    span-style: parse-css span-style
+                    if "bold" = select span-style 'font-weight [
+                        created: 2
+                        enter-tag 'b [ ] [ ]
+                        span-style/font-weight: none
+                    ]
+                    if "italic" = select span-style 'font-style [
+                        created: created + 1
+                        enter-tag 'i [ ] [ ]
+                        span-style/font-style: none
+                    ]
+                ]
+                set-property current-node 'created created
+                if span-style [
+                    if current-options/target = 'editor [
+                        span-style: reduce [
+                            'text-decoration attr-types/enum select span-style 'text-decoration ["underline" "line-through"]
+                        ]
+                    ]
+                    span-style: form-css span-style
+                    set-property span-node 'style either empty? span-style [none] [span-style]
+                ]
+            ) in-para (
+                created: get-property current-node 'created
+                set-property current-node 'created none
+                loop created [leave-tag]
+            )
 
-            <map> (emit-tag event data [name name* none])
-            <area/> (emit-tag event data [
+            <map> (enter-tag 'map data [name name* none]) in-para (leave-tag)
+            <area/> (make-tag-node 'area data [
                 shape    [enum "default" "rect" "circle" "poly"] none
                 coords   cdata                                   none
                 nohref   [bool "nohref"]                         none
@@ -336,27 +458,27 @@ to the |stage3| function.
                 target   [enum "_blank"]                         none
             ])
 
-            <select> (emit-tag event data [
+            <select> (enter-tag 'select data [
                 name     name*             none
                 size     number            none
                 multiple [bool "multiple"] none
                 disabled force             "disabled"
-            ]) in-select (emit [close-tag 'select])
-            <textarea> (emit-tag event data [
+            ]) in-select (leave-tag)
+            <textarea> (enter-tag 'textarea data [
                 name     name*             none
                 rows     number            none
                 cols     number            none
                 readonly [bool "readonly"] none
                 disabled force             "disabled"
-            ]) in-option
-            <button> (emit-tag event data [
+            ]) in-option (leave-tag)
+            <button> (enter-tag 'button data [
                 name     name*                            none
                 value    cdata                            none
                 type     [enum "submit" "button" "reset"] none
                 disabled force                            "disabled"
-            ])
-            <label> (emit-tag event data [for name* none])
-            <input/> (emit-tag event data [
+            ]) in-para (leave-tag)
+            <label> (enter-tag 'label data [for name* none]) in-para (leave-tag)
+            <input/> (make-tag-node 'input data [
                 type      [
                     enum "text" "password" "checkbox" "radio"
                         "submit" "reset" "file" "hidden"
@@ -376,16 +498,16 @@ to the |stage3| function.
                 ismap     [bool "ismap"]    none
             ])
 
-            <q> (emit-tag event data [cite uri none])
+            <q> (enter-tag 'q data [cite uri none]) in-para (leave-tag)
 
             ;<object>
             
-            <ins> <del> (emit-tag event data [
+            <ins> <del> (enter-tag tag-name? event data [
                 cite     uri   none
                 datetime cdata none
-            ])
+            ]) in-pana (leave-tag)
 
-            <img/> (emit-tag event data [
+            <img/> (make-tag-node 'img data [
                 src      uri            none
                 alt      cdata          none
                 longdesc uri            none
@@ -400,76 +522,84 @@ to the |stage3| function.
                 align    imgalign       none
             ])
 
-            <br/> (emit-tag event data [clear brclear none])
+            <br/> (make-tag-node 'br data [clear brclear none])
 
-            <basefont/>
+            ;<basefont/>
 
-            </tt> </i> </b> </u> </strike> </s> </big> </small> </sub> </sup>
-            </em> </strong> </dfn> </code> </samp> </kbd> </var> </cite>
-            </a> </map> </button> </label> </span>
-            </abbr> </acronym> </q> ;</object>
-            </ins> </del> ; should be treated specially, but noone uses them so...
-                (emit lowercase event)
-            
-            text: (emit [text data])
+            text: (make-text-node data)
         ]
         in-item: inherit in-body inherit in-para [
-            </li> </td> </th> </dd> (emit lowercase event) return
+            </li> </td> </th> </dd> return
         ]
-        in-list: [
-            comment: whitespace: (emit data)
+        in-list: inherit common [
+            <li> (
+                if current-options/target = 'editor [
+                    data: reduce [
+                        'class select data 'class
+                    ]
+                ]
+                enter-tag 'li data [
+                    type  [style* list-style "list-style-type"] none
+                    value number                                none
+                ]
+            ) in-item (leave-tag)
 
-            <li> (emit-tag <li> data [
-                type  [style* list-style "list-style-type"] none
-                value number                                none
-            ]) in-item
+            <ul> (
+                ;enter-tag 'li [ ] [ ]
+                if current-options/target = 'editor [
+                    data: reduce [
+                        'class select data 'class
+                    ]
+                ]
+                enter-tag 'ul data [
+                    type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
+                ]
+            ) in-list (leave-tag) ;(leave-tag leave-tag)
+            <ol> (
+                ;enter-tag 'li [ ] [ ]
+                if current-options/target = 'editor [
+                    data: reduce [
+                        'class select data 'class
+                    ]
+                ]
+                enter-tag 'ol data [
+                    type  [style* list-style "list-style-type"] none
+                    start number                                none
+                ]
+            ) in-list (leave-tag) ;(leave-tag leave-tag)
 
-            <ul> (emit [tag 'li [] 'open] emit-tag event data [
-                type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
-            ]) in-list (emit [close-tag 'li])
-            <ol> (emit [tag 'li [] 'open] emit-tag event data [
-                type  [style* list-style "list-style-type"] none
-                start number                                none
-            ]) in-list (emit [close-tag 'li])
-
-            </ul> </ol> (emit lowercase event) return
+            </ul> </ol> return
         ]
-        in-dlist: [
-            comment: whitespace: (emit data)
-            
-            <dt> (emit-tag event data [ ]) in-para
-            <dd> (emit-tag event data [ ]) in-item
+        in-dlist: inherit common [
+            <dt> (enter-tag 'dt data [ ]) in-para (leave-tag)
+            <dd> (enter-tag 'dd data [ ]) in-item (leave-tag)
 
-            </dl> (emit [close-tag 'dl]) return
+            </dl> return
         ]
-        in-table: [
-            comment: whitespace: (emit data)
-            
-            <caption> (emit-tag event data [ ]) in-para
+        in-table: inherit common [
+            <caption> (enter-tag 'caption data [ ]) in-para (leave-tag)
 
-            <colgroup> (emit-tag event data [
+            <colgroup> (enter-tag 'colgroup data [
                 span   number       none
                 width  multi-length none
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-colgroup (emit [close-tag 'colgroup])
-            <col/> (emit-tag event data [
+            ]) in-colgroup (leave-tag)
+            <col/> (make-tag-node 'col data [
                 span   number       none
                 width  multi-length none
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
             ])
 
-            <thead> <tfoot> <tbody> (emit-tag event data [
+            <thead> <tfoot> <tbody> (enter-tag tag-name? event data [
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-rows
+            ]) in-rows (leave-tag)
 
-            <tr> (emit [tag 'tbody [] 'open]) continue in-rows (emit [close-tag 'tbody])
+            <tr> (enter-tag 'tbody [ ] [ ]) continue in-rows (leave-tag)
 
             </table> return
         ]
-        in-colgroup: [
-            comment: whitespace: (emit data)
-            
-            <col/> (emit-tag event data [
+        in-colgroup: inherit common [
+            <col/> (make-tag-node 'col data [
                 span   number       none
                 width  multi-length none
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
@@ -477,21 +607,17 @@ to the |stage3| function.
             
             </colgroup> return
         ]
-        in-rows: [
-            comment: whitespace: (emit data)
-
-            <tr> (emit-tag event data [
+        in-rows: inherit common [
+            <tr> (enter-tag 'tr data [
                 valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-cells (emit [close-tag 'tr])
+            ]) in-cells (leave-tag)
             
-            </thead> </tfoot> </tbody> (emit lowercase event) return
+            </thead> </tfoot> </tbody> return
 
             </table> 2 return ; no <tbody>
         ]
-        in-cells: [
-            comment: whitespace: (emit data)
-            
-            <td> <th> (emit-tag event data [
+        in-cells: inherit common [
+            <td> <th> (enter-tag tag-name? event data [
                 headers name-list                                none
                 scope   [enum "row" "col" "rowgroup" "colgroup"] none
                 abbr    cdata                                    none
@@ -503,49 +629,118 @@ to the |stage3| function.
                 height  [style* lengthpx "height"]                 none
                 ; char alignment not supported (browsers do not support it anyway)
                 valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-item
+            ]) in-item (leave-tag)
 
             </tr> return
         ]
-        in-select: [
-            comment: whitespace: (emit data)
-            
-            <option> (emit-tag event data [
+        in-select: inherit common [
+            <option> (enter-tag 'option data [
                 selected [bool "selected"] none
                 value    cdata             none
                 label    cdata             none
                 disabled force             "disabled"
-            ]) in-option
-            <optgroup> (emit-tag event data [
+            ]) in-option (leave-tag)
+            <optgroup> (enter-tag 'optgroup data [
                 label    cdata none
                 disabled force "disabled"
-            ]) in-optgroup (emit [close-tag 'optgroup])
+            ]) in-optgroup (leave-tag)
 
             </select> return
         ]
-        in-option: [
-            comment: whitespace: (emit data)
-
-            text: (emit [text data])
+        in-option: inherit common [
+            text: (make-text-node data)
             
-            </option> </textarea> (emit lowercase event) return
+            </option> </textarea> return
         ]
-        in-optgroup: [
-            comment: whitespace: (emit data)
-
-            <option> (emit-tag event data [
+        in-optgroup: inherit common [
+            <option> (enter-tag 'option data [
                 selected [bool "selected"] none
                 value    cdata             none
                 label    cdata             none
                 disabled force             "disabled"
-            ]) in-option
+            ]) in-option (leave-tag)
 
             </optgroup> return
         ]
     ]
-    out: {}
-    emit*: :emit
-    emit: func [values] [either block? values [emit* out values] [emit* out [values]]]
+
+---Support functions used by the FSM
+
+    -fsm-support-functions-:
+    tag-name?: func [tag] [
+        to word! lowercase as-string tag
+    ]
+    make-tag-node: func [name attributes valid-attributes /local node value uris] [
+        append-node current-node node: make-node name
+        if not block? attributes [attributes: [ ]]
+        set-property node 'lang any [
+            process-attr select attributes 'xml/lang 'name* none
+            process-attr select attributes 'lang     'name* none
+        ]
+        style: make string! 256
+        uris: clear [ ]
+        foreach [attr-name type defvalue] union/skip valid-attributes global-attrs 3 [
+            set-property node attr-name value: process-attr select attributes attr-name type defvalue
+            if all [type = 'uri value] [
+                append uris attr-name
+            ]
+        ]
+        foreach uri uris [
+            either filter-uris? [
+                value: current-options/filter-uris make get-property node uri [
+                    tag-name: name
+                    attribute-name: uri
+                    target: get-property node 'target
+                ]
+                either object? value [
+                    set-property node uri form-uri value
+                    set-property node 'target value/target
+                ] [
+                    set-property node uri value
+                ]
+            ] [
+                value: get-property node uri
+                set-property node uri either find [#[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"] value/scheme [
+                    form-uri value
+                ] [
+                    none
+                ]
+            ]
+        ]
+        if value: select attributes 'style [
+            append style value
+        ]
+        if not empty? style [
+            set-property node 'style style
+        ]
+        node
+    ]
+    enter-tag: func [name attributes valid-attributes] [
+        current-node: make-tag-node name attributes valid-attributes
+    ]
+    leave-tag: does [
+        current-node: parent-node? current-node
+    ]
+    make-text-node: func [text /local node out] [
+        either all [node: last-child? current-node 'text = node-type? node] [
+            out: get-property node 'value
+            unless get-property node 'copied? [
+                set-property node 'copied? true
+                set-property node 'value out: copy out
+            ]
+            append out text
+            node
+        ] [
+            append-node current-node node: make-node 'text
+            set-property node 'value text
+            node
+        ]
+    ]
+    make-comment-node: func [comment /local node] [
+        append-node current-node node: make-node 'comment
+        set-property node 'value comment
+        node
+    ]
     global-attrs: [
         dir     [enum "LTR" "RTL"]                none
         id      name*                             none
@@ -570,7 +765,7 @@ to the |stage3| function.
         style*: func [value opts] [
             if value: process-attr value opts/1 none [
                 repend style either opts/1 = 'uri [
-                    [opts/2 ": url('" value "');"]
+                    [opts/2 ": url('" form-uri value "');"]
                 ] [
                     [opts/2 ": " value ";"]
                 ]
@@ -617,21 +812,7 @@ to the |stage3| function.
                 value
             ]
         ]
-        uri: func [value opts] [
-            if value: parse-uri/relative value [
-                either opts [
-                    value: current-options/filter-uris make value [
-                        tag-name: opts/1
-                        attribute-name: opts/2
-                    ]
-                    either object? value [form-uri value] [value]
-                ] [
-                    if find [#[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"] value/scheme [
-                        form-uri value
-                    ]
-                ]
-            ]
-        ]
+        uri: func [value opts] [parse-uri/relative value]
         cdata: func [value opts] [if value [trim/lines value]]
         media-desc: func [value opts /local names nm] [
             names: clear [ ]
@@ -740,7 +921,6 @@ to the |stage3| function.
             none
         ]
     ]
-    style: none
     process-attr: func [value type defvalue /local opts] [
         if defvalue = 'none [defvalue: none]
         if none? value [return defvalue]
@@ -748,84 +928,98 @@ to the |stage3| function.
         type: get in attr-types type
         value: any [type value opts defvalue]
     ]
-    emit-tag: func [tag-name attrs valid-attrs /local value lang type] [
-        parse tag-name [
-            #"/" copy tag-name to end (type: 'close)
-            |
-            copy tag-name to #"/" (type: 'empty)
-            |
-            copy tag-name to end (type: 'open)
+
+===Tree rewriting pass
+
+    -tree-rewriting-:
+    rewrite-tree root either current-options/target = 'editor [
+        editor-rewrite-rules
+    ] [
+        xhtml-rewrite-rules
+    ]
+
+We need:
+
+    -stage3-:
+    xhtml-rewrite-rules: [
+        -rewrite-rules-
+    ]
+    editor-rewrite-rules: head insert [
+        -editor-rewrite-rules-
+    ] xhtml-rewrite-rules
+
+---Rewrite rules
+
+    -rewrite-rules-:
+    ; <i,u,b><br />^/</i,u,b> ---> <br />^/
+    [[i u b] [] [br []] [text [value: "^/"]]] unwrap
+    ; remove empty i, u, b, strike, span
+    [[i u b strike span] []] remove
+    ; unwrap span with no attributes
+    [span [dir: #[none] id: #[none] class: #[none] title: #[none] style: #[none]] **] unwrap
+    ; merge consecutive <u>, <i>, <span> 
+    [u [] **] followed by [u prev **] rewrite to [u [*: *] ** next unwrapped]
+    [i [] **] followed by [i prev **] rewrite to [i [*: *] ** next unwrapped]
+    [span [] **] followed by [span prev **] rewrite to [span [*: *] ** next unwrapped]
+
+---Rewrite rules for the |editor| target
+
+    -editor-rewrite-rules-:
+    ; <strike>...</strike> -> <span style="text-decoration: line-through;">...</span>
+    [strike [] **] [span [style: "text-decoration: line-through;"] **]
+    ; <u>...</u> -> <span style="text-decoration: underline;">...</span>
+    [u [] **] [span [style: "text-decoration: underline;"] **]
+    ; remove surious divs that may be created
+    [blockquote/div [dir: #[none] id: #[none] class: #[none] title: #[none] style: #[none]] **] unwrap
+    ; remove some spurious <br />s generated by FF
+    [[li p] [] ** [br []] [text [value: "^/"]]] [* [*: *] 1 to -3]
+    ; merge consecutive <blockquote>s
+    [blockquote [] **] followed by newline-node: [text [value: "^/"]] followed by next-blockquote: [blockquote [] **]
+        rewrite to [blockquote [] ** newline-node unwrapped next-blockquote unwrapped]
+
+===Generation of XHTML text
+
+    -emitter-:
+    set-ml-encoding pick [html-utf8 html-ascii] to logic! current-options/emit-utf8
+    emit make string! 1024 [
+        either current-options/all [
+            <?xml version="1.0" encoding="UTF-8"?> newline
+            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> newline
+            emit-childs root
+        ] [
+            emit-childs select-child root 'html/body
         ]
-        lowercase tag-name
-        if not block? attrs [attrs: [ ]]
-        lang: any [
-            process-attr select attrs 'xml/lang 'name* none
-            process-attr select attrs 'lang     'name* none
-        ]
-        style: make string! 256
-        emit [
-            tag/options tag-name [
-                if lang [tag-attribute 'lang lang tag-attribute 'xml/lang lang]
-                foreach [name type defvalue] union/skip valid-attrs global-attrs 3 [
-                    (if all [filter-uris? type = 'uri] [
-                        type: reduce ['uri tag-name name]
-                    ] [ ])
-                    if value: process-attr select attrs name type defvalue [
-                        tag-attribute name [
-                            if all [name = 'id string? current-options/id-prefix] [
-                                text current-options/id-prefix
+    ]
+
+---Functions used to emit XHTML
+
+    -emitter-functions-:
+    emit-childs: macro/custom [type cdata?] [
+        [/cdata (cdata?: yes) | (cdata?: no)] do-next (
+            foreach-child node pop-result [
+                emit output [
+                    switch type: node-type? node [
+                        text [either cdata? [(get-property node 'value)] [text get-property node 'value]]
+                        comment [(get-property node 'value)]
+                        style [
+                            tag 'style fix-attrs node-properties? node [
+                                cdata/options [emit-childs /cdata node] [commented: yes]
                             ]
-                            text value
+                        ]
+                        /default [
+                            tag type fix-attrs node-properties? node either find [base link hr area input img br col] type ['empty] [[emit-childs node]]
                         ]
                     ]
                 ]
-                (if value: select attrs 'style [
-                    append style value
-                ] [ ])
-                if not empty? style [
-                    tag-attribute 'style style
-                ]
-            ] type [
-                custom-attributes: yes
             ]
+        )
+    ]
+    fix-attrs: func [attributes /local lang id] [
+        if lang: select attributes 'lang [
+            insert insert/only tail attributes 'xml/lang lang
         ]
-    ]
-    encode-entities: func [output text only /local mk1 mk2] [
-        encode-text/to text pick [html-utf8 html-ascii] to logic! only output
-    ]
-
----URI filtering
-
-You can provide a filter function for all URIs in the HTML document via the |filter-uris| option.
-The option must be set to a function taking one object as argument and returning |none|, a string, or
-an object. The object passed as argument is what is returned by |parse-uri|, with the addition of two
-fields: |tag-name| and |attribute-name|, set to the name of the tag (a string, that may end in "/"
-for empty tags) and the name of the attribute (as a |word!|) the URI is in.
-
-If your function returns |none|, the attribute is discarded. If a |string!| value is returned, that
-is used as the value for the attribute (should be a correctly formed URI); otherwise, you can return
-an object that is passed to |form-uri| (for eg. you can just modify the object passed as argument and
-return it).
-
-    -uri-filtering-:
-    uri-filter: func [uri] [
-        case [
-            all [uri/tag-name = "img" uri/attribute-name = 'src] [
-                ; disable images
-                none
-            ]
-            uri/host = "www2.site.com" [
-                ; replace domain
-                uri/host: "www.site.com"
-                uri
-            ]
-            uri/scheme = "javascript" [
-                ; disable javascript: urls
-                none
-            ]
-            ; and so on...
+        if all [pos: find attributes 'id current-options/id-prefix] [
+            pos/2: join current-options/id-prefix pos/2
         ]
-    ]
-    filter-html/with {...} [
-        filter-uris: :uri-filter
+        attributes
     ]

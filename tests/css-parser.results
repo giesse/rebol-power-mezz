@@ -1,0 +1,1 @@
+block! [font-weight "bold" font-style "italic" text-decoration "line-through"] string! "font-style: italic;text-decoration: line-through;"

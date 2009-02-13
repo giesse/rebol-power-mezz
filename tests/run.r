@@ -116,7 +116,7 @@ run-test-file: func [file force /local results results-file result type human pa
 					string! binary! [
 						human: copy/part result 20 * 1024
 						if binary? human [human: mold human]
-						either 255 < length? result [
+						either 51200 < length? result [
 							checksum/secure result
 						] [
 							result
