@@ -53,3 +53,27 @@ REBOL [
 [
 	form-uri obj
 ]
+[
+    form obj: parse-uri/relative "/"
+]
+[
+    form-uri obj
+]
+[
+    form obj: parse-uri/relative "bla/"
+]
+[
+    form-uri obj
+]
+[
+    form obj: parse-uri/relative "bla"
+]
+[
+    form-uri obj
+]
+[
+    form obj: parse-uri/relative "/bla"
+]
+[
+    form-uri obj
+]

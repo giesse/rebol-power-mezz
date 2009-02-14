@@ -40,7 +40,7 @@ A standards-compliant URI parser
         ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
         POSSIBILITY OF SUCH DAMAGE.
     }
-    Version: 2.0.0
+    Version: 2.0.1
     Imports: [
         %parsers/common-rules.r
         %mezz/text-encoding.r
@@ -219,7 +219,7 @@ more details and an explanation of the rules.
     reg-name: [any [unreserved | pct-encoded | sub-delims]]
 
     path-abempty: [any [#"/" segment (append path seg)]]
-    path-absolute: [#"/" (append path 'root) opt [segment-nz (append path seg) any [#"/" segment (append path seg)]]]
+    path-absolute: [#"/" (append path 'root) [segment-nz (append path seg) any [#"/" segment (append path seg)] | (append path "")]]
     path-noscheme: [segment-nz-nc (append path seg) any [#"/" segment (append path seg)]]
     path-rootless: [segment-nz (append path seg) any [#"/" segment (append path seg)]]
 

@@ -48,3 +48,6 @@ REBOL [
 [
     load-markup read %tests/data/10.html
 ]
+[
+    load-markup {<hr class="qw-burbank-hr">}
+]

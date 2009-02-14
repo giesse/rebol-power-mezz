@@ -80,3 +80,7 @@ REBOL [
 [
 	normalize-html [<pre> "Some text" </pre>]
 ]
+[
+    "<hr> attributes ignored"
+    normalize-html [[<hr> class "qw-burbank-hr"]]
+]

@@ -82,4 +82,32 @@ port: none
 path: ["c" ""]
 query: "Qtask/39cea2f03e/b8e2c188c7/91d76f340f"
 fragment: none
-} string! {http://cts.vresp.com/c/?Qtask/39cea2f03e/b8e2c188c7/91d76f340f}
+} string! {http://cts.vresp.com/c/?Qtask/39cea2f03e/b8e2c188c7/91d76f340f} string! {scheme: none
+userinfo: none
+host: none
+port: none
+path: [root ""]
+query: none
+fragment: none
+} string! "/" string! {scheme: none
+userinfo: none
+host: none
+port: none
+path: ["bla" ""]
+query: none
+fragment: none
+} string! "bla/" string! {scheme: none
+userinfo: none
+host: none
+port: none
+path: ["bla"]
+query: none
+fragment: none
+} string! "bla" string! {scheme: none
+userinfo: none
+host: none
+port: none
+path: [root "bla"]
+query: none
+fragment: none
+} string! "/bla"

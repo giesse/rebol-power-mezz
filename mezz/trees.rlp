@@ -18,7 +18,8 @@ Functions for handling trees
         prev-sibling?  foreach-child 
         make-tree mold-tree load-tree save-tree first-child?
         node? rewrite-tree select-child node-properties?
-        last-child?
+        last-child? ;check-tree
+        ;make-node-path
     ]
 
 ===Introduction
@@ -552,3 +553,22 @@ zero or more child nodes.
         ]
         rewritten?
     ]
+    ;check-tree: func [tree] [
+    ;    print ["checking" mold make-node-path tree "..."]
+    ;    tree: at tree node-first-child
+    ;    forall tree [
+    ;        unless same? tree tree/1/:node-parent [
+    ;            print "ERROR! Wrong parent pointer!"
+    ;            print ["node:" mold make-node-path tree/1]
+    ;            forever [
+    ;                switch ask "(P)robe parent, (I)gnore, (S)how properties, probe (N)ode >" [
+    ;                    "p" [print mold-tree head tree]
+    ;                    "i" [break]
+    ;                    "s" [print mold tree/1/:node-properties]
+    ;                    "n" [print mold-tree tree/1]
+    ;                ]
+    ;            ]
+    ;        ]
+    ;        check-tree tree/1
+    ;    ]
+    ;]
