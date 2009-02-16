@@ -5,4 +5,13 @@ logic! #[true] string! {<html>
 <body>
 <p class="normal">Look here: <img src="http://www.qtask.com/some-image.png" alt="Some image" /></p>
 </body>
-</html>} string! #{5BBB8A7F5801A2ED1E8A9FB0B30591621704F525}
+</html>} string! {<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title xml:lang="US-en">This is a test</title>
+</head>
+<body>
+<p class="normal">Look here: <img src="http://www.qtask.com/some-image.png" alt="Some image" /></p>
+<o:p></o:p></body>
+</html>}

@@ -6,9 +6,11 @@ Dialected EMIT function
     }
     Author: "Gabriele Santilli"
     File: %emit.r
-    Version: 1.0.2
+    Version: 1.1.0
     Imports: [
-        %mezz/text-encoding.r "Used by the encode-text and decode-text keywords"
+        %mezz/text-encoding.r     "Used by the encode-text and decode-text keywords"
+        %parsers/common-rules.r   "We need DO-NEXT"
+        %parsers/rule-arguments.r "We need POP-RESULT for DO-NEXT"
     ]
     Exports: [
         macro   "Used to create new macros for EMIT"
@@ -265,8 +267,8 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
     types: make block! 3 + length? spec
     parse spec [
         some [
-            set name set-word! set val skip [set type block! | (type: none)] (
-                insert/only insert tail spec* name :val
+            set name set-word! do-next [set type block! | (type: none)] (
+                insert/only insert tail spec* name pop-result
                 append/only types type
             )
             |
@@ -320,7 +322,7 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
         args [block!]
         macro [block!]
         /options
-        /local saved values value types
+        /local saved values value types name
     ] [
         ; 1     2   3        4       5     6         7
         ; macro ctx defaults numargs types body/func spec
@@ -344,8 +346,23 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             if options [
                 set [value args] do/next args
                 unless block? :value [make error! "invalid type"]
-                do bind value macro/2
-                ; !!! problem type checking?? !!!
+                options: copy skip first macro/2 macro/4 + 1
+                types: copy types
+                parse value [
+                    some [
+                        set name set-word! do-next (
+                            if name: find options to word! name [
+                                ; !!! problem !!!
+                                types: at head types index? name
+                                value: pop-result
+                                if all [types/1 not find types/1 type?/word :value] [make error! "invalid type"]
+                                set in macro/2 name/1 :value
+                            ]
+                        )
+                        |
+                        skip
+                    ]
+                ]
             ]
             emit output macro/6
         ]
