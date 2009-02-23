@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.0
+    Version: 3.1.1
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -101,6 +101,9 @@ which produces generic, cross-browser XHTML 1.0 code. Currently, the only other 
 target is |editor| which makes the output suitable for usage with Steve Ewing's Free Rich Text
 Editor.
 
+:|editor-class| - when the |target| is |'editor|, some elements get a forced class (that is necessary
+for the editor to work). This option allows specifying a prefix for the classes that are forced.
+
     -filter-options-:
     default-options: context [
         all: no
@@ -108,6 +111,7 @@ Editor.
         emit-utf8: no
         filter-uris: none
         target: 'xhtml
+        editor-class: none
     ]
 
 ===URI filtering
@@ -266,21 +270,50 @@ to the generated tree, and finally converts it back to XHTML text.
             <style> (
                 ; move to HEAD
                 save-node: current-node
-                current-node: select-child root 'html/head
+                current-node: get-node root/childs/html/childs/head
                 enter-tag 'style data [
                     type  force      "text/css"
                     media media-desc none
                 ]
             ) in-style (current-node: save-node)
 
-            <h1> <h2> <h3> <h4> <h5> <h6> <address> <p>
-            <pre> <legend>
+            <h1> (
+                unless data [data: [ ]]
+                if current-options/target = 'editor [
+                    h1-class: make-class-name "h1"
+                    data: reduce [
+                        'class any [
+                            attr-types/enum select data 'class reduce [h1-class make-class-name "toc-h1"]
+                            h1-class
+                        ]
+                    ]
+                ]
+                enter-tag 'h1 data [ ]
+            ) in-para (leave-tag)
+
+            <h2> <h3> <h4> <h5> <h6> (
+                if current-options/target = 'editor [
+                    data: reduce [
+                        'class make-class-name as-string event
+                    ]
+                ]
+                enter-tag tag-name? event data [ ]
+            ) in-para (leave-tag)
+
+            <address> <p> <legend>
                 (enter-tag tag-name? event data [ ]) in-para (leave-tag)
+
+            <pre> (
+                if current-options/target = 'editor [
+                    data: reduce ['class make-class-name "pre"]
+                ]
+                enter-tag 'pre data [ ]
+            ) in-para (leave-tag)
 
             <ul> (
                 if current-options/target = 'editor [
                     data: reduce [
-                        'class select data 'class
+                        'class make-class-name "list"
                     ]
                 ]
                 enter-tag 'ul data [
@@ -290,7 +323,7 @@ to the generated tree, and finally converts it back to XHTML text.
             <ol> (
                 if current-options/target = 'editor [
                     data: reduce [
-                        'class select data 'class
+                        'class make-class-name "list"
                     ]
                 ]
                 enter-tag 'ol data [
@@ -303,6 +336,7 @@ to the generated tree, and finally converts it back to XHTML text.
             <div> (
                 created: 1
                 valid-attrs: [ ]
+                unless data [data: [ ]]
                 if current-options/target = 'editor [
                     either div-style: select data 'style [
                         div-style: parse-css div-style
@@ -319,19 +353,37 @@ to the generated tree, and finally converts it back to XHTML text.
                         ]
                         data: reduce [
                             'align any [select div-style 'text-align select data 'align]
+                            'class attr-types/enum select data 'class reduce [
+                                make-class-name "toc-h1-div"
+                                make-class-name "toc-h2-div"
+                                make-class-name "toc-h3-div"
+                                make-class-name "toc-h4-div"
+                                make-class-name "toc-h5-div"
+                                make-class-name "toc-h6-div"
+                            ]
                         ]
                     ] [
-                        data: reduce ['align select data 'align]
+                        data: reduce [
+                            'align select data 'align
+                            'class attr-types/enum select data 'class reduce [
+                                make-class-name "toc-h1-div"
+                                make-class-name "toc-h2-div"
+                                make-class-name "toc-h3-div"
+                                make-class-name "toc-h4-div"
+                                make-class-name "toc-h5-div"
+                                make-class-name "toc-h6-div"
+                            ]
+                        ]
                     ]
                     valid-attrs: [
                         align [enum "left" "center" "right" "justify"] none
                     ]
                 ]
                 enter-tag 'div data valid-attrs
-                set-property current-node 'created created
+                set-node current-node/prop/created: created
             ) in-body (
-                created: get-property current-node 'created
-                set-property current-node 'created none
+                created: get-node current-node/prop/created
+                set-node current-node/prop/created: none
                 loop created [leave-tag]
             )
             <fieldset> (enter-tag 'fieldset data [ ]) in-body (leave-tag)
@@ -353,7 +405,14 @@ to the generated tree, and finally converts it back to XHTML text.
                         ]
                     ]
                     data: reduce [
-                        'class select data 'class
+                        'class attr-types/enum select data 'class reduce [
+                            make-class-name "table"
+                            make-class-name "box1-container"
+                            make-class-name "box2-container"
+                            make-class-name "box3-container"
+                            make-class-name "box4-container"
+                            make-class-name "box5-container"
+                        ]
                         'style table-style
                         'align select data 'align
                     ]
@@ -381,8 +440,8 @@ to the generated tree, and finally converts it back to XHTML text.
             ]) in-body (leave-tag)
 
             <hr/> (
-                if all [current-options/target = 'editor data] [
-                    data: reduce ['class select data 'class]
+                if current-options/target = 'editor [
+                    data: reduce ['class make-class-name "hr"]
                 ]
                 make-tag-node 'hr data [
                     ; this is quite hard to convert to CSS automatically
@@ -416,7 +475,21 @@ to the generated tree, and finally converts it back to XHTML text.
                     data: reduce [
                         'href a-href: select data 'href
                         'name select data 'name
-                        'class if a-href [select data 'class]
+                        'class if a-href [
+                            any [
+                                attr-types/enum select data 'class reduce [
+                                    external-link-class: make-class-name "external-link"
+                                    make-class-name "internal-link"
+                                    make-class-name "toc-h1-link"
+                                    make-class-name "toc-h2-link"
+                                    make-class-name "toc-h3-link"
+                                    make-class-name "toc-h4-link"
+                                    make-class-name "toc-h5-link"
+                                    make-class-name "toc-h6-link"
+                                ]
+                                external-link-class
+                            ]
+                        ]
                         'target if a-href [select data 'target]
                     ]
                 ]
@@ -445,12 +518,16 @@ to the generated tree, and finally converts it back to XHTML text.
                 if current-options/target = 'editor [
                     data: reduce [
                         'style select data 'style
-                        'class select data 'class
+                        'class attr-types/enum select data 'class reduce [
+                            make-class-name "normal"
+                            make-class-name "normal-small"
+                            make-class-name "normal-large"
+                        ]
                     ]
                 ]
                 enter-tag 'span data [ ]
                 span-node: current-node
-                if span-style: get-property span-node 'style [
+                if span-style: get-node span-node/prop/style [
                     span-style: parse-css span-style
                     if "bold" = select span-style 'font-weight [
                         created: 2
@@ -463,7 +540,7 @@ to the generated tree, and finally converts it back to XHTML text.
                         span-style/font-style: none
                     ]
                 ]
-                set-property current-node 'created created
+                set-node current-node/prop/created: created
                 if span-style [
                     if current-options/target = 'editor [
                         span-style: reduce [
@@ -471,11 +548,11 @@ to the generated tree, and finally converts it back to XHTML text.
                         ]
                     ]
                     span-style: form-css span-style
-                    set-property span-node 'style either empty? span-style [none] [span-style]
+                    set-node span-node/prop/style: either empty? span-style [none] [span-style]
                 ]
             ) in-para (
-                created: get-property current-node 'created
-                set-property current-node 'created none
+                created: get-node current-node/prop/created
+                set-node current-node/prop/created: none
                 loop created [leave-tag]
             )
 
@@ -561,9 +638,9 @@ to the generated tree, and finally converts it back to XHTML text.
                     border   [style* pixels "border-width"] none
                     align    imgalign       none
                 ]]
-                if all [current-options/target = 'editor img-style: get-property img-node 'style] [
+                if all [current-options/target = 'editor img-style: get-node img-node/prop/style] [
                     img-style: parse-css img-style
-                    set-property img-node 'style form-css reduce [
+                    set-node img-node/prop/style: form-css reduce [
                         'width select img-style 'width
                         'height select img-style 'height
                         'border "0px none"
@@ -582,9 +659,14 @@ to the generated tree, and finally converts it back to XHTML text.
         ]
         in-list: inherit common [
             <li> (
+                unless data [data: [ ]]
                 if current-options/target = 'editor [
                     data: reduce [
-                        'class select data 'class
+                        'class attr-types/enum select data 'class reduce [
+                            make-class-name "list-ul"
+                            make-class-name "list-ul-nested"
+                            make-class-name "list-ol"
+                        ]
                     ]
                 ]
                 enter-tag 'li data [
@@ -668,7 +750,8 @@ to the generated tree, and finally converts it back to XHTML text.
         in-cells: inherit common [
             <td> <th> (
                 created: 1 td-create-b?: td-create-i?: td-create-span?: no
-                if all [current-options/target = 'editor data] [
+                unless data [data: [ ]]
+                if current-options/target = 'editor [
                     ; warning: this is a problem in case the <td> contains block elements.
                     ; we are ignoring this for now, but we should probably create some
                     ; rewrite rules to correct it
@@ -691,7 +774,16 @@ to the generated tree, and finally converts it back to XHTML text.
                         ]
                     ]
                     data: reduce [
-                        'class select data 'class
+                        'class attr-types/enum select data 'class make-class-names [
+                            "table-td-header" "table-td-header-right-border" "table-td"
+                            "table-td-right-border" "box1-top-left" "box1-top-center"
+                            "box1-top-right" "box1-middle-left" "box1-middle-center"
+                            "box1-middle-right" "box1-bottom-left" "box1-bottom-center"
+                            "box1-bottom-right" "box2-middle" "box3-middle" "box4-middle"
+                            "box5-top-left" "box5-top-center" "box5-top-right" "box5-middle-left"
+                            "box5-middle-center" "box5-middle-right" "box5-bottom-left"
+                            "box5-bottom-center" "box5-bottom-right"
+                        ]
                         'style td-style
                     ]
                 ]
@@ -714,10 +806,10 @@ to the generated tree, and finally converts it back to XHTML text.
                     enter-tag 'span reduce ['style form-css td-style-extra] [ ]
                     created: created + 1
                 ]
-                set-property current-node 'created created
+                set-node current-node/prop/created: created
             ) in-item (
-                created: get-property current-node 'created
-                set-property current-node 'created none
+                created: get-node current-node/prop/created
+                set-node current-node/prop/created: none
                 loop created [leave-tag]
             )
 
@@ -760,37 +852,50 @@ to the generated tree, and finally converts it back to XHTML text.
     tag-name?: func [tag] [
         to word! lowercase as-string tag
     ]
+    make-class-name: func [name] [
+        either current-options/editor-class [
+            join current-options/editor-class [#"-" name]
+        ] [
+            name
+        ]
+    ]
+    make-class-names: func [block /local result] [
+        result: make block! 2 + length? block
+        foreach item block [append result make-class-name item]
+        result
+    ]
     make-tag-node: func [name attributes valid-attributes /local node value uris] [
-        append-node current-node node: make-node name
+        node: make-node name
+        set-node node/parent: current-node
         if not block? attributes [attributes: [ ]]
-        set-property node 'lang any [
+        set-node node/prop/lang: any [
             process-attr select attributes 'xml/lang 'name* none
             process-attr select attributes 'lang     'name* none
         ]
         style: make string! 256
         uris: clear [ ]
         foreach [attr-name type defvalue] union/skip valid-attributes global-attrs 3 [
-            set-property node attr-name value: process-attr select attributes attr-name type defvalue
+            set-node node/prop/:attr-name value: process-attr select attributes attr-name type defvalue
             if all [type = 'uri value] [
                 append uris attr-name
             ]
         ]
         foreach uri uris [
             either filter-uris? [
-                value: current-options/filter-uris make get-property node uri [
+                value: current-options/filter-uris make get-node node/prop/:uri [
                     tag-name: name
                     attribute-name: uri
-                    target: get-property node 'target
+                    target: get-node node/prop/target
                 ]
                 either object? value [
-                    set-property node uri form-uri value
-                    set-property node 'target value/target
+                    set-node node/prop/:uri: form-uri value
+                    set-node node/prop/target: value/target
                 ] [
-                    set-property node uri value
+                    set-node node/prop/:uri: value
                 ]
             ] [
-                value: get-property node uri
-                set-property node uri either find [#[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"] value/scheme [
+                value: get-node node/prop/:uri
+                set-node node/prop/:uri: either find [#[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"] value/scheme [
                     form-uri value
                 ] [
                     none
@@ -801,7 +906,7 @@ to the generated tree, and finally converts it back to XHTML text.
             append style value
         ]
         if not empty? style [
-            set-property node 'style style
+            set-node node/prop/style: style
         ]
         node
     ]
@@ -809,26 +914,28 @@ to the generated tree, and finally converts it back to XHTML text.
         current-node: make-tag-node name attributes valid-attributes
     ]
     leave-tag: does [
-        current-node: parent-node? current-node
+        current-node: get-node current-node/parent
     ]
     make-text-node: func [text /local node out] [
-        either all [node: last-child? current-node 'text = node-type? node] [
-            out: get-property node 'value
-            unless get-property node 'copied? [
-                set-property node 'copied? true
-                set-property node 'value out: copy out
+        either all [node: get-node current-node/childs/-1 'text = get-node node/type] [
+            out: get-node node/prop/value
+            unless get-node node/prop/copied? [
+                set-node node/prop/copied?: true
+                set-node node/prop/value: out: copy out
             ]
             append out text
             node
         ] [
-            append-node current-node node: make-node 'text
-            set-property node 'value text
+            node: make-node 'text
+            set-node node/parent: current-node
+            set-node node/prop/value: text
             node
         ]
     ]
     make-comment-node: func [comment /local node] [
-        append-node current-node node: make-node 'comment
-        set-property node 'value comment
+        node: make-node 'comment
+        set-node node/parent: current-node
+        set-node node/prop/value: comment
         node
     ]
     global-attrs: [
@@ -1021,6 +1128,9 @@ to the generated tree, and finally converts it back to XHTML text.
 
 ===Tree rewriting pass
 
+This is obsolete and needs to be replaced by "rewriting on the fly". Currently keeping it
+as I'm out of time.
+
     -tree-rewriting-:
     rewrite-tree root either current-options/target = 'editor [
         editor-rewrite-rules
@@ -1037,37 +1147,157 @@ We need:
     editor-rewrite-rules: head insert [
         -editor-rewrite-rules-
     ] xhtml-rewrite-rules
+    remove-node: func [node] [
+        set-node node/parent: none
+    ]
+    remove-br: func [node /local nxt] [
+        if nxt: get-node node/next [set-node nxt/parent: none]
+        set-node node/parent: none
+    ]
+    merge-with-previous: func [node] [
+        set-node node/parent: get-node node/prev
+        unwrap-node node
+    ]
+    make-strike: func [node] [
+        set-node node/type: 'span
+        set-node node/properties copy [style "text-decoration: line-through;"]
+    ]
+    make-underline: func [node] [
+        set-node node/type: 'span
+        set-node node/properties copy [style "text-decoration: underline;"]
+    ]
+    remove-table: func [table /local p-node childs element type] [
+        foreach tbody get-node table/childs [
+            foreach tr get-node tbody/childs [
+                foreach td get-node tr/childs [
+                    childs: get-node td/childs
+                    while [not tail? childs] [
+                        element: childs/1
+                        either find [
+                            tt i b u strike s big small sub sup em strong dfn code samp kbd var
+                            cite abbr acronym a span map area select textarea button label input
+                            q img br text
+                        ] type: get-node element/type [
+                            ; inline node
+                            either all [type = 'text "^/" = get-node element/prop/value] [
+                                childs: next childs
+                            ] [
+                                either all [p-node 'future-p = get-node p-node/type] [
+                                    set-node element/parent: p-node
+                                ] [
+                                    p-node: make-node 'future-p
+                                    set-node table/previous: p-node
+                                    set-node element/parent: p-node
+                                ]
+                            ]
+                        ] [
+                            ; block node
+                            if all [p-node 'future-p = get-node p-node/type] [
+                                set-node p-node/type: 'p
+                                set-node p-node/next: make-tree [text [value: "^/"]]
+                            ]
+                            p-node: none
+                            set-node table/previous: element
+                            set-node element/next: make-tree [text [value: "^/"]]
+                        ]
+                    ]
+                    if all [p-node 'future-p = get-node p-node/type] [
+                        set-node p-node/type: 'p
+                        set-node p-node/next: make-tree [text [value: "^/"]]
+                        p-node: none
+                    ]
+                ]
+            ]
+        ]
+        set-node table/parent: none
+    ]
 
 ---Rewrite rules
 
     -rewrite-rules-:
     ; <i,u,b><br />^/</i,u,b> ---> <br />^/
-    [[i u b] [] [br []] [text [value: "^/"]]] unwrap
+    [
+        type in [i u b]
+        childs/1 <> none
+        childs/1/type = 'br
+        any [
+            childs/2 = none
+            all [childs/2/type = 'text childs/2/prop/value = "^/"]
+        ]
+    ] unwrap-node
     ; remove empty i, u, b, strike, span
-    [[i u b strike span] []] remove
+    [
+        type in [i u b strike span]
+        childs/1 = none
+    ] remove-node
     ; remove empty a with no name
-    [a [name: #[none]]] remove
+    [
+        type = 'a
+        prop/name = none
+        childs/1 = none
+    ] remove-node
     ; unwrap span with no attributes
-    [span [dir: #[none] id: #[none] class: #[none] title: #[none] style: #[none]] **] unwrap
+    [
+        type = 'span
+        prop/dir = none
+        prop/id = none
+        prop/class = none
+        prop/title = none
+        prop/style = none
+    ] unwrap-node
     ; merge consecutive <u>, <i>, <span> 
-    [u [] **] followed by [u prev **] rewrite to [u [*: *] ** next unwrapped]
-    [i [] **] followed by [i prev **] rewrite to [i [*: *] ** next unwrapped]
-    [span [] **] followed by [span prev **] rewrite to [span [*: *] ** next unwrapped]
+    [
+        type in [i u span]
+        prev <> none
+        prev/type = type
+        prev/properties = properties
+    ] merge-with-previous
 
 ---Rewrite rules for the |editor| target
 
     -editor-rewrite-rules-:
     ; <strike>...</strike> -> <span style="text-decoration: line-through;">...</span>
-    [strike [] **] [span [style: "text-decoration: line-through;"] **]
+    [type = 'strike] make-strike
     ; <u>...</u> -> <span style="text-decoration: underline;">...</span>
-    [u [] **] [span [style: "text-decoration: underline;"] **]
+    [type = 'u] make-underline
     ; remove surious divs that may be created
-    [blockquote/div [dir: #[none] id: #[none] class: #[none] title: #[none] style: #[none]] **] unwrap
+    [
+        type ~ blockquote/div
+        prop/dir = none
+        prop/id = none
+        prop/class = none
+        prop/title = none
+        prop/style = none
+    ] unwrap-node
     ; remove some spurious <br />s generated by FF
-    [[li p td] [] ** [br []] [text [value: "^/"]]] [* [*: *] 1 to -3]
+    [
+        type = 'br
+        parent/type in [li p td]
+        any [
+            next = none
+            all [
+                next/type = 'text
+                next/prop/value = "^/"
+                next/next = none
+            ]
+        ]
+    ] remove-br
     ; merge consecutive <blockquote>s
-    [blockquote [] **] followed by newline-node: [text [value: "^/"]] followed by next-blockquote: [blockquote [] **]
-        rewrite to [blockquote [] ** newline-node unwrapped next-blockquote unwrapped]
+    [
+        type = 'text
+        prop/value = "^/"
+        prev <> none
+        prev/type = 'blockquote
+        next <> none
+        next/type = 'blockquote
+    ] remove-node
+    [
+        type = 'blockquote
+        prev <> none
+        prev/type = 'blockquote
+    ] merge-with-previous
+    ; remove tables not generated by the editor
+    [type = 'table prop/class = none] remove-table
 
 ===Generation of XHTML text
 
@@ -1079,27 +1309,28 @@ We need:
             <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> newline
             emit-childs root
         ] [
-            emit-childs select-child root 'html/body
+            emit-childs get-node root/childs/html/childs/body
         ]
     ]
 
 ---Functions used to emit XHTML
 
     -emitter-functions-:
-    emit-childs: macro/custom [type cdata?] [
+    emit-childs: macro/custom [type cdata? node] [
         [/cdata (cdata?: yes) | (cdata?: no)] do-next (
-            foreach-child node pop-result [
+            node: pop-result
+            foreach node get-node node/childs [
                 emit output [
-                    switch type: node-type? node [
-                        text [either cdata? [(get-property node 'value)] [text get-property node 'value]]
-                        comment [(get-property node 'value)]
+                    switch type: get-node node/type [
+                        text [either cdata? [(get-node node/prop/value)] [text get-node node/prop/value]]
+                        comment [(get-node node/prop/value)]
                         style [
-                            tag 'style fix-attrs node-properties? node [
+                            tag 'style fix-attrs get-node node/properties [
                                 cdata/options [emit-childs /cdata node] [commented: yes]
                             ]
                         ]
                         /default [
-                            tag type fix-attrs node-properties? node either find [base link hr area input img br col] type ['empty] [[emit-childs node]]
+                            tag type fix-attrs get-node node/properties either find [base link hr area input img br col] type ['empty] [[emit-childs node]]
                         ]
                     ]
                 ]

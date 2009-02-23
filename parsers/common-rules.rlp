@@ -6,7 +6,7 @@ Common PARSE rules
     }
     Author: "Gabriele Santilli"
     File: %common-rules.r
-    Version: 1.1.0
+    Version: 1.1.1
     Imports: [
         %parsers/rule-arguments.r
     ]
@@ -45,7 +45,7 @@ Some useful rules for block parsing:
         "Evaluate the next value, push result to the stack"
         /local here value
     ] [
-        here: (
+        here: skip (
             set [value here] do/next here
             push-result :value
         ) :here
