@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.1
+    Version: 3.1.2
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -300,8 +300,35 @@ to the generated tree, and finally converts it back to XHTML text.
                 enter-tag tag-name? event data [ ]
             ) in-para (leave-tag)
 
-            <address> <p> <legend>
+            <address> <legend>
                 (enter-tag tag-name? event data [ ]) in-para (leave-tag)
+
+            <p> (
+                created: 1
+                unless data [data: [ ]]
+                either current-options/target = 'editor [
+                    if p-style: select data 'style [
+                        p-style: parse-css p-style
+                        if p-align: select p-style 'text-align [
+                            enter-tag 'div reduce ['align p-align] [
+                                align [enum "left" "center" "right" "justify"] none
+                            ]
+                            p-style/text-align: none
+                        ]
+                    ]
+                    enter-tag 'p [ ] [ ]
+                    if all [p-style not empty? p-style: form-css p-style] [
+                        enter-span-tag reduce ['style p-style]
+                    ]
+                ] [
+                    enter-tag 'p data [ ]
+                ]
+                set-node current-node/prop/created: created
+            ) in-para (
+                created: get-node current-node/prop/created
+                set-node current-node/prop/created: none
+                loop created [leave-tag]
+            )
 
             <pre> (
                 if current-options/target = 'editor [
@@ -389,7 +416,10 @@ to the generated tree, and finally converts it back to XHTML text.
             <fieldset> (enter-tag 'fieldset data [ ]) in-body (leave-tag)
             <center> (enter-tag 'div append copy [align "center"] data [ ]) in-body (leave-tag)
 
-            <blockquote> (enter-tag 'blockquote data [cite uri none]) in-body (leave-tag)
+            <blockquote> (
+                if current-options/target = 'editor [data: none]
+                enter-tag 'blockquote data [cite uri none]
+            ) in-body (leave-tag)
             <form>  (enter-tag 'form data [
                 action  force "#" ; disable forms!
                 method  force "GET"
@@ -467,8 +497,19 @@ to the generated tree, and finally converts it back to XHTML text.
 
             <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
             <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
-            <abbr> <acronym>
-                (enter-tag tag-name? event data [ ]) in-para (leave-tag)
+            <abbr> <acronym> (
+                either current-options/target = 'editor [
+                    enter-tag select [
+                        <i> em <b> strong <u> span
+                        <strike> span <em> em <strong> strong
+                    ] event select [
+                        <i> [] <b> [] <u> [style "text-decoration: underline;"]
+                        <strike> [style "text-decoration: line-through;"] <em> [] <strong> []
+                    ] event [ ]
+                ] [
+                    enter-tag tag-name? event data [ ]
+                ]
+            ) in-para (leave-tag)
 
             <a> (
                 if all [current-options/target = 'editor data] [
@@ -494,7 +535,9 @@ to the generated tree, and finally converts it back to XHTML text.
                     ]
                 ]
                 enter-tag 'a data [
-                    name     name*                                   none
+                    ;name     name*                                   none
+                    ; in the real world name may be an arbitrary string
+                    name     cdata                                   none
                     href     uri                                     none
                     hreflang name*                                   none
                     type     cdata                                   none
@@ -514,42 +557,7 @@ to the generated tree, and finally converts it back to XHTML text.
             ]) in-para (leave-tag)
 
             <span> (
-                created: 1
-                if current-options/target = 'editor [
-                    data: reduce [
-                        'style select data 'style
-                        'class attr-types/enum select data 'class reduce [
-                            make-class-name "normal"
-                            make-class-name "normal-small"
-                            make-class-name "normal-large"
-                        ]
-                    ]
-                ]
-                enter-tag 'span data [ ]
-                span-node: current-node
-                if span-style: get-node span-node/prop/style [
-                    span-style: parse-css span-style
-                    if "bold" = select span-style 'font-weight [
-                        created: 2
-                        enter-tag 'b [ ] [ ]
-                        span-style/font-weight: none
-                    ]
-                    if "italic" = select span-style 'font-style [
-                        created: created + 1
-                        enter-tag 'i [ ] [ ]
-                        span-style/font-style: none
-                    ]
-                ]
-                set-node current-node/prop/created: created
-                if span-style [
-                    if current-options/target = 'editor [
-                        span-style: reduce [
-                            'text-decoration attr-types/enum select span-style 'text-decoration ["underline" "line-through"]
-                        ]
-                    ]
-                    span-style: form-css span-style
-                    set-node span-node/prop/style: either empty? span-style [none] [span-style]
-                ]
+                set-node current-node/prop/created: enter-span-tag data
             ) in-para (
                 created: get-node current-node/prop/created
                 set-node current-node/prop/created: none
@@ -643,7 +651,7 @@ to the generated tree, and finally converts it back to XHTML text.
                     set-node img-node/prop/style: form-css reduce [
                         'width select img-style 'width
                         'height select img-style 'height
-                        'border "0px none"
+                        'border "0px"
                     ]
                 ]
             )
@@ -660,7 +668,9 @@ to the generated tree, and finally converts it back to XHTML text.
         in-list: inherit common [
             <li> (
                 unless data [data: [ ]]
+                created: 1
                 if current-options/target = 'editor [
+                    li-style: select data 'style
                     data: reduce [
                         'class attr-types/enum select data 'class reduce [
                             make-class-name "list-ul"
@@ -673,7 +683,15 @@ to the generated tree, and finally converts it back to XHTML text.
                     type  [style* list-style "list-style-type"] none
                     value number                                none
                 ]
-            ) in-item (leave-tag)
+                if all [current-options/target = 'editor li-style] [
+                    created: created + enter-span-tag reduce ['style li-style]
+                ]
+                set-node current-node/prop/created: created
+            ) in-item (
+                created: get-node current-node/prop/created
+                set-node current-node/prop/created: none
+                loop created [leave-tag]
+            )
 
             <ul> (
                 ;enter-tag 'li [ ] [ ]
@@ -800,8 +818,8 @@ to the generated tree, and finally converts it back to XHTML text.
                     ; char alignment not supported (browsers do not support it anyway)
                     valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
                 ]
-                if td-create-b? [enter-tag 'b [ ] [ ] created: 2]
-                if td-create-i? [enter-tag 'i [ ] [ ] created: created + 1]
+                if td-create-b? [enter-tag 'strong [ ] [ ] created: 2]
+                if td-create-i? [enter-tag 'em [ ] [ ] created: created + 1]
                 if td-create-span? [
                     enter-tag 'span reduce ['style form-css td-style-extra] [ ]
                     created: created + 1
@@ -912,6 +930,43 @@ to the generated tree, and finally converts it back to XHTML text.
     ]
     enter-tag: func [name attributes valid-attributes] [
         current-node: make-tag-node name attributes valid-attributes
+    ]
+    enter-span-tag: func [data /local created span-style] [
+        created: 1
+        if current-options/target = 'editor [
+            if span-style: select data 'style [
+                span-style: parse-css span-style
+                if "bold" = select span-style 'font-weight [
+                    created: 2
+                    enter-tag 'strong [ ] [ ]
+                    span-style/font-weight: none
+                ]
+                if "italic" = select span-style 'font-style [
+                    created: created + 1
+                    enter-tag 'em [ ] [ ]
+                    span-style/font-style: none
+                ]
+                if find ["line-through underline" "underline line-through"] select span-style 'text-decoration [
+                    created: created + 1
+                    enter-tag 'span [style "text-decoration: underline;"] [ ]
+                    span-style/text-decoration: "line-through"
+                ]
+                span-style: form-css reduce [
+                    'text-decoration attr-types/enum select span-style 'text-decoration ["underline" "line-through"]
+                ]
+            ]
+            data: reduce [
+                'style span-style
+                'class attr-types/enum select data 'class reduce [
+                    make-class-name "normal"
+                    make-class-name "normal-small"
+                    make-class-name "normal-large"
+                    make-class-name "toc-index"
+                ]
+            ]
+        ]
+        enter-tag 'span data [ ]
+        created
     ]
     leave-tag: does [
         current-node: get-node current-node/parent
@@ -1158,14 +1213,6 @@ We need:
         set-node node/parent: get-node node/prev
         unwrap-node node
     ]
-    make-strike: func [node] [
-        set-node node/type: 'span
-        set-node node/properties copy [style "text-decoration: line-through;"]
-    ]
-    make-underline: func [node] [
-        set-node node/type: 'span
-        set-node node/properties copy [style "text-decoration: underline;"]
-    ]
     remove-table: func [table /local p-node childs element type] [
         foreach tbody get-node table/childs [
             foreach tr get-node tbody/childs [
@@ -1217,17 +1264,17 @@ We need:
     -rewrite-rules-:
     ; <i,u,b><br />^/</i,u,b> ---> <br />^/
     [
-        type in [i u b]
+        type in [i u b em strong span]
         childs/1 <> none
         childs/1/type = 'br
         any [
             childs/2 = none
-            all [childs/2/type = 'text childs/2/prop/value = "^/"]
+            all [childs/2/type = 'text childs/2/prop/value = "^/" childs/3 = none]
         ]
     ] unwrap-node
     ; remove empty i, u, b, strike, span
     [
-        type in [i u b strike span]
+        type in [i u b strike span em strong]
         childs/1 = none
     ] remove-node
     ; remove empty a with no name
@@ -1245,29 +1292,33 @@ We need:
         prop/title = none
         prop/style = none
     ] unwrap-node
-    ; merge consecutive <u>, <i>, <span> 
+    ; merge consecutive <u>, <i>, <span>, etc.
     [
-        type in [i u span]
+        type in [i u span b em strong strike]
         prev <> none
         prev/type = type
         prev/properties = properties
     ] merge-with-previous
+    ; <td>^/</td> ---> <td></td>
+    [
+        type ~ td/text
+        prop/value = "^/"
+        next = none
+        prev = none
+    ] remove-node
 
 ---Rewrite rules for the |editor| target
 
     -editor-rewrite-rules-:
-    ; <strike>...</strike> -> <span style="text-decoration: line-through;">...</span>
-    [type = 'strike] make-strike
-    ; <u>...</u> -> <span style="text-decoration: underline;">...</span>
-    [type = 'u] make-underline
-    ; remove surious divs that may be created
+    ; remove spurious divs that may be created
     [
-        type ~ blockquote/div
+        type = 'div
         prop/dir = none
         prop/id = none
         prop/class = none
         prop/title = none
         prop/style = none
+        prop/align = none
     ] unwrap-node
     ; remove some spurious <br />s generated by FF
     [

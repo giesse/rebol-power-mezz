@@ -190,7 +190,60 @@ REBOL [
     filter-html/with {<ul><li>some text} [target: 'editor editor-class: "qw-burbank"]
 ]
 [
-    filter-html/with {<table><tr><td>just some <b>text</b></td><td><div><p>me</p><p>and you</p></div></td><td>me<p>and you</p></td></tr></table>} [
+    filter-html/with {<table><tr><td>just some <b>text</b></td><td><div class="toc-h1-div"><p>me</p><p>and you</p></div></td><td>me<p>and you</p></td></tr></table>} [
         target: 'editor
+    ]
+]
+[
+    filter-html/with {<span style="font-weight: bold; font-style: italic; text-decoration: underline line-through;">fghfgh</span><br>} [
+        target: 'editor
+    ]
+]
+[
+    filter-html/with {<img src="image.jpg" style="border: 0px none;" />} [
+        target: 'editor
+    ]
+]
+[
+    filter-html/with {<blockquote dir="LTR" style="MARGIN-RIGHT: 0px">Text</blockquote>} [
+        target: 'editor
+    ]
+]
+[
+    filter-html/with {<P class=qw-burbank-list-ol>dfsfsfdsdf</P>} [target: 'editor]
+]
+[
+    filter-html/with {<p style="text-align: center;">Text</p>} [target: 'editor]
+]
+[
+    filter-html/with {<span class="Apple-style-span" style="text-decoration:underline">Example Text</span>} [
+        target: 'editor
+    ]
+]
+[
+    filter-html/with {<a href="http://qtask.com" style="text-align:center;"><span style="text-decoration:underline;">Example Text</span></a>} [
+        target: 'editor
+    ]
+]
+[
+    filter-html/with {<blockquote class="webkit-indent-blockquote" style="margin: 0 0 0 40px; border: none; padding: 0px;">sdfsdfsdfsdf</blockquote>} [
+        target: 'editor
+    ]
+]
+[
+    filter-html/with {<div><ul class="qw-burbank-list"><li class="qw-burbank-list-ul"><span style="text-decoration:underline;">Example Text</span></li></ul></div>} [
+        target: 'editor
+        editor-class: "qw-burbank"
+    ]
+]
+[
+    filter-html/with {<img src="dsfsdfsdf" style="width:262px; height:300px; border-top-width: 0px; border-right-width: 0px; border-bottom-width: 0px; border-left-width: 0px; border-style: initial; border-color: initial; ">} [
+        target: 'editor
+    ]
+]
+[
+    filter-html/with {<h6 class="qw-burbank-h6"><span class="qw-burbank-toc-index">1.1.1.1.1&nbsp;</span><a name="1_1_1_1_1_6"></a>6</h6>} [
+        target: 'editor
+        editor-class: "qw-burbank"
     ]
 ]
