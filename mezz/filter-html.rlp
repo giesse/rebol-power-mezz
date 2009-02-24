@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.2
+    Version: 3.1.3
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -1187,10 +1187,14 @@ This is obsolete and needs to be replaced by "rewriting on the fly". Currently k
 as I'm out of time.
 
     -tree-rewriting-:
-    rewrite-tree root either current-options/target = 'editor [
-        editor-rewrite-rules
+    either current-options/target = 'editor [
+        rewrite-tree root editor-rewrite-rules
+        ; remove <p>s as the editor does not like them
+        rewrite-tree root [
+            [type = 'p] remove-p
+        ]
     ] [
-        xhtml-rewrite-rules
+        rewrite-tree root xhtml-rewrite-rules
     ]
 
 We need:
@@ -1257,6 +1261,13 @@ We need:
             ]
         ]
         set-node table/parent: none
+    ]
+    remove-p: func [p-node /local br] [
+        unless all [br: get-node p-node/childs/-1 'br = get-node br/type] [
+            br: make-node 'br
+            set-node br/parent: p-node
+        ]
+        unwrap-node p-node
     ]
 
 ---Rewrite rules
