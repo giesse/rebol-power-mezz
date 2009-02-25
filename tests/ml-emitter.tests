@@ -51,3 +51,39 @@ REBOL [
         tag 'html [ ] 'close
     ]
 ]
+[
+    emit "" [
+        tag 'html [xmlns: http://www.w3.org/1999/xhtml] [
+            newline
+            tag 'head [ ] [
+                newline
+                tag 'title [xml/lang: "US-en"] [
+                    text "This is a test"
+                ]
+                newline
+            ] newline
+            tag 'body [ ] [
+                newline
+                layout [
+                    "aa"
+                    "bc"
+                    "de"
+                    ".f"
+                    title: #"a" "background-color: red; color: yellow; text-align: center;"
+                    label1: #"b" "text-align: right;"
+                    label2: #"d" "text-align: right;"
+                    input1: #"c"
+                    input2: #"e"
+                    button: #"f" "text-align: right;"
+                ] [
+                    title: [text "This is a test form"]
+                    label1: [text "A label"]
+                    input1: [tag 'input [name: "one" type: "text"] 'empty]
+                    label2: [text "Another label"]
+                    input2: [tag 'input [name: "two" type: "text"] 'empty]
+                    button: [tag 'input [type: "submit" value: "Save"] 'empty]
+                ]
+            ] newline
+        ]
+    ]
+]

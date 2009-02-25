@@ -14,4 +14,10 @@ logic! #[true] string! {<html>
 <body>
 <p class="normal">Look here: <img src="http://www.qtask.com/some-image.png" alt="Some image" /></p>
 <o:p></o:p></body>
+</html>} string! {<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title xml:lang="US-en">This is a test</title>
+</head>
+<body>
+<table><tbody><tr><td colspan="2" rowspan="1" style="background-color: red; color: yellow; text-align: center;">This is a test form</td></tr><tr><td colspan="1" rowspan="1" style="text-align: right;">A label</td><td colspan="1" rowspan="1"><input name="one" type="text" /></td></tr><tr><td colspan="1" rowspan="1" style="text-align: right;">Another label</td><td colspan="1" rowspan="1"><input name="two" type="text" /></td></tr><tr><td colspan="1" rowspan="1"></td><td colspan="1" rowspan="1" style="text-align: right;"><input type="submit" value="Save" /></td></tr></tbody></table></body>
 </html>}

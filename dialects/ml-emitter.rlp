@@ -6,7 +6,7 @@ Macros to emit [X][HT]ML
     }
     Author: "Gabriele Santilli"
     File: %ml-emitter.r
-    Version: 1.1.1
+    Version: 1.2.0
     Imports: [
         %dialects/emit.r
         %parsers/rule-arguments.r
@@ -14,6 +14,7 @@ Macros to emit [X][HT]ML
     ]
     Exports: [
         tag text tag-attribute set-ml-encoding cdata
+        layout
     ]
 
 ===Introduction
@@ -93,5 +94,72 @@ to generate *ML code.
                 "]]>"
             ]
             if commented [" */^/"]
+        ]
+    ]
+
+===Advanced HTML layout
+
+    -main-:
+    span?: func [layspec x y char /local x-span y-span tmp] [
+        x-span: y-span: 1
+        while [layspec/:y/(x + x-span) = char] [x-span: x-span + 1]
+        while [all [tmp: layspec/(y + y-span) tmp/:x = char]] [y-span: y-span + 1]
+        as-pair x-span y-span
+    ]
+    make-table: func [spec /local layspec charmap word char style table width height row used] [
+        charmap: clear [ ]
+        parse spec [
+            copy layspec some string!
+            some [
+                set word set-word! set char char! set style opt string! (
+                    insert/only insert tail charmap char reduce [word style]
+                )
+            ]
+        ]
+        height: length? layspec
+        width: 0
+        foreach str layspec [width: max width length? str]
+        table: make block! 2 + height
+        row: head insert/dup clear [ ] none width
+        loop height [
+            append/only table copy row
+        ]
+        used: clear [ ]
+        repeat y height [
+            repeat x width [
+                char: layspec/:y/:x
+                unless find used char [
+                    append used char
+                    set [word style] select charmap char
+                    table/:y/:x: reduce [word span? layspec x y char style]
+                ]
+            ]
+        ]
+        table
+    ]
+    cell-contents: 1 cell-span: 2 cell-style: 3
+    layout: macro [
+        "Layout using a HTML table"
+        spec [block!]
+        cells [block!]
+        /local table table-style
+    ] [
+        (parse spec [opt ['style set table-style string!] spec:] table: make-table spec [ ])
+        tag 'table [style: table-style] [
+            tag 'tbody [] [
+                foreach 'row table [
+                    tag 'tr [] [
+                        foreach 'cell row [
+                            if cell [
+                                tag 'td [
+                                    colspan: cell/:cell-span/x
+                                    rowspan: cell/:cell-span/y
+                                    style: cell/:cell-style
+                                ] any [select cells cell/:cell-contents []]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ]
     ]
