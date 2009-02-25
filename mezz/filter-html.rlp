@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.3
+    Version: 3.1.4
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -672,9 +672,13 @@ to the generated tree, and finally converts it back to XHTML text.
                 if current-options/target = 'editor [
                     li-style: select data 'style
                     data: reduce [
-                        'class attr-types/enum select data 'class reduce [
-                            make-class-name "list-ul"
-                            make-class-name "list-ul-nested"
+                        'class either 'ul = get-node current-node/type [
+                            either find [ol ul] get-node current-node/parent/type [
+                                make-class-name "list-ul-nested"
+                            ] [
+                                make-class-name "list-ul"
+                            ]
+                        ] [
                             make-class-name "list-ol"
                         ]
                     ]
@@ -697,7 +701,7 @@ to the generated tree, and finally converts it back to XHTML text.
                 ;enter-tag 'li [ ] [ ]
                 if current-options/target = 'editor [
                     data: reduce [
-                        'class select data 'class
+                        'class make-class-name "list"
                     ]
                 ]
                 enter-tag 'ul data [
@@ -708,7 +712,7 @@ to the generated tree, and finally converts it back to XHTML text.
                 ;enter-tag 'li [ ] [ ]
                 if current-options/target = 'editor [
                     data: reduce [
-                        'class select data 'class
+                        'class make-class-name "list"
                     ]
                 ]
                 enter-tag 'ol data [

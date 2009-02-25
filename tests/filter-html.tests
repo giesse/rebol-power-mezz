@@ -247,3 +247,9 @@ REBOL [
         editor-class: "qw-burbank"
     ]
 ]
+[
+    filter-html/with {<ol><li>one<li>two</ol><ul><li>one</li><ul><li>one-sub</ul></ul><ol><li>one</li><ul><li>one-sub} [
+        target: 'editor
+        editor-class: "qw-burbank"
+    ]
+]
