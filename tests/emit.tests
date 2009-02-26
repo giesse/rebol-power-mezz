@@ -100,3 +100,17 @@ REBOL [
         ]
     ]
 ]
+[
+	test: macro [
+		a
+		/options
+			b: 'word [word!]
+			c: 2 + 1 [integer!]
+	] [
+		a b c
+	]
+	emit [] [test/options "bla" [c: 6 b: 'bla]]
+]
+[
+	emit [] [test "alb"]
+]

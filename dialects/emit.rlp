@@ -6,7 +6,7 @@ Dialected EMIT function
     }
     Author: "Gabriele Santilli"
     File: %emit.r
-    Version: 1.1.0
+    Version: 1.1.1
     Imports: [
         %mezz/text-encoding.r     "Used by the encode-text and decode-text keywords"
         %parsers/common-rules.r   "We need DO-NEXT"
@@ -285,7 +285,7 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
         ]
     ]
     unless mandatory [mandatory: length? types]
-    spec*: context spec*
+    spec*: construct spec*
     bind body spec*
     reduce [
         'macro spec* get spec* mandatory types
