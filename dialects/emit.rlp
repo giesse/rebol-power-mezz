@@ -6,7 +6,7 @@ Dialected EMIT function
     }
     Author: "Gabriele Santilli"
     File: %emit.r
-    Version: 1.1.1
+    Version: 1.1.2
     Imports: [
         %mezz/text-encoding.r     "Used by the encode-text and decode-text keywords"
         %parsers/common-rules.r   "We need DO-NEXT"
@@ -317,12 +317,15 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             parse value ['macro object! block! integer! block! [block! | function!] block!]
         ]
     ]
+    expect-arg: func [func-name arg-name types near] [
+        make error! reduce ['script 'expect-arg func-name arg-name types near]
+    ]
     call-macro: func [
         output [series!]
         args [block!]
         macro [block!]
         /options
-        /local saved values value types name
+        /local saved values value types name near
     ] [
         ; 1     2   3        4       5     6         7
         ; macro ctx defaults numargs types body/func spec
@@ -332,12 +335,15 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             set macro/2 macro/3
             args: macro/6 output args
         ] [
+            near: copy/part back args 5
             values: copy macro/3
             types: macro/5
             loop macro/4 [
                 set [value args] do/next args
                 ; !!! problem !!!
-                if all [types/1 not find types/1 type?/word :value] [make error! "invalid type"]
+                if all [types/1 not find types/1 type?/word :value] [
+                    expect-arg near/1 pick first macro/2 1 + index? types types/1 near
+                ]
                 values/1: :value
                 values: next values
                 types: next types
@@ -345,7 +351,9 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             set macro/2 head values
             if options [
                 set [value args] do/next args
-                unless block? :value [make error! "invalid type"]
+                unless block? :value [
+                    expect-arg near/1 'options [block!] near
+                ]
                 options: copy skip first macro/2 macro/4 + 1
                 types: copy types
                 parse value [
@@ -355,7 +363,9 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
                                 ; !!! problem !!!
                                 types: at head types index? name
                                 value: pop-result
-                                if all [types/1 not find types/1 type?/word :value] [make error! "invalid type"]
+                                if all [types/1 not find types/1 type?/word :value] [
+                                    expect-arg near/1 name/1 types/1 near
+                                ]
                                 set in macro/2 name/1 :value
                             ]
                         )

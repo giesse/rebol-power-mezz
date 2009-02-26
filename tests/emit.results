@@ -1,3 +1,9 @@
 logic! #[true] string! {<div><p><span>In a span</span> and out of it...</p><p>...and so on...</p><div style="background-color: red; color: yellow;"><p>This can be used in many ways...</p></div></div>} string! {You are running REBOL/View version 2.7.6.4.2.
 Those values are available in systemproduct and systemversion.
-3 * 2 = 6} block! [1 2 3 4 5 6 [7 8 9] 10 11 12 13 14 15 16 17 18] string! {<select><option>First</option><option>Second</option><option value="third">Third</option><option>Fourth</option></select>} block! ["bla" bla 6] block! ["alb" word 3]
+3 * 2 = 6} block! [1 2 3 4 5 6 [7 8 9] 10 11 12 13 14 15 16 17 18] string! {<select><option>First</option><option>Second</option><option value="third">Third</option><option>Fourth</option></select>} block! ["bla" bla 6] block! ["alb" word 3] error! 
+{** Script Error: test/options expected a argument of type: string!
+** Near: test/options 1 [b: 3]
+} error! 
+{** Script Error: test/options expected b argument of type: word!
+** Near: test/options "bla" [b: 3]
+}
