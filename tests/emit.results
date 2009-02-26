@@ -6,4 +6,7 @@ Those values are available in systemproduct and systemversion.
 } error! 
 {** Script Error: test/options expected b argument of type: word!
 ** Near: test/options "bla" [b: 3]
+} error! 
+{** Script Error: test is missing its a argument
+** Near: test
 }

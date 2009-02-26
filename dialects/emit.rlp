@@ -6,7 +6,7 @@ Dialected EMIT function
     }
     Author: "Gabriele Santilli"
     File: %emit.r
-    Version: 1.1.2
+    Version: 1.1.3
     Imports: [
         %mezz/text-encoding.r     "Used by the encode-text and decode-text keywords"
         %parsers/common-rules.r   "We need DO-NEXT"
@@ -320,6 +320,9 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
     expect-arg: func [func-name arg-name types near] [
         make error! reduce ['script 'expect-arg func-name arg-name types near]
     ]
+    no-arg: func [func-name arg-name near] [
+        make error! reduce ['script 'no-arg func-name arg-name none near]
+    ]
     call-macro: func [
         output [series!]
         args [block!]
@@ -339,6 +342,9 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             values: copy macro/3
             types: macro/5
             loop macro/4 [
+                if empty? args [
+                    no-arg near/1 pick first macro/2 1 + index? types near
+                ]
                 set [value args] do/next args
                 ; !!! problem !!!
                 if all [types/1 not find types/1 type?/word :value] [
@@ -350,6 +356,9 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             ]
             set macro/2 head values
             if options [
+                if empty? args [
+                    no-arg near/1 'options near
+                ]
                 set [value args] do/next args
                 unless block? :value [
                     expect-arg near/1 'options [block!] near
