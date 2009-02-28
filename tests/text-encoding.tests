@@ -356,3 +356,78 @@ REBOL [
     output: ""
     decode-text/to url-string 'url+ output
 ]
+[
+    json-string: encode-text utf8-string 'json
+]
+[
+    tmp: copy utf8-string
+    encode-text/to tmp 'json tmp
+]
+[
+    output: ""
+    encode-text/to utf8-string 'json output
+]
+[
+    decode-text json-string 'json
+]
+[
+    tmp: copy json-string
+    decode-text/to tmp 'json tmp
+]
+[
+    output: ""
+    decode-text/to json-string 'json output
+]
+[
+    encode-text {A \ JSON " String ^/ with / special chars.} 'json
+]
+[
+    json-string: encode-text utf8-string 'json-ascii
+]
+[
+    tmp: copy utf8-string
+    encode-text/to tmp 'json-ascii tmp
+]
+[
+    output: ""
+    encode-text/to utf8-string 'json-ascii output
+]
+[
+    decode-text json-string 'json-ascii
+]
+[
+    tmp: copy json-string
+    decode-text/to tmp 'json-ascii tmp
+]
+[
+    output: ""
+    decode-text/to json-string 'json-ascii output
+]
+[
+    encode-text {A \ JSON " String ^/ with / special chars.} 'json-ascii
+]
+[
+    json-string: encode-text utf8-string 'json-utf8
+]
+[
+    tmp: copy utf8-string
+    encode-text/to tmp 'json-utf8 tmp
+]
+[
+    output: ""
+    encode-text/to utf8-string 'json-utf8 output
+]
+[
+    decode-text json-string 'json-utf8
+]
+[
+    tmp: copy json-string
+    decode-text/to tmp 'json-utf8 tmp
+]
+[
+    output: ""
+    decode-text/to json-string 'json-utf8 output
+]
+[
+    encode-text {A \ JSON " String ^/ with / special chars.} 'json-utf8
+]

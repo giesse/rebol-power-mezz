@@ -8,7 +8,7 @@ Text encoding and decoding functions
     }
     Author: "Gabriele Santilli"
     File: %text-encoding.r
-    Version: 1.1.1
+    Version: 1.2.0
     Imports: [
         %parsers/common-rules.r
     ]
@@ -1153,6 +1153,67 @@ a "+" instead of "%20", and decodes "+" as a space.
         ]
     ]
     url+: make url [plus?: yes]
+
+The |json| encoding can be used to "escape" strings for Javascript and JSON.
+|json| is an alias for |json-ascii| that encodes all non-ASCII characters with
+an escape sequence; |json-utf8| instead only encodes control characters and
+string delimiters.
+
+    -encodings-:
+    json: json-ascii: json-utf8: make-encoding [
+        utf8?: no
+        special: charset [#"^(00)" - #"^(1F)" {\/"}]
+        encode-ascii: func [output start end] [insert/part tail output start end]
+        encode-sequence: func [output start end /local char nm] [
+            char: as-binary copy/part start end
+            append output switch/default char [
+                #{08} ["\b"]
+                #{09} ["\t"]
+                #{0A} ["\n"]
+                #{0C} ["\f"]
+                #{0D} ["\r"]
+                #{22} [{\"}]
+                #{2F} ["\/"]
+                #{5C} ["\\"]
+            ] [
+                either all [utf8? 1 < length? char] [
+                    char
+                ] [
+                    char: decode-utf8 char
+                    append output "\u"
+                    skip to-hex char 4
+                ]
+            ]
+        ]
+        decode: func [output text /local txt mk1 mk2] [
+            parse/all text [
+                any [
+                    mk1: to #"\" mk2: (insert/part tail output mk1 mk2)
+                    #"\" [
+                        #"u" copy txt some hexdigit (append output hex-to-utf8char txt)
+                        |
+                        #"b" (append output #"^(08)")
+                        |
+                        #"t" (append output #"^(09)")
+                        |
+                        #"n" (append output #"^(0A)")
+                        |
+                        #"f" (append output #"^(0C)")
+                        |
+                        #"r" (append output #"^(0D)")
+                        |
+                        copy txt skip (append output txt)
+                    ]
+                    |
+                    ; copy to end
+                    (append output mk1)
+                    end skip
+                ]
+            ]
+            output
+        ]
+    ]
+    json-utf8: make json-utf8 [utf8?: yes]
 
 ===Support functions
 
