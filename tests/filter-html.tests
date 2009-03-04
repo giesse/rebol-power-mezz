@@ -253,3 +253,6 @@ REBOL [
         editor-class: "qw-burbank"
     ]
 ]
+[
+    filter-html ""
+]

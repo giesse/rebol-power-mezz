@@ -7,7 +7,7 @@ HTML Normalizer
     }
     Author: "Gabriele Santilli"
     File: %normalize-html.r
-    Version: 1.1.3
+    Version: 1.1.4
     Imports: [
         %dialects/fsm.r "Finite State Machine dialect"
     ]
@@ -153,9 +153,11 @@ a state different than the initial state due to an error in a previous run.
 
 On reset, we need to reset the FSM
 (this sends it back to the initial state, so it takes care of closing all elements
-and so on).
+and so on). We also send the |'end| event which is ignored unless no HTML header has
+been generated yet; this forces the generation of a HTML header for empty input.
 
     -end-normalizer-:
+    process-event fsm 'end none
     reset-fsm fsm
 
 ===Tag balancing state machine

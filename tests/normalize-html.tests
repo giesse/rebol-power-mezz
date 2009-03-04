@@ -84,3 +84,7 @@ REBOL [
     "<hr> attributes ignored"
     normalize-html [[<hr> class "qw-burbank-hr"]]
 ]
+[
+    "Empty document does not produce html header"
+    normalize-html []
+]
