@@ -165,3 +165,43 @@ REBOL [
         ]
     ]
 ]
+[
+    emit "" [
+        tag 'html [xmlns: http://www.w3.org/1999/xhtml] [
+            newline
+            tag 'head [ ] [
+                newline
+                tag 'title [xml/lang: "US-en"] [
+                    text "This is a test"
+                ]
+                newline
+            ] newline
+            tag 'body [ ] [
+                newline
+                layout [
+                    "aa"
+                    repeat fields [
+                        "bc"
+                        label: #"b" "text-align: right;" "text-align: right; color: green;"
+                        input: #"c"
+                    ]
+                    ".d"
+                    "ee"
+                    title: #"a" #"e" "background-color: red; color: yellow; text-align: center;"
+                    button: #"d" "text-align: right;"
+                ] [
+                    title: [text "This is a test form"]
+                    button: [tag 'input [type: "submit" value: "Save"] 'empty]
+                    fields: foreach [label name] [
+                        "A label" "one"
+                        "Another label" "two"
+                        "...and so on..." "three"
+                    ] [
+                        label: [text label]
+                        input: [tag 'input [name: name type: "text"] 'empty]
+                    ]
+                ]
+            ] newline
+        ]
+    ]
+]

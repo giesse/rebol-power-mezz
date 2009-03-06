@@ -6,7 +6,7 @@ Macros to emit [X][HT]ML
     }
     Author: "Gabriele Santilli"
     File: %ml-emitter.r
-    Version: 1.3.1
+    Version: 1.3.2
     Imports: [
         %dialects/emit.r
         %parsers/rule-arguments.r
@@ -118,8 +118,10 @@ to generate *ML code.
                 set row string! (append layspec row)
             ]
             some [
-                set word set-word! set char char! copy style any string! (
-                    insert/only insert tail charmap char reduce [word style]
+                set word set-word! copy char some char! copy style any string! (
+                    foreach ch char [
+                        insert/only insert tail charmap ch reduce [word style]
+                    ]
                 )
             ]
         ]
