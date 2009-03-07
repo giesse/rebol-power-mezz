@@ -6,7 +6,7 @@ Macros to emit [X][HT]ML
     }
     Author: "Gabriele Santilli"
     File: %ml-emitter.r
-    Version: 1.3.2
+    Version: 1.4.0
     Imports: [
         %dialects/emit.r
         %parsers/rule-arguments.r
@@ -14,7 +14,7 @@ Macros to emit [X][HT]ML
     ]
     Exports: [
         tag text tag-attribute set-ml-encoding cdata
-        layout
+        layout style
     ]
 
 ===Introduction
@@ -94,6 +94,19 @@ to generate *ML code.
                 "]]>"
             ]
             if commented [" */^/"]
+        ]
+    ]
+    style: macro [
+        "Emit a <style> tag"
+        attributes [block!]
+        contents [none! block! string!]
+    ] [
+        tag 'style attributes switch type?/word contents [
+            none! ['empty]
+            block! [[emit contents]]
+            string! [
+                [cdata/options [(trim/auto copy contents)] [commented: yes]]
+            ]
         ]
     ]
 
@@ -179,7 +192,7 @@ to generate *ML code.
                             tag 'td [
                                 colspan: cell/:cell-span/x
                                 rowspan: cell/:cell-span/y
-                                style: if cell/:cell-style [cell/:cell-style/(i // (length? cell/:cell-style) + 1)]
+                                class: if cell/:cell-style [cell/:cell-style/(i // (length? cell/:cell-style) + 1)]
                             ] any [select cells cell/:cell-contents []]
                         ]
                     ]
@@ -191,10 +204,10 @@ to generate *ML code.
         "Layout using a HTML table"
         spec [block!]
         cells [block!]
-        /local table table-style
+        /local table table-style table-class
     ] [
-        (parse spec [opt ['style set table-style string!] spec:] table: make-table spec [ ])
-        tag 'table [style: table-style] [
+        (parse spec [any ['style set table-style string! | 'class set table-class string!] spec:] table: make-table spec [ ])
+        tag 'table [style: table-style class: table-class] [
             tag 'tbody [] [
                 make-rows table cells 0
             ]

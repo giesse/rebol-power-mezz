@@ -61,6 +61,11 @@ REBOL [
                     text "This is a test"
                 ]
                 newline
+                style [] {
+                    .title {background-color: red; color: yellow; text-align: center;}
+                    .label, .button {text-align: right;}
+                }
+                newline
             ] newline
             tag 'body [ ] [
                 newline
@@ -69,12 +74,12 @@ REBOL [
                     "bc"
                     "de"
                     ".f"
-                    title: #"a" "background-color: red; color: yellow; text-align: center;"
-                    label1: #"b" "text-align: right;"
-                    label2: #"d" "text-align: right;"
+                    title: #"a" "title"
+                    label1: #"b" "label"
+                    label2: #"d" "label"
                     input1: #"c"
                     input2: #"e"
-                    button: #"f" "text-align: right;"
+                    button: #"f" "button"
                 ] [
                     title: [text "This is a test form"]
                     label1: [text "A label"]
@@ -97,6 +102,11 @@ REBOL [
                     text "This is a test"
                 ]
                 newline
+                style [] {
+                    .title {background-color: red; color: yellow; text-align: center;}
+                    .label, .button {text-align: right;}
+                }
+                newline
             ] newline
             tag 'body [ ] [
                 newline
@@ -104,12 +114,12 @@ REBOL [
                     "aa"
                     repeat fields [
                         "bc"
-                        label: #"b" "text-align: right;"
+                        label: #"b" "label"
                         input: #"c"
                     ]
                     ".d"
-                    title: #"a" "background-color: red; color: yellow; text-align: center;"
-                    button: #"d" "text-align: right;"
+                    title: #"a" "title"
+                    button: #"d" "button"
                 ] [
                     title: [text "This is a test form"]
                     button: [tag 'input [type: "submit" value: "Save"] 'empty]
@@ -136,6 +146,12 @@ REBOL [
                     text "This is a test"
                 ]
                 newline
+                style [] {
+                    .title {background-color: red; color: yellow; text-align: center;}
+                    .label, .button {text-align: right;}
+                    .green {color: green;}
+                }
+                newline
             ] newline
             tag 'body [ ] [
                 newline
@@ -143,12 +159,12 @@ REBOL [
                     "aa"
                     repeat fields [
                         "bc"
-                        label: #"b" "text-align: right;" "text-align: right; color: green;"
+                        label: #"b" "label" "label green"
                         input: #"c"
                     ]
                     ".d"
-                    title: #"a" "background-color: red; color: yellow; text-align: center;"
-                    button: #"d" "text-align: right;"
+                    title: #"a" "title"
+                    button: #"d" "button"
                 ] [
                     title: [text "This is a test form"]
                     button: [tag 'input [type: "submit" value: "Save"] 'empty]
@@ -175,6 +191,12 @@ REBOL [
                     text "This is a test"
                 ]
                 newline
+                style [] {
+                    .title {background-color: red; color: yellow; text-align: center;}
+                    .label, .button {text-align: right;}
+                    .green {color: green;}
+                }
+                newline
             ] newline
             tag 'body [ ] [
                 newline
@@ -182,13 +204,13 @@ REBOL [
                     "aa"
                     repeat fields [
                         "bc"
-                        label: #"b" "text-align: right;" "text-align: right; color: green;"
+                        label: #"b" "label" "label green"
                         input: #"c"
                     ]
                     ".d"
                     "ee"
-                    title: #"a" #"e" "background-color: red; color: yellow; text-align: center;"
-                    button: #"d" "text-align: right;"
+                    title: #"a" #"e" "title"
+                    button: #"d" "button"
                 ] [
                     title: [text "This is a test form"]
                     button: [tag 'input [type: "submit" value: "Save"] 'empty]
