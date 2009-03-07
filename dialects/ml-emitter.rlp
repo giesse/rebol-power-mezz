@@ -6,7 +6,7 @@ Macros to emit [X][HT]ML
     }
     Author: "Gabriele Santilli"
     File: %ml-emitter.r
-    Version: 1.4.0
+    Version: 1.4.1
     Imports: [
         %dialects/emit.r
         %parsers/rule-arguments.r
@@ -124,8 +124,8 @@ to generate *ML code.
         layspec: copy [ ]
         parse spec [
             some [
-                'repeat set word word! set table block! (
-                    append/only layspec reduce [word make-table table]
+                'repeat set word word! do-next (
+                    append/only layspec reduce [word make-table pop-result]
                 )
                 |
                 set row string! (append layspec row)
