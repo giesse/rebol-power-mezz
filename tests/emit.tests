@@ -127,6 +127,7 @@ REBOL [
     emit system/ports/output [
         "This should appear on the console."
         newline
+		if true ["This should appear too" newline]
     ]
     confirm "^-Was text printed on the console? "
 ]

@@ -6,7 +6,7 @@ Dialected EMIT function
     }
     Author: "Gabriele Santilli"
     File: %emit.r
-    Version: 1.1.4
+    Version: 1.1.5
     Imports: [
         %mezz/text-encoding.r     "Used by the encode-text and decode-text keywords"
         %parsers/common-rules.r   "We need DO-NEXT"
@@ -324,7 +324,7 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
         make error! reduce ['script 'no-arg func-name arg-name none near]
     ]
     call-macro: func [
-        output [series!]
+        output [series! port!]
         args [block!]
         macro [block!]
         /options
@@ -405,7 +405,7 @@ See |-support-functions-| for the functions used by |emit| and |macro|.
             some [
                 set name set-word! 'keyword set spec block! set body block! (
                     actual-spec: copy [
-                        output [series!]
+                        output [series! port!]
                         args [block!]
                         /local
                     ]
