@@ -123,3 +123,10 @@ REBOL [
 [
 	emit [] [test]
 ]
+[
+    emit system/ports/output [
+        "This should appear on the console."
+        newline
+    ]
+    confirm "^-Was text printed on the console? "
+]

@@ -9,4 +9,4 @@ Those values are available in systemproduct and systemversion.
 } error! 
 {** Script Error: test is missing its a argument
 ** Near: test
-}
+} logic! #[true]
