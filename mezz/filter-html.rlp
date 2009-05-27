@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.5
+    Version: 3.1.6
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -483,6 +483,9 @@ to the generated tree, and finally converts it back to XHTML text.
                     width   length                         none
                 ]
             )
+
+            ; normalizer may now let them pass here
+            <br/> (make-tag-node 'br data [clear brclear none])
             
             </div> </blockquote> </form> </fieldset> </ins> </del> </center> return
         ]
@@ -1273,18 +1276,8 @@ We need:
         set-node table/parent: none
     ]
     remove-p: func [p-node /local br] [
-        unless all [
-            br: get-node p-node/childs/-1
-            either all ['text = get-node br/type "^/" = get-node br/prop/value] [
-                br: get-node br/prev
-            ] [
-                true
-            ]
-            'br = get-node br/type
-        ] [
-            br: make-node 'br
-            set-node br/parent: p-node
-        ]
+        br: make-node 'br
+        set-node br/parent: p-node
         unwrap-node p-node
     ]
 

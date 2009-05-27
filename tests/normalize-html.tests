@@ -88,3 +88,16 @@ REBOL [
     "Empty document does not produce html header"
     normalize-html []
 ]
+[
+    "<br> ends up <p><br></p> which adds one newline"
+    normalize-html [<br>]
+]
+[
+    normalize-html [<p> <br> </p>]
+]
+[
+    normalize-html [<br> <br>]
+]
+[
+    normalize-html ["Text" <br>]
+]

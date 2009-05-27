@@ -7,7 +7,7 @@ HTML Normalizer
     }
     Author: "Gabriele Santilli"
     File: %normalize-html.r
-    Version: 1.1.4
+    Version: 1.1.5
     Imports: [
         %dialects/fsm.r "Finite State Machine dialect"
     ]
@@ -306,6 +306,7 @@ cannot contain other *p* elements and so on.
 
         <hr> <hr/> (cb <hr/> data nl) 
         <col> <col/> (cb <col/> data nl)
+        <br> <br/> (cb <br/> data nl)
         
         </h1> </h2> </h3> </h4> </h5> </h6> </address> </p> </ul> </ol>
         </li> </dl> </dt> </dd> </pre> </div> </center>
@@ -319,7 +320,7 @@ cannot contain other *p* elements and so on.
         <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
         <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
         <a> <img> <img/> <applet> <font> <basefont> <basefont/> 
-        <br> <br/> <map> <input> <input/> <select> <textarea> <span>
+        <map> <input> <input/> <select> <textarea> <span>
         <abbr> <acronym> <q> <label> text:
             (open-tag block-stack <p> none) continue in-inline (close-all inline-stack)
     ]
