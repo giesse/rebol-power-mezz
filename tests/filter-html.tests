@@ -297,3 +297,21 @@ REBOL [
         editor-class: "qw-burbank"
     ]
 ]
+[
+    filter-html/with {<table class="qw-burbank-toc-table"><tr><td><h1 class="qw-burbank-toc-h1">List Of Contents</h1><br><div class="qw-burbank-toc-h1-div"><a href="#a_this_is_a_test_of_wiki_2__" class="qw-burbank-toc-h1-link">A&nbsp;This is a test of Wiki 2
+</a></div><br><div class="qw-burbank-toc-h2-div"><a href="#1_sub_item" class="qw-burbank-toc-h2-link">1&nbsp;Sub item</a></div><br><div class="qw-burbank-toc-h1-div"><a href="#b_and_so_on" class="qw-burbank-toc-h1-link">B&nbsp;And so on</a></div><br><br></td></tr></table><br><a name="a_this_is_a_test_of_wiki_2_"></a><h1 class="qw-burbank-h1"><span class="qw-burbank-toc-index">A&nbsp;</span><a name="a_this_is_a_test_of_wiki_2__"></a>This is a test of Wiki 2
+</h1><br>
+Let's see what happens with the TOC.<br><br>
+<h2 class="qw-burbank-h2"><span class="qw-burbank-toc-index">1&nbsp;</span><a name="1_sub_item"></a>Sub item</h2>
+<br>
+Bla.<br><br>
+<h1 class="qw-burbank-h1"><span class="qw-burbank-toc-index">B&nbsp;</span><a name="b_and_so_on"></a>And so on</h1>
+<br>
+Continued.<br>} [
+        target: 'editor
+        editor-class: "qw-burbank"
+    ]
+]
+[
+    filter-html/with {Bla.<br><br>} [target: 'editor editor-class: "qw-burbank"]
+]
