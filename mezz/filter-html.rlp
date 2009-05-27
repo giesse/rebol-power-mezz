@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.4
+    Version: 3.1.5
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -442,6 +442,7 @@ to the generated tree, and finally converts it back to XHTML text.
                             make-class-name "box3-container"
                             make-class-name "box4-container"
                             make-class-name "box5-container"
+                            make-class-name "toc-table"
                         ]
                         'style table-style
                         'align select data 'align
@@ -978,11 +979,16 @@ to the generated tree, and finally converts it back to XHTML text.
     make-text-node: func [text /local node out] [
         either all [node: get-node current-node/childs/-1 'text = get-node node/type] [
             out: get-node node/prop/value
+            if all [out = "^/" text = " "] [return node]
             unless get-node node/prop/copied? [
                 set-node node/prop/copied?: true
                 set-node node/prop/value: out: copy out
             ]
-            append out text
+            either all [out = " " text = "^/"] [
+                change out "^/"
+            ] [
+                append out text
+            ]
             node
         ] [
             node: make-node 'text
@@ -1267,7 +1273,15 @@ We need:
         set-node table/parent: none
     ]
     remove-p: func [p-node /local br] [
-        unless all [br: get-node p-node/childs/-1 'br = get-node br/type] [
+        unless all [
+            br: get-node p-node/childs/-1
+            either all ['text = get-node br/type "^/" = get-node br/prop/value] [
+                br: get-node br/prev
+            ] [
+                true
+            ]
+            'br = get-node br/type
+        ] [
             br: make-node 'br
             set-node br/parent: p-node
         ]

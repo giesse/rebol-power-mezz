@@ -256,3 +256,44 @@ REBOL [
 [
     filter-html ""
 ]
+[
+    filter-html/with {<table class="qw-burbank-toc-table">
+<tbody><tr>
+<td><h1 class="qw-burbank-toc-h1">List Of Contents</h1>
+<br>
+<div class="qw-burbank-toc-h1-div">
+<p><a href="#a_this_is_a_test_of_wiki_2" class="qw-burbank-toc-h1-link">A&nbsp;This is a test of Wiki 2</a></p>
+</div>
+<br>
+<div class="qw-burbank-toc-h2-div">
+<p><a href="#1_sub_item" class="qw-burbank-toc-h2-link">1&nbsp;Sub item</a></p>
+</div>
+<br>
+<div class="qw-burbank-toc-h1-div">
+<p><a href="#b_and_so_on" class="qw-burbank-toc-h1-link">B&nbsp;And so on</a></p>
+</div>
+<br>
+<br>
+</td>
+</tr>
+</tbody></table>
+<br>
+<h1 class="qw-burbank-h1"><span class="qw-burbank-toc-index">A&nbsp;</span><a name="a_this_is_a_test_of_wiki_2"></a>This is a test of Wiki 2</h1>
+<p><br>
+ Let's see what happens with the TOC.<br>
+ <br>
+ </p>
+<h2 class="qw-burbank-h2"><span class="qw-burbank-toc-index">1&nbsp;</span><a name="1_sub_item"></a>Sub item</h2>
+<p><br>
+ Bla.<br>
+
+ <br>
+ </p>
+<h1 class="qw-burbank-h1"><span class="qw-burbank-toc-index">B&nbsp;</span><a name="b_and_so_on"></a>And so on</h1>
+<p><br>
+ Continued.<br>
+ </p>} [
+        target: 'editor
+        editor-class: "qw-burbank"
+    ]
+]
