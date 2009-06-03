@@ -315,3 +315,7 @@ Continued.<br>} [
 [
     filter-html/with {Bla.<br><br>} [target: 'editor editor-class: "qw-burbank"]
 ]
+[
+    "Bug with <br> in <pre>"
+    filter-html {<pre>Some<br>text<br>on<br>multiple<br>lines</pre>}
+]

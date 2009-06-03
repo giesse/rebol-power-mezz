@@ -7,7 +7,7 @@ HTML Normalizer
     }
     Author: "Gabriele Santilli"
     File: %normalize-html.r
-    Version: 1.1.5
+    Version: 1.1.6
     Imports: [
         %dialects/fsm.r "Finite State Machine dialect"
     ]
@@ -359,6 +359,7 @@ cannot contain other *p* elements and so on.
     ]
     in-pre: append [
         whitespace: (cb 'whitespace data)
+        <br> <br/> (nl)
     ] in-inline
 
 ---Functions used by the state machine
