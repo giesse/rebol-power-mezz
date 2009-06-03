@@ -319,3 +319,9 @@ Continued.<br>} [
     "Bug with <br> in <pre>"
     filter-html {<pre>Some<br>text<br>on<br>multiple<br>lines</pre>}
 ]
+[
+    "Bug with text alignment inside <td>"
+    filter-html/with {<table align="center" class="qw-burbank-box1-container" _moz_dirty="" _moz_resizing="true" style="width: 327px; height: 90px;"><tbody><tr><td class="qw-burbank-box1-top-left"><br _moz_dirty="" type="_moz"/></td><td class="qw-burbank-box1-top-center"><br _moz_dirty="" type="_moz"/></td><td class="qw-burbank-box1-top-right"><br _moz_dirty="" type="_moz"/></td></tr><tr><td class="qw-burbank-box1-middle-left"><br _moz_dirty="" type="_moz"/></td><td style="text-align: justify;" class="qw-burbank-box1-middle-center">What you see here is some text that has no meaning, except for being useful for testing. The idea here is that you can have a nice box like this and so on. Bla bla bla. Sometimes this would break. Will this work now?</td><td class="qw-burbank-box1-middle-right"><br _moz_dirty="" type="_moz"/></td></tr><tr><td class="qw-burbank-box1-bottom-left"><br _moz_dirty="" type="_moz"/></td><td class="qw-burbank-box1-bottom-center"><br _moz_dirty="" type="_moz"/></td><td class="qw-burbank-box1-bottom-right"><br _moz_dirty="" type="_moz"/></td></tr></tbody></table>} [
+        target: 'editor editor-class: "qw-burbank"
+    ]
+]

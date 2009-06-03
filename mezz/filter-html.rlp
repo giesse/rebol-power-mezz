@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.7
+    Version: 3.1.8
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -775,7 +775,7 @@ to the generated tree, and finally converts it back to XHTML text.
         ]
         in-cells: inherit common [
             <td> <th> (
-                created: 1 td-create-b?: td-create-i?: td-create-span?: no
+                created: 1 td-create-b?: td-create-i?: td-create-span?: td-create-div?: no
                 unless data [data: [ ]]
                 if current-options/target = 'editor [
                     ; warning: this is a problem in case the <td> contains block elements.
@@ -797,6 +797,10 @@ to the generated tree, and finally converts it back to XHTML text.
                         if "italic" = select td-style-extra 'font-style [
                             td-create-i?: yes
                             td-style-extra/font-style: none
+                        ]
+                        if div-align: select td-style-extra 'text-align [
+                            td-create-div?: yes
+                            td-style-extra/text-align: none
                         ]
                     ]
                     data: reduce [
@@ -826,7 +830,13 @@ to the generated tree, and finally converts it back to XHTML text.
                     ; char alignment not supported (browsers do not support it anyway)
                     valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
                 ]
-                if td-create-b? [enter-tag 'strong [ ] [ ] created: 2]
+                if td-create-div? [
+                    enter-tag 'div reduce ['align div-align] [
+                        align [enum "left" "center" "right" "justify"] none
+                    ]
+                    created: 2
+                ]
+                if td-create-b? [enter-tag 'strong [ ] [ ] created: created + 1]
                 if td-create-i? [enter-tag 'em [ ] [ ] created: created + 1]
                 if td-create-span? [
                     enter-tag 'span reduce ['style form-css td-style-extra] [ ]
