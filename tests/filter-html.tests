@@ -325,3 +325,9 @@ Continued.<br>} [
         target: 'editor editor-class: "qw-burbank"
     ]
 ]
+[
+    filter-html/all read %tests/data/over-unity.html
+]
+[
+    filter-html/with read %tests/data/over-unity.html [target: 'editor class: "qw-burbank"]
+]

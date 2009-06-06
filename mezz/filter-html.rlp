@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.8
+    Version: 3.1.9
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -499,9 +499,7 @@ to the generated tree, and finally converts it back to XHTML text.
             </ins> </del> ; should be treated specially, but noone uses them so...
                 return
 
-            <tt> <i> <b> <u> <strike> <s> <big> <small> <sub> <sup>
-            <em> <strong> <dfn> <code> <samp> <kbd> <var> <cite>
-            <abbr> <acronym> (
+            <i> <b> <u> <strike> <em> <strong> (
                 either current-options/target = 'editor [
                     enter-tag select [
                         <i> em <b> strong <u> span
@@ -514,6 +512,9 @@ to the generated tree, and finally converts it back to XHTML text.
                     enter-tag tag-name? event data [ ]
                 ]
             ) in-para (leave-tag)
+
+            <tt> <s> <big> <small> <sub> <sup> <dfn> <code> <samp> <kbd> <var> <cite>
+            <abbr> <acronym> (enter-tag tag-name? event data [ ]) in-para (leave-tag)
 
             <a> (
                 if all [current-options/target = 'editor data] [
