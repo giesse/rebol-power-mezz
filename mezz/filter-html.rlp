@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.9
+    Version: 3.1.10
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -1150,20 +1150,20 @@ to the generated tree, and finally converts it back to XHTML text.
                     "5"  "large"    #[none]
                     "6"  "x-large"  #[none]
                     "7"  "xx-large" #[none]
-                    "+1" "120%"     #[none]
-                    "+2" "144%"     #[none]
-                    "+3" "173%"     #[none]
-                    "+4" "207%"     #[none]
-                    "+5" "249%"     #[none]
-                    "+6" "299%"     #[none]
-                    "+7" "358%"     #[none]
-                    "-1" "80%"      #[none]
-                    "-2" "64%"      #[none]
-                    "-3" "51%"      #[none]
-                    "-4" "41%"      #[none]
-                    "-5" "33%"      #[none]
-                    "-6" "26%"      #[none]
-                    "-7" "21%"      #[none]
+                    "+1" "large"    #[none]
+                    "+2" "x-large"  #[none]
+                    "+3" "xx-large" #[none]
+                    "+4" "36pt"     #[none]
+                    "+5" "36pt"     #[none]
+                    "+6" "36pt"     #[none]
+                    "+7" "36pt"     #[none]
+                    "-1" "small"    #[none]
+                    "-2" "x-small"  #[none]
+                    "-3" "xx-small" #[none]
+                    "-4" "xx-small" #[none]
+                    "-5" "xx-small" #[none]
+                    "-6" "xx-small" #[none]
+                    "-7" "xx-small" #[none]
                 ] value
                 length value none
             ]
