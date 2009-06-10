@@ -104,3 +104,6 @@ REBOL [
 [
     normalize-html [<pre> "Some" <br> "text" <br> "on" <br> "multiple lines" </pre>]
 ]
+[
+    normalize-html ["A rule." <br> <hr> "Text"]
+]

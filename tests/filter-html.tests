@@ -337,3 +337,9 @@ Continued.<br>} [
 		editor-class: "qw-burbank"
 	]
 ]
+[
+	filter-html/with {A rule.<br><hr class="qw-burbank-hr">Another rule.<br><hr class="qw-burbank-hr">And so on.<br><hr class="qw-burbank-hr"><br>} [
+		target: 'editor
+		editor-class: "qw-burbank"
+	]
+]

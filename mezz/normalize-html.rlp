@@ -7,7 +7,7 @@ HTML Normalizer
     }
     Author: "Gabriele Santilli"
     File: %normalize-html.r
-    Version: 1.1.6
+    Version: 1.1.7
     Imports: [
         %dialects/fsm.r "Finite State Machine dialect"
     ]
@@ -304,7 +304,16 @@ cannot contain other *p* elements and so on.
         
         <style> (cb <style> data) in-style (cb </style> none nl)
 
-        <hr> <hr/> (cb <hr/> data nl) 
+        <hr> <hr/> (
+            ; <hr> does not nest inside these:
+            foreach tag [
+                </h1> </h2> </h3> </h4> </h5> </h6> </address>
+                </p> </dt>
+            ] [
+                close-tag block-stack tag
+            ]
+            cb <hr/> data nl
+        )
         <col> <col/> (cb <col/> data nl)
         <br> <br/> (cb <br/> data nl)
         
