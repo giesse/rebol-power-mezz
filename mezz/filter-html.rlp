@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.10
+    Version: 3.1.11
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -318,7 +318,7 @@ to the generated tree, and finally converts it back to XHTML text.
                     ]
                     enter-tag 'p [ ] [ ]
                     if all [p-style not empty? p-style: form-css p-style] [
-                        enter-span-tag reduce ['style p-style]
+                        created: created + enter-span-tag reduce ['style p-style]
                     ]
                 ] [
                     enter-tag 'p data [ ]
