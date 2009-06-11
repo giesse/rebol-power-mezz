@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.12
+    Version: 3.1.13
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -1292,7 +1292,7 @@ We need:
             nxt: get-node nxt/next
             any [not nxt 'text <> get-node nxt/type]
         ]
-        if all [nxt 'p = get-node nxt/type] [
+        if all [nxt find [p br] get-node nxt/type] [
             br: make-node 'br
             set-node br/parent: p-node
         ]
