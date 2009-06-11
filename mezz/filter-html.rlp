@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.11
+    Version: 3.1.12
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -1287,8 +1287,10 @@ We need:
         set-node table/parent: none
     ]
     remove-p: func [p-node /local br nxt] [
-        if all [nxt: get-node p-node/next 'text = get-node nxt/type "^/" = get-node nxt/prop/value] [
+        nxt: p-node
+        until [
             nxt: get-node nxt/next
+            any [not nxt 'text <> get-node nxt/type]
         ]
         if all [nxt 'p = get-node nxt/type] [
             br: make-node 'br
