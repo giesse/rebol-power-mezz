@@ -350,6 +350,17 @@ Continued.<br>} [
     filter-html/with {<table class="qw-burbank-toc-table"><tr><td><h1 class="qw-burbank-toc-h1">List Of Contents</h1><br><div class="qw-burbank-toc-h1-div"><a class="qw-burbank-toc-h1-link" href="#a_header">A&nbsp;Header</a></div><br><div class="qw-burbank-toc-h1-div"><a class="qw-burbank-toc-h1-link" href="#b_header">B&nbsp;Header</a></div><br></td></tr></table><br><h1 class="qw-burbank-h1"><span class="qw-burbank-toc-index">A&nbsp;</span><a name="a_header"></a>Header</h1><div><br></div><div>Test.</div><div>Test.</div><div><br></div><div>Test.</div><div><br></div><div><br></div><div>Test.</div><div><br></div><div><h1 class="qw-burbank-h1"><span class="qw-burbank-toc-index">B&nbsp;</span><a name="b_header"></a>Header</h1><div><br></div><div>Test.</div><div>Test.</div></div>} [
         target: 'editor
         editor-class: "qw-burbank"
-        debug: yes
+    ]
+]
+[
+    filter-html/with read %tests/data/apple.com.startpage.html [
+        target: 'editor
+        editor-class: "qw-burbank"
+    ]
+]
+[
+    filter-html/with read %tests/data/apple.com.startpage-editor.html [
+        target: 'editor
+        editor-class: "qw-burbank"
     ]
 ]

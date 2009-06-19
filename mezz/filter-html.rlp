@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.13
+    Version: 3.1.14
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -313,6 +313,7 @@ to the generated tree, and finally converts it back to XHTML text.
                             enter-tag 'div reduce ['align p-align] [
                                 align [enum "left" "center" "right" "justify"] none
                             ]
+                            created: created + 1
                             p-style/text-align: none
                         ]
                     ]
@@ -327,7 +328,7 @@ to the generated tree, and finally converts it back to XHTML text.
             ) in-para (
                 created: get-node current-node/prop/created
                 set-node current-node/prop/created: none
-                loop created [leave-tag]
+                loop created [leave-tag <p>]
             )
 
             <pre> (
@@ -411,7 +412,7 @@ to the generated tree, and finally converts it back to XHTML text.
             ) in-body (
                 created: get-node current-node/prop/created
                 set-node current-node/prop/created: none
-                loop created [leave-tag]
+                loop created [leave-tag <div>]
             )
             <fieldset> (enter-tag 'fieldset data [ ]) in-body (leave-tag)
             <center> (enter-tag 'div append copy [align "center"] data [ ]) in-body (leave-tag)
@@ -566,7 +567,7 @@ to the generated tree, and finally converts it back to XHTML text.
             ) in-para (
                 created: get-node current-node/prop/created
                 set-node current-node/prop/created: none
-                loop created [leave-tag]
+                loop created [leave-tag <span>]
             )
 
             <map> (enter-tag 'map data [name name* none]) in-para (leave-tag)
@@ -699,7 +700,7 @@ to the generated tree, and finally converts it back to XHTML text.
             ) in-item (
                 created: get-node current-node/prop/created
                 set-node current-node/prop/created: none
-                loop created [leave-tag]
+                loop created [leave-tag <li>]
             )
 
             <ul> (
@@ -847,7 +848,7 @@ to the generated tree, and finally converts it back to XHTML text.
             ) in-item (
                 created: get-node current-node/prop/created
                 set-node current-node/prop/created: none
-                loop created [leave-tag]
+                loop created [leave-tag <td>]
             )
 
             </tr> return
