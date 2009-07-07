@@ -1,0 +1,57 @@
+"Random" 160-bit number sequences
+
+    Type: Module
+    Purpose: {
+        Provides functions to create sequences of 160-bit "random" numbers,
+        starting from a 160-bit seed number.
+    }
+    Author: "Gabriele Santilli"
+    File: %sequences.r
+    Version: 1.0.0
+    Exports: [
+        make-sequence "Create a sequence"
+        next-number   "Return the next number from the sequence"
+    ]
+
+===Introduction
+
+This program implements a "Pseudo-Random Number Generator". All generated numbers
+are 160 bits long; it also allows for having more than one "sequence" going
+on at the same time (eg. with different seeds).
+
+===Overview
+
+We have only two functions, |make-sequence| which initializes a sequence object
+given a seed, and |next-number| that returns the next number in the sequence
+given a sequence object.
+
+    -main-:
+    make-sequence: func [
+        "Create a random number sequence"
+        seed [binary!]
+    ] [
+        -make-sequence-
+    ]
+    next-number: func [
+        "Return the next number from the sequence"
+        sequence [object!]
+    ] [
+        -next-number-
+    ]
+
+===Implementation
+
+The implementation is trivial and is based on keyed SHA-1 (HMAC).
+
+---Initialize a sequence object
+
+    -make-sequence-:
+    context [
+        cur: #{0000000000000000000000000000000000000000}
+        key: seed
+    ]
+
+---Generate the next number in the sequence
+
+    -next-number-:
+    sequence/cur: checksum/secure/key sequence/cur sequence/key

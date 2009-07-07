@@ -23,6 +23,8 @@
 ^mezz/normalize-html.r$
 ^mezz/pipe.html$
 ^mezz/pipe.r$
+^mezz/sequences.html$
+^mezz/sequences.r$
 ^mezz/text-encoding.html$
 ^mezz/text-encoding.r$
 ^mezz/text-to-html.html$

@@ -1,0 +1,37 @@
+REBOL [
+    Type: Module
+    Title: "Tests for sequences"
+    Author: "Gabriele Santilli"
+    Imports: [%mezz/sequences.r]
+]
+
+[
+    mold seq: make-sequence #{BB21158C733229347BD4E681891E213D94C685BE}
+]
+[
+    next-number seq
+]
+[
+    next-number seq
+]
+[
+    next-number seq
+]
+[
+    mold seq2: make-sequence next-number seq
+]
+[
+    next-number seq2
+]
+[
+    next-number seq
+]
+[
+    next-number seq2
+]
+[
+    next-number seq
+]
+[
+    next-number seq2
+]
