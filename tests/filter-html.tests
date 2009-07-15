@@ -364,3 +364,18 @@ Continued.<br>} [
         editor-class: "qw-burbank"
     ]
 ]
+[
+	"IE sucks"
+	filter-html {<DIV STYLE="width: expression(alert('XSS-1'));"> Div expression </div>
+<br>
+<IMG STYLE="xss:expr/*XSS*/ession(alert('XSS-2'))">
+<br>}
+]
+[
+	"IE sucks"
+	filter-html {<style>.xss {width: expression(alert('XSS'));}</style>}
+]
+[
+	"IE sucks"
+	filter-html/all {<style>.xss {width: expression(alert('XSS'));}</style>}
+]

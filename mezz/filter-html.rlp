@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.1.14
+    Version: 3.2.0
     Imports: [
         %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
@@ -944,9 +944,37 @@ to the generated tree, and finally converts it back to XHTML text.
             append style value
         ]
         if not empty? style [
-            set-node node/prop/style: style
+            set-node node/prop/style: sanitize-css style
         ]
         node
+    ]
+    ; IE sucks
+    non-paren: complement charset "()"
+    parens: [
+        #"(" any non-paren any [parens any non-paren] #")"
+    ]
+    sanitize-css: func [css-text [string! none!] /local mk1 mk2] [
+        if string? css-text [
+            ; safe but slow
+            css-text: copy css-text
+            ; remove comments (IE sucks)
+            parse/all css-text [
+                any [
+                    to "/*" mk1: thru "*/" mk2: (mk1: remove/part mk1 mk2) :mk1
+                ]
+            ]
+            ; remove "expression( ... )" (IE sucks)
+            parse/all css-text [
+                any [
+                    to "expression" mk1: "expression" [
+                        any space-char parens mk2: (mk1: remove/part mk1 mk2) :mk1
+                        |
+                        none
+                    ]
+                ]
+            ]
+            css-text
+        ]
     ]
     enter-tag: func [name attributes valid-attributes] [
         current-node: make-tag-node name attributes valid-attributes
@@ -1414,7 +1442,8 @@ We need:
             foreach node get-node node/childs [
                 emit output [
                     switch type: get-node node/type [
-                        text [either cdata? [(get-node node/prop/value)] [text get-node node/prop/value]]
+                        ; /cdata currently only used by <style>, so this works
+                        text [either cdata? [(sanitize-css get-node node/prop/value)] [text get-node node/prop/value]]
                         comment [(get-node node/prop/value)]
                         style [
                             tag 'style fix-attrs get-node node/properties [
