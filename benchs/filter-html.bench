@@ -1,0 +1,13 @@
+REBOL [
+	Type: Module
+	Title: "Benchmarks for the FILTER-HTML function"
+	Author: "Gabriele Santilli"
+	Imports: [%mezz/filter-html.r]
+]
+
+W3.org 1 [
+    filter-html/all read %tests/data/w3.org.html
+]
+Rebol.com 1 [
+	filter-html/all read %tests/data/rebol.com.html
+]

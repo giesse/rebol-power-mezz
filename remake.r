@@ -20,6 +20,7 @@ if exists? %.conf [
 ^^.conf$
 ^^tools/last-file.tmp$
 ^^tests/data/[ab]$
+^^benchs/results
 }
 
 ask-default: func [question default] [
@@ -79,6 +80,9 @@ tests: all
 
 all-tests: all
 	${REBVIEW} -qws tests/run.r force
+
+benchs: all
+	${REBVIEW} -qws benchs/run.r
 
 }
 foreach file files [

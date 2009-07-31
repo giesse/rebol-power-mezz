@@ -1,0 +1,91 @@
+REBOL [
+	Type: Module
+	Title: "Benchmarks for the EMIT function"
+	Author: "Gabriele Santilli"
+	Imports: [%dialects/emit.r %mezz/text-encoding.r]
+]
+
+Rejoin 1000 [
+	tag: func [name attrs contents /local result attr-name value here] [
+		result: rejoin [
+			#"<" name
+		]
+		parse attrs [
+			any [
+				set attr-name set-word!
+				here: (
+					set [value here] do/next here
+					append result rejoin [
+						#" " form attr-name {="} encode-text value 'html #"^""
+					]
+				) :here
+			]
+		]
+		repend result [#">" contents "</" name #">"]
+	]
+	drop-down: func [values /local result name value] [
+		result: copy ""
+		parse values [
+			some [
+				[set name set-word! | (name: none)]
+				set value string!
+				(append result either name [tag 'option [value: form name] value] [tag 'option [ ] value])
+			]
+		]
+		tag 'select [ ] result
+	]
+	drop-down [
+		"First"
+		"Second"
+		third: "Third"
+		"Fourth"
+	]
+]
+Emit 1000 [
+    tag: macro/custom [name contents attr-name value here] [
+        set name word!
+        (emit output [#"<" name])
+        any [
+            set attr-name set-word!
+            here: (
+                set [value here] do/next here
+                emit output [
+                    #" " (form attr-name) {="} encode-text value 'html #"^""
+                ]
+            ) :here
+        ]
+        set contents block! (
+            emit output [#">" emit contents "</" name #">"]
+        )
+    ]
+    drop-down*: macro/custom [name value] [
+        some [
+            [set name set-word! | (name: none)]
+            set value string!
+            (emit output [
+                either name [
+                    tag option value: form name [
+                        value
+                    ]
+                ] [
+                    tag option [value]
+                ]
+            ])
+        ]
+    ]
+    drop-down: macro [
+        values
+    ] [
+        tag select [
+            apply 'drop-down* values
+        ]
+    ]
+    emit copy "" [
+        drop-down [
+            "First"
+            "Second"
+            third: "Third"
+            "Fourth"
+        ]
+    ]
+]

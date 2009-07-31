@@ -1,0 +1,13 @@
+REBOL [
+	Type: Module
+	Title: "Benchmarks for the ML Parser"
+	Author: "Gabriele Santilli"
+	Imports: [%parsers/ml-parser.r]
+]
+
+W3.org 10 [
+	load-markup read %tests/data/w3.org.html
+]
+Rebol.com 10 [
+	load-markup read %tests/data/rebol.com.html
+]
