@@ -53,18 +53,21 @@ save-results: func [file results] [
 	save file results
 ]
 
-show-results: func [file /local lay results r max-speed] [
+show-results: func [file /local lay results r max-speed max-time] [
 	lay: compose [
 		Across
 		Banner white (join "Results for " file) Return
 		Text "Longer bar means faster" Return
 	]
 	results: copy [ ]
-	max-speed: 0
+	max-speed: max-time: 0
 	foreach version read %benchs/results/ [
-		repend results [version r: load join %benchs/results/ [version file]]
-		foreach [name result] r [
-			max-speed: max 1 / result max-speed
+		if exists? r: join %benchs/results/ [version file] [
+			repend results [version r: load r]
+			foreach [name result] r [
+				max-speed: max 1 / result max-speed
+				max-time: max result max-time
+			]
 		]
 	]
 	foreach [version results] results [
@@ -74,7 +77,7 @@ show-results: func [file /local lay results r max-speed] [
 		foreach [name result] results [
 			append lay compose [
 				Text 150 (form name)
-				Box red (as-pair 600 / (result * max-speed) 22) Return
+				Box red (as-pair 600 / (result * max-speed) 22) yellow (form round/to max-time / result 0.01) Return
 			]
 		]
 	]

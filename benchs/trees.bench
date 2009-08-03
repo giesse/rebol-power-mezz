@@ -1,0 +1,46 @@
+REBOL [
+	Type: Module
+	Title: "Benchmarks for trees"
+	Author: "Gabriele Santilli"
+	Imports: [%mezz/trees.r]
+]
+
+Make-node 100 [
+	root: make-node 'root
+	node: make-node 'branch
+	set-node node/parent: root
+	node: make-node 'leaf
+	set-node node/parent: get-node root/childs/1
+	node: make-node 'branch
+	set-node node/parent: root
+	node: make-node 'branch
+	set-node node/parent: get-node root/childs/2
+	node: make-node 'leaf
+	set-node node/parent: get-node root/childs/2/childs/1
+	node: make-node 'leaf
+	set-node node/parent: get-node root/childs/2/childs/1
+]
+Make-tree 100 [
+	root: make-tree [
+		root [ ] [
+			branch [ ] [leaf [ ]]
+		] [
+			branch [ ] [branch [ ] [leaf [ ]] [leaf [ ]]]
+		]
+	]
+]
+Hand-coded 100 [
+	root: reduce ['root none copy [ ]]
+	node: reduce ['branch none copy [ ]]
+	insert/only node/2: tail root node
+	node: reduce ['leaf none copy [ ]]
+	insert/only node/2: tail root/4 node
+	node: reduce ['branch none copy [ ]]
+	insert/only node/2: tail root node
+	node: reduce ['branch none copy [ ]]
+	insert/only node/2: tail root/5 node
+	node: reduce ['leaf none copy [ ]]
+	insert/only node/2: tail root/5/4 node
+	node: reduce ['leaf none copy [ ]]
+	insert/only node/2: tail root/5/4 node
+]
