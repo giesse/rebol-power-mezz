@@ -1,0 +1,88 @@
+COLLECT function
+
+    Type: Module
+    Purpose: {
+        Defines the COLLECT function.
+    }
+    Author: "Gabriele Santilli"
+    File: %collect.r
+    Version: 1.0.0
+    Exports: [
+        collect
+        keep
+    ]
+
+===Introduction
+
+A very common idiom in REBOL is:
+
+    func [block /local result] [
+        result: copy [ ]
+        foreach val block [
+            append result do-something-with val
+        ]
+        result
+    ]
+
+which the |collect| function turns into:
+
+    func [block] [
+        collect [
+            foreach val block [
+                keep do-something-with val
+            ]
+        ]
+    ]
+
+===Overview
+
+    -main-:
+    collect: func [
+        "Collect values passed to KEEP and return them"
+        [throw]
+        body [block!]
+        /into result [series!] "Append values to this series"
+
+        /local -c-locals-
+    ] [
+        -collect-
+    ]
+    keep: func [
+        "Append the value to the collection"
+        [catch]
+        value
+        /only "Append a block value as a block"
+    ] [
+        -keep-
+    ]
+
+===Collect values passed to |keep|
+
+    -collect-:
+    saved: collection
+    collection: any [result result: copy [ ]]
+    do body
+    collection: saved
+    result
+
+---|collect|'s locals
+
+    -c-locals-:
+    saved
+
+===Append |value| to the current collection
+
+    -keep-:
+    unless collection [
+        throw make error! "KEEP outside of a COLLECT"
+    ]
+    either only [
+        append/only collection :value
+    ] [
+        append collection :value
+    ]
+
+===Initialization
+
+    -main-:
+    collection: none
