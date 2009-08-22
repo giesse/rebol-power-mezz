@@ -5,7 +5,7 @@ REBOL [
 	Imports: [%mezz/trees.r]
 ]
 
-Make-node 100 [
+Make-node [
 	root: make-node 'root
 	node: make-node 'branch
 	set-node node/parent: root
@@ -20,7 +20,7 @@ Make-node 100 [
 	node: make-node 'leaf
 	set-node node/parent: get-node root/childs/2/childs/1
 ]
-Make-tree 100 [
+Make-tree [
 	root: make-tree [
 		root [ ] [
 			branch [ ] [leaf [ ]]
@@ -29,7 +29,7 @@ Make-tree 100 [
 		]
 	]
 ]
-Hand-coded 100 [
+Hand-coded [
 	root: reduce ['root none copy [ ]]
 	node: reduce ['branch none copy [ ]]
 	insert/only node/2: tail root node

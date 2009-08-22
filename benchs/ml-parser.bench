@@ -5,9 +5,9 @@ REBOL [
 	Imports: [%parsers/ml-parser.r]
 ]
 
-W3.org 10 [
+W3.org [
 	load-markup read %tests/data/w3.org.html
 ]
-Rebol.com 10 [
+Rebol.com [
 	load-markup read %tests/data/rebol.com.html
 ]

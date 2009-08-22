@@ -3,14 +3,14 @@ REBOL [
     Author: "Gabriele Santilli"
 ]
 
-Reverse 100 [
+Reverse [
     b: copy [ ]
     for i 1 100 1 [
         insert tail b i
     ]
     reverse b
 ]
-Insert 100 [
+Insert [
     b: copy [ ]
     for i 1 100 1 [
         insert b i

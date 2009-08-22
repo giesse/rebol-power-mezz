@@ -5,9 +5,9 @@ REBOL [
 	Imports: [%mezz/html-to-text.r]
 ]
 
-W3.org 10 [
+W3.org [
 	html-to-text read %tests/data/w3.org.html
 ]
-Rebol.com 10 [
+Rebol.com [
 	html-to-text read %tests/data/rebol.com.html
 ]

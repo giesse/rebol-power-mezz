@@ -5,7 +5,7 @@ REBOL [
 	Imports: [%dialects/emit.r %mezz/text-encoding.r]
 ]
 
-Rejoin 1000 [
+Rejoin [
 	tag: func [name attrs contents /local result attr-name value here] [
 		result: rejoin [
 			#"<" name
@@ -41,7 +41,7 @@ Rejoin 1000 [
 		"Fourth"
 	]
 ]
-Emit 1000 [
+Emit [
     tag: macro/custom [name contents attr-name value here] [
         set name word!
         (emit output [#"<" name])

@@ -8,8 +8,9 @@ time*: func [n block /local start] [
 	loop n block
 	difference now/precise start
 ]
-time: func [count block /local time result] [
+time: func [block /local count time result] [
 	time: 0:00
+	count: 1
 	while [time < 0:00:01] [
 		time: time* count block
 		result: divide to decimal! time count
@@ -29,7 +30,7 @@ change-dir %../
 do %mezz/module.r
 load-module/from what-dir
 
-run-benchmark: func [file /local benchs name blk results cnt] [
+run-benchmark: func [file /local benchs name blk results] [
 	benchs: load/header clean-path join %benchs/ file
 	module benchs/1 reduce [benchs]
 	results: copy [ ]
@@ -40,8 +41,8 @@ run-benchmark: func [file /local benchs name blk results cnt] [
 			'init set blk block! (do blk)
 		]
 		some [
-			set name word! set cnt integer! set blk block! (
-				insert insert tail results name time cnt blk
+			set name word! set blk block! (
+				insert insert tail results name time blk
 			)
 		]
 	]

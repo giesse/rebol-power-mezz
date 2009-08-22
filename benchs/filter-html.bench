@@ -5,9 +5,9 @@ REBOL [
 	Imports: [%mezz/filter-html.r]
 ]
 
-W3.org 1 [
+W3.org [
     filter-html/all read %tests/data/w3.org.html
 ]
-Rebol.com 1 [
+Rebol.com [
 	filter-html/all read %tests/data/rebol.com.html
 ]
