@@ -24,6 +24,8 @@
 ^mezz/html-to-text.r$
 ^mezz/module.html$
 ^mezz/module.r$
+^mezz/niwashi.html$
+^mezz/niwashi.r$
 ^mezz/normalize-html.html$
 ^mezz/normalize-html.r$
 ^mezz/pipe.html$

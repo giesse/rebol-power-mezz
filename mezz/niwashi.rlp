@@ -1,0 +1,644 @@
+Grow trees using constraints
+
+    Type: Module
+    Purpose: {
+        "Grow" a tree data structure using a state machine, constraining
+        the result using a set of rules.
+    }
+    Author: "Gabriele Santilli"
+    File: %niwashi.r
+    Version: 1.0.0
+    Imports: [
+        %mezz/trees.r
+        %parsers/common-rules.r
+        %parsers/rule-arguments.r
+    ]
+    Exports: [
+        make-niwashi
+        append-child
+        enter-child
+        leave-child
+        split-branch
+        attach-branch
+        define-rules
+    ]
+
+===Introduction
+
+A "niwashi" is a state machine you can use to "grow" a tree data structure while maintaining
+a set of constraints. ("Niwashi" is the Japanese word for "gardener"; we want to make a "tree"
+"grow" in a specified, constrained way, sort of like you would do with a bonsai.)
+
+In the simplest case, this can be used to create a tree from a simple sequence of commands;
+for example, while parsing something like XML: the niwashi will keep track of the state
+for you, so you only have to send commands much like "open tag" and "close tag".
+
+But, a niwashi also allows you to define rules that apply while the tree is being built.
+This is an alternative to creating a tree, and then applying tree rewriting rules to transform
+it; the tree is instead transformed while it is being built. For example, this is very useful
+while parsing something like HTML, where the source is not necessarily properly formed,
+and where you want to apply some transformations to the HTML as well. This is much more efficient
+as it all happens in one pass.
+
+===Overview
+
+We have a simple set of function that can be used to build tree in the most common and simplest
+cases; we also have a set of additional functions that solve some rather common "not so simple"
+problems.
+
+Then, we allow defining a set of rules that have to be enforced while the tree is being built.
+They basically allow "transforming" the tree while it is being built.
+
+    -main-:
+    -basic-
+    -advanced-
+    -rules-
+
+===Basic tree building
+
+The basic idea of a niwashi is that of a tool to incrementally build trees. You start by creating
+a niwashi, which is an object that holds the state of the tree you are building:
+
+    -basic-:
+    make-niwashi: func [
+        "Create an object used to build trees"
+    ] [
+        -make-niwashi-
+    ]
+
+The function returns a new niwashi object. This object must be passed to all the other functions
+here.
+
+At any time, you can obtain the root node of the tree you are building by accessing the |root|
+field of this object (eg. |my-niwashi/root|). By default, the root node will have a type of
+|'root| and no properties.
+
+The niwashi will keep track of a "current node". Initially, that will be the root node. You
+can append a new child node to the current node with |append-child|:
+
+    -basic-:
+    append-child: func [
+        "Append a new child to the current node"
+        [catch]
+        niwashi [object!]
+        spec [block!]
+
+        /local -ac-locals-
+    ] [
+        -append-child-
+    ]
+
+The |spec| block is something like:
+
+    append-child my-niwashi [type: 'child properties: [name: "Value"]]
+
+When using |append-child|, the "current node" stays the same - you only append a new child to it.
+If you use |enter-child| instead, a new node is appended and it is made the current node:
+
+    -basic-:
+    enter-child: func [
+        "Append a new child to the current node, and make it the current node"
+        [catch]
+        niwashi [object!]
+        spec [block!]
+
+        /local -ec-locals-
+    ] [
+        -enter-child-
+    ]
+
+The function is called like |append-child|:
+
+    enter-child my-niwashi [type: 'child properties: [name: "Value"]]
+
+(In the above example, a new node of type |'child| is appended to the current node, and
+the current node is changed to be this new node; so, after the call, the current node is this
+|'child| just appended, and if you call |append-child| you will append a child to it.)
+
+You can then call |leave-child| to "move back" the current node to what it was before
+calling |enter-child| - that is, to the current node's parent node:
+
+    -basic-:
+    leave-child: func [
+        "Leave the current node, make its parent the new current node"
+        [catch]
+        niwashi [object!]
+
+        /local -lc-locals-
+    ] [
+        -leave-child-
+    ]
+
+If the niwashi is already at the root node, it is an error to call |leave-child|.
+
+===Advanced tree building
+
+When parsing something like HTML and building a tree for it, the number one problem is that
+HTML is not a strict format, and allows authors to take a number of freedoms, which means
+that the parser needs to be smart enough to figure out what to do. If you add the fact that
+often the HTML you are parsing is malformed, and you have to make sense of it anyway,
+you'll see that the basic functions above are not enough to solve your problems.
+
+But, do not dispair, because here we introduce the Swiss Army knife of tree building:
+|split-branch|. In short, it splits one branch of the tree into two.
+
+    -advanced-:
+    split-branch: func [
+        "Split the current branch into two branches (new branch left detached)"
+        [catch]
+        niwashi [object!]
+        base [word! block!]
+        /knots knot-nodes [word! block!]
+        /prune prune-nodes [word! block!]
+
+        /local -sb-locals-
+    ] [
+        -split-branch-
+    ]
+
+|split-branch|'s behavior requires explanation, so we'll offer a number of examples. The
+basic idea is that of creating a new tree branch that is basically a copy of the current
+tree branch, up to the specified "base" node; then the base node is made the current node,
+while the newly created branch is left "detached" at can be attached back to the current node
+at any time using |attach-branch|:
+
+    -advanced-:
+    attach-branch: func [
+        "Attach a previously split branch"
+        [catch]
+        niwashi [object!]
+    ] [
+        -attach-branch-
+    ]
+
+When the branch is attached, its "leaf" node is made the current node.
+
+Let's make a simple example: imagine you're parsing HTML like "<p>some <b>bold<p>text".
+If you try that in a browser, you'll see that both "bold" and "text" are in bold, and
+"text" is in a new paragraph. The browser will create a tree like this:
+
+    (P
+        ("Some ")
+        (B
+            ("bold")
+        )
+    )
+    (P
+        (B
+            ("text")
+        )
+    )
+
+Which means that something like this happens:
+
+*the <p> tag is encountered, a P node is created;
+
+*"some " is added as a child of this node;
+
+*the <b> tag is encountered, a B node is created and added as a child of the P node;
+
+*"bold" is added as a child of this B node;
+
+*the <p> tag is encountered, so:
+
+**the B node is "closed";
+
+**the P node is "closed";
+
+**a new P node is created and added as a sibling of the previous P node;
+
+**a new B node is created and added as a child of this P node;
+
+*"text" is added as a child of this new B node.
+
+You can imagine the effect of the second <p> tag as that of "splitting" the current branch
+(made of the P node and its child B) into two branches, the existing one (with P and B) and
+a new one with the same structure (a new P and a new B). This is what |split-branch| 
+followed by |attach-branch| does.
+
+The above can be written this way using a niwashi:
+
+    ; <p>
+    enter-child my-niwashi [type: 'p]
+    ; "some "
+    append-child my-niwashi [type: 'text properties: [value: "some "]]
+    ; <b>
+    enter-child my-niwashi [type: 'b]
+    ; "bold"
+    append-child my-niwashi [type: 'text properties: [value: "bold"]]
+    ; <p>
+    split-branch my-niwashi 'root
+    attach-branch my-niwashi
+
+Notice that the |split-branch| goes back to the root node, while having a new branch
+made of a P node containing a B node ready to be attached at any time. We immediately
+attach it in this case, so the above |split-branch| and |attach-branch| combination
+is equivalent to the following:
+
+    leave-child my-niwashi ; leave B
+    leave-child my-niwashi ; leave P
+    enter-child my-niwashi [type: 'p]
+    enter-child my-niwashi [type: 'b]
+
+If no node with a type of |base| is found in the current branch, an error is generated.
+You can also pass a block of node types, and the first node up the tree that matches will
+be taken as the base.
+
+Note that there can only be one "detached" branch at a time; if you don't call |attach-branch|,
+before calling |split-branch| again, the previous detached branch is lost.
+
+Another interesting example is something like "<b>bold, <i>bold-italic, </b>italic",
+which we want to produce the following tree:
+
+    (B
+        ("bold, ")
+        (I
+            ("bold-italic, ")
+        )
+    )
+    (I
+        ("italic")
+    )
+
+That can be done by making close tags do a |split-branch| with the closing tag type as
+the base, followed by a |leave-child|, followed again by an |attach-branch| to "re-open"
+the other nodes.
+
+    ; <b>
+    enter-child my-niwashi [type: 'b]
+    ; "bold, "
+    append-child my-niwashi [type: 'text properties: [value: "bold, "]]
+    ; <i>
+    enter-child my-niwashi [type: 'i]
+    ; "bold-italic, "
+    append-child my-niwashi [type: 'text properties: [value: "bold-italic, "]]
+    ; </b>
+    split-branch my-niwashi 'b
+    leave-child my-niwashi
+    attach-branch my-niwashi
+    ; "italic"
+    append-child my-niwashi [type: 'text properties: [value: "italic"]]
+
+|split-branch| also has two refinements, |/knots| and |/prune|. The latter allows removing
+(or, more precisely, not re-opening) nodes from the new branch that gets created.
+You can pass a block of node types that should not be reopened.
+
+The |/knots| refinement can be used to mark certain nodes in the branch as "knots", which stop
+the "knife" that is splitting the branch in two. Let's use HTML again for an example.
+
+Pretend to be parsing something as messed up as "<table><tr><td><table></td><tr><td>cell</table>".
+Notice that browsers produce something like:
+
+    (TABLE
+        (TR
+            (TD
+                (TABLE
+                    (TR
+                        (TD
+                            ("cell")
+                        )
+                    )
+                )
+            )
+        )
+    )
+
+Take the "</td>" in that string into consideration. You may be tempted to do a |split-branch ... 'td|
+when you encounter a "</td>", like we did with "</b>" above, but in this case that would produce:
+
+    (TABLE
+        (TR
+            (TD
+                (TABLE)
+            )
+            (TABLE
+                (TR
+                    (TD
+                        ("cell")
+                    )
+                )
+            )
+        )
+    )
+
+which is wrong. You don't really want to split table nodes; you can use the |/knots| refinement
+to mark |'table| nodes as not splittable. Trying to split a knot causes an error (which for things
+like parsing HTML you just want to ignore). So, the above can be done with:
+
+    ; <table>
+    enter-child my-niwashi [type: 'table]
+    ; <tr>
+    enter-child my-niwashi [type: 'tr]
+    ; <td>
+    enter-child my-niwashi [type: 'td]
+    ; <table>
+    enter-child my-niwashi [type: 'table]
+    ; </td>
+    attempt [
+        split-branch/knots my-niwashi 'td 'table
+        leave-child my-niwashi
+        attach-branch my-niwashi
+    ]
+    ; <tr>
+    enter-child my-niwashi [type: 'tr]
+    ; <td>
+    enter-child my-niwashi [type: 'td]
+    ; "cell"
+    append-child my-niwashi [type: 'text properties: [value: "cell"]]
+
+You can pass a block of node types to |/knots| as well.
+
+===Tree building rules
+
+A common thing you do with trees is:
+
+#build a tree;
+
+#transform the tree into something else.
+
+We want to join those two steps into one, "build a tree while transforming it into something else".
+So, here we enter the realm of black magic... no, actually, it's easier than what it may seem.
+
+The trick is defining a set of rules that are applied while the tree is being built.
+
+    -rules-:
+    define-rules: func [
+        "Define rules to apply while building the tree"
+        [catch]
+        niwashi [object!]
+        rules [block!]
+
+        /local -dr-locals-
+    ] [
+        -define-rules-
+    ]
+
+(Note that you may call |define-rules| many times, "adding" new rules to previously defined ones,
+or overriding them.)
+
+Rules are *actions* (eg. a function call) that are performed on specified *events*. There are just
+two types of events: |enter| and |leave|. Each rule has the following grammar:
+
+    'on ['enter | 'leave] node-patterns action
+
+where |node-patterns| can specify one or more (as a block) of:
+
+*any node, eg. |*| matches all nodes;
+
+*a node type, eg. |para| matches all nodes of type |'para|;
+
+*any direct child of a node of a specified type, eg. |para/*| matches all nodes that are direct childs of
+a node of type |'para|;
+
+*a direct child of the specified type of a node of a specified type, eg. |para/b| matches all nodes of type
+|'b| that are direct childs of a node of type |'para|;
+
+*any child, at any level, of a node of a specified type, eg. |para/**/*| matches all nodes that
+are childs of a node of type |'para| (direct childs, direct childs of any direct child, and so on);
+
+*a child, at any level, of the specified type, of a node of a specified type, eg. |para/**/b| matches all
+nodes of type |'b| that are childs of a node of type |'para| (direct childs, direct childs of any direct
+child, and so on);
+
+while |action| can be a word referring to a function (must take one argument, the matched node), or
+a block (will be made into a function with one argument, named |node|).
+
+The actual action that will be called depends on the order of the rules. *The last rule that
+matches wins*. That is, if you have:
+
+    define-rules my-niwashi [
+        on enter * f1
+        on enter p f2
+    ]
+
+|f1| will be called for all nodes, except |'p| nodes, for which |f2| is called.
+
+Actions for |enter| events take the matched node *before* it has been added to the tree; their
+return value (which can be the passed argument or a new node) is added to the tree. (Note that
+it is an error to return any other type of value.) Actions for |leave| events take the matched node
+as argument as well, and their result is ignored.
+
+For example, the following:
+
+    define-rules my-niwashi [
+        on enter p [probe node]
+        on leave b [probe node]
+    ]
+
+will |probe| each |'p| node *before* entering it, and each |'b| node *after* leaving it.
+
+===Implementation
+
+---Create a niwashi object
+
+    -make-niwashi-:
+    context [
+        root: current-node: make-node 'root
+        branch: none
+        rules: copy [ ]
+        parent-stack: copy [root]
+    ]
+
+---Append a new child and make it the current node
+
+    -enter-child-:
+    node: on-enter niwashi make-child spec
+    set-node node/parent: niwashi/current-node
+    niwashi/current-node: node
+
++++|enter-child|'s locals
+
+    -ec-locals-:
+    node
+
+---Change the current node to the current parent node
+
+    -leave-child-:
+    node: niwashi/current-node
+    unless parent: get-node node/parent [
+        throw make error! "Already at the root node"
+    ]
+    niwashi/current-node: parent
+    on-leave niwashi node
+
++++|leave-child|'s locals
+
+    -lc-locals-:
+    node parent
+
+---Append a new child to the current node
+
+    -append-child-:
+    node: on-enter niwashi make-child spec
+    set-node node/parent: niwashi/current-node
+    on-leave niwashi node
+
++++|append-child|'s locals
+
+    -ac-locals-:
+    node
+
+---Split the current branch
+
+    -split-branch-:
+    unless block? base [base: reduce [base]]
+    unless knots [knot-nodes: [ ]]
+    unless prune [prune-nodes: [ ]]
+    unless block? knot-nodes [knot-nodes: reduce [knot-nodes]]
+    unless block? prune-nodes [prune-nodes: reduce [prune-nodes]]
+    node: niwashi/current-node
+    branch: copy [ ]
+    to-leave: clear [ ]
+    while [not find base type: get-node node/type] [
+        if find knot-nodes type [
+            throw make error! join "Cannot cut through '" [type "' nodes"]
+        ]
+        unless find prune-nodes type [
+            new-node: make-node type
+            set-node new-node/properties: get-node node/properties
+            insert/only branch new-node
+        ]
+        append/only to-leave node
+        unless node: get-node node/parent [
+            throw make error! join "No nodes of type '" [base "' found in the current branch"]
+        ]
+    ]
+    niwashi/current-node: node
+    foreach node to-leave [
+        on-leave niwashi node
+    ]
+    niwashi/branch: branch
+
++++|split-branch|'s locals
+
+    -sb-locals-:
+    node branch to-leave new-node type
+
+---Attach the split branch to the tree
+
+    -attach-branch-:
+    unless niwashi/branch [
+        throw make error! "No branch to attach"
+    ]
+    foreach node niwashi/branch [
+        node: on-enter niwashi node
+        set-node node/parent: niwashi/current-node
+        niwashi/current-node: node
+    ]
+    niwashi/branch: none
+
+---Define the rules to apply while building the tree
+
+    -define-rules-:
+    parse rules [
+        some [
+            'on ['enter | 'leave] [into [some node-pattern] | node-pattern] [word! | block!]
+            |
+            pos: skip (invalid-arg pos)
+        ]
+    ]
+    niwashi/rules: rules
+
++++|define-rules|' locals
+
+    -dr-locals-:
+    pos
+
+===Support functions
+
+    -main-:
+    node-pattern: [word! | into [word! '** word! | word! word!]]
+    invalid-arg: func [val] [throw make error! compose/only [script invalid-arg (:val)]]
+    make-child: func [spec /local pos word type properties node] [
+        parse spec [
+            any [
+                pos:
+                set word set-word! (unless find [type: properties:] word [invalid-arg pos])
+                do-next (
+                    set bind word 'type pop-result
+                )
+                |
+                skip (invalid-arg pos)
+            ]
+        ]
+        unless word? :type [
+            throw make error! "No node type specified"
+        ]
+        node: make-node type
+        if block? :properties [
+            set-node node/properties: properties
+        ]
+        node
+    ]
+    on-enter: func [niwashi node /local type candidate-action action patterns] [
+        type: get-node node/type
+        parse niwashi/rules [
+            some [
+                'on 'enter set patterns [block! | path! | word!] set candidate-action [word! | block!] (
+                    if match-pattern? patterns type niwashi/parent-stack [
+                        action: candidate-action
+                    ]
+                )
+                |
+                'on 'leave skip skip
+            ]
+        ]
+        action: either block? action [
+            func [node] action
+        ] [
+            ; get none is none; otherwise action is word!
+            get action
+        ]
+        ; if action is none, node is returned
+        node: (action node)
+        append niwashi/parent-stack get-node node/type
+        node
+    ]
+    on-leave: func [niwashi node /local type candidate-action action patterns] [
+        remove back tail niwashi/parent-stack
+        type: get-node node/type
+        parse niwashi/rules [
+            some [
+                'on 'leave set patterns [block! | path! | word!] set candidate-action [word! | block!] (
+                    if match-pattern? patterns type niwashi/parent-stack [
+                        action: candidate-action
+                    ]
+                )
+                |
+                'on 'enter skip skip
+            ]
+        ]
+        action: either block? action [
+            func [node] action
+        ] [
+            get action
+        ]
+        action node
+    ]
+    match-pattern?: func [patterns type parent-stack /local parent child] [
+        unless block? patterns [patterns: reduce [patterns]]
+        parse patterns [
+            some [
+                '* (return true)
+                |
+                set child word! (if type = child [return true])
+                |
+                into [set parent word! '*] (if parent = last parent-stack [return true])
+                |
+                into [set parent word! set child word!] (
+                    if all [parent = last parent-stack type = child] [
+                        return true
+                    ]
+                )
+                |
+                into [set parent word! '** '*] (if find parent-stack parent [return true])
+                |
+                into [set parent word! '** set child word!] (
+                    if all [find parent-stack parent type = child] [
+                        return true
+                    ]
+                )
+            ]
+        ]
+        false
+    ]
