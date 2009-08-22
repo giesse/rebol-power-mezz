@@ -7,14 +7,14 @@ Functions for handling trees
     }
     Author: "Gabriele Santilli"
     File: %trees.r
-    Version: 2.0.0
+    Version: 2.1.0
     Imports: [
         %parsers/rule-arguments.r
         %parsers/common-rules.r
     ]
     Exports: [
         set-node get-node make-node make-tree mold-tree load-tree save-tree
-        match-node? unwrap-node rewrite-tree node?
+        match-node? unwrap-node rewrite-tree node? clone-tree
     ]
 
 ===Introduction
@@ -256,6 +256,17 @@ zero or more child nodes.
         tree [block!]
     ] [
         mold/all mold-tree* tree
+    ]
+    clone-tree: func [
+        tree [block!]
+        /local result
+    ] [
+        result: reduce [tree/:node-type none copy tree/:node-properties]
+        foreach child at tree node-first-child [
+            child: clone-tree child
+            set-node child/parent: result
+        ]
+        result
     ]
     save-tree: func [
         where [file! url!]
