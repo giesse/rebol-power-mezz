@@ -1,0 +1,32 @@
+REBOL [
+    Type: Module
+    Title: "Tests for EXPAND-MACROS"
+    Author: "Gabriele Santilli"
+    Imports: [%mezz/expand-macros.r]
+]
+
+[
+    m: probe macro [a b] [add a b]
+    f: func [a b] expand-macros [multiply a m b 3]
+    mold :f
+]
+[
+    make-node: macro [type] [reduce [type none copy [ ]]]
+    set-parent: macro [node parent] [insert/only poke node 2 tail parent node]
+    get-child: macro [node child] [pick node (3 + child)]
+    expand-macros [
+        root: make-node 'root
+        node: make-node 'branch
+        set-parent node root
+        node: make-node 'leaf
+        set-parent node (get-child root 1)
+        node: make-node 'branch
+        set-parent node root
+        node: make-node 'branch
+        set-parent node (get-child root 2)
+        node: make-node 'leaf
+        set-parent node (get-child (get-child root 2) 1)
+        node: make-node 'leaf
+        set-parent node (get-child (get-child root 2) 1)
+    ]
+]

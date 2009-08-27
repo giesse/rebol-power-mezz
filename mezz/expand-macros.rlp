@@ -1,0 +1,120 @@
+Macro expansion
+
+    Type: Module
+    Purpose: {
+        Defines the EXPAND-MACROS function.
+    }
+    Author: "Gabriele Santilli"
+    File: %expand-macros.r
+    Version: 1.0.0
+    Imports: [
+        %mezz/collect.r
+    ]
+    Exports: [
+        macro
+        expand-macros
+    ]
+
+===Introduction
+
+Introduction to be written.
+
+===Overview
+
+    -main-:
+    macro: func [spec body] [
+        spec: use spec reduce [spec]
+        reduce ['macro spec body]
+    ]
+    expand-macros: func [code] [
+        either function? :code [
+            func third :code expand-macros second :code
+        ] [
+            collect/into [
+                parse code code-rule
+            ] make code 0
+        ]
+    ]
+    value: none
+    code-rule: [
+        some [
+            set value word! (
+                either all [
+                    value? value
+                    block? m: get value
+                    not empty? m
+                    m/1 = 'macro
+                ] [
+                    next-rule: macro-args-rule
+                    nargs: length? m/2
+                ] [
+                    next-rule: none
+                    keep value
+                ]
+            )
+            next-rule
+            |
+            set value [block! | paren!] (keep/only expand-macros value)
+            |
+            set value skip (keep/only :value)
+        ]
+    ]
+    macro-args-rule: [
+        copy value nargs skip (
+            expand-macro value m
+        )
+        |
+        (make error! "not enough arguments!")
+    ]
+    expand-macro: func [args macro /local value argument here] [
+        if block? args [
+            parse args [
+                some [
+                    here: paren! (here/1: expand-macros here/1)
+                    |
+                    skip
+                ]
+            ]
+        ]
+        either empty? macro/2 [
+            argument: [end skip]
+            args: none
+        ] [
+            set macro/2 args
+            args: bind? macro/2/1
+            argument: collect [
+                keep to lit-word! first macro/2
+                foreach w next macro/2 [
+                    keep '| keep to lit-word! w
+                ]
+            ]
+        ]
+        expand-macro* macro/3 argument args
+    ]
+    expand-macro*: func [block argument args] [
+        parse block [
+            some [
+                set value argument (
+                    keep get in args value
+                )
+                |
+                value: path! :value into [set value argument 'only] (
+                    keep/only get in args value
+                )
+                |
+                /lit set value [block! | paren!] (keep/only value)
+                |
+                /paren set value paren! (keep/only collect/into [expand-macro* value argument args] make paren! 0)
+                |
+                /only set value paren! (keep/only do bind to block! value args)
+                |
+                set value paren! (keep do bind to block! value args)
+                |
+                set value block! (
+                    keep/only collect [expand-macro* value argument args]
+                )
+                |
+                set value skip (keep/only :value)
+            ]
+        ]
+    ]

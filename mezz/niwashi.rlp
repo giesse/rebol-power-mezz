@@ -42,7 +42,7 @@ as it all happens in one pass.
 
 ===Overview
 
-We have a simple set of function that can be used to build tree in the most common and simplest
+We have a simple set of functions that can be used to build trees in the most common and simplest
 cases; we also have a set of additional functions that solve some rather common "not so simple"
 problems.
 

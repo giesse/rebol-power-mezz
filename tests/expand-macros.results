@@ -1,0 +1,9 @@
+string! "func [a b][multiply a add b 3]" block! [
+    root: reduce ['root none copy []] 
+    node: reduce ['branch none copy []] insert/only poke node 2 tail root node 
+    node: reduce ['leaf none copy []] insert/only poke node 2 tail pick root 4 node 
+    node: reduce ['branch none copy []] insert/only poke node 2 tail root node 
+    node: reduce ['branch none copy []] insert/only poke node 2 tail pick root 5 node 
+    node: reduce ['leaf none copy []] insert/only poke node 2 tail pick pick root 5 4 node 
+    node: reduce ['leaf none copy []] insert/only poke node 2 tail pick pick root 5 4 node
+]

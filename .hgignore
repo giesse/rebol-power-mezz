@@ -14,10 +14,10 @@
 ^dialects/fsm.r$
 ^dialects/ml-emitter.html$
 ^dialects/ml-emitter.r$
-^dialects/r--.html$
-^dialects/r--.r$
 ^mezz/collect.html$
 ^mezz/collect.r$
+^mezz/expand-macros.html$
+^mezz/expand-macros.r$
 ^mezz/filter-html.html$
 ^mezz/filter-html.r$
 ^mezz/html-to-text.html$
