@@ -1,0 +1,393 @@
+Parse HTML text into a tree
+
+    Type: Module
+    Purpose: {
+        Given an HTML text string, produces a tree representation of the document.
+    }
+    Author: "Gabriele Santilli"
+    File: %load-html.r
+    Version: 1.0.0
+    Imports: [
+        %parsers/ml-parser.r
+        %mezz/niwashi.r
+        %mezz/trees.r
+        %dialects/emit.r
+        %dialects/ml-emitter.r
+        %parsers/common-rules.r
+        %parsers/rule-arguments.r
+    ]
+    Exports: [
+        load-html
+        form-html
+    ]
+
+===Introduction
+
+This module is a complete HTML parser, supporting HTML 3.2 to 4.1 and XHTML 1.0.
+
+===Overview
+
+    -main-:
+    load-html: func [
+        "Load HTML text into a tree"
+        html [string!]
+        /with niwashi-rules [block!] "Use transformation rules for the niwashi"
+
+        /local -lh-locals-
+    ] [
+        -load-html-
+    ]
+    form-html: func [
+        "Forms a HTML tree (eg. from LOAD-HTML) into HTML text"
+        html [block!]
+        /pretty "Format the text nicely (indent tags etc.)"
+    ] [
+        -form-html-
+    ]
+
+===Parse |html| and generate a tree
+
+    -load-html-:
+    niwashi: make-niwashi
+    define-rules niwashi html-rules
+    if niwashi-rules [
+        define-rules niwashi niwashi-rules
+    ]
+    parse-ml html func [cmd data] [
+        switch cmd [
+            text whitespace comment declaration xml-proc [
+                append-child niwashi [type: cmd properties: [value: data]]
+            ]
+            ; simple cases
+            <html> <head> <title> <script> <style> <object> [
+                enter-child niwashi [type: tag-to-word cmd properties: data]
+            ]
+            <body> <legend> <caption> <fieldset> <noscript> <ins> <del> <iframe> <tt> <i> <b> <u>
+            <strike> <s> <big> <small> <sub> <sup> <em> <strong> <dfn> <code> <samp> <kbd> <var>
+            <cite> <font> <select> <textarea> <button> <optgroup> <label> <span> <abbr>
+            <acronym> <q> <applet> [
+                attempt [
+                    split-branch niwashi 'head
+                    leave-child niwashi
+                ]
+                enter-child niwashi [type: tag-to-word cmd properties: data]
+            ]
+            <isindex> <isindex/> <base> <base/> <script/> <meta> <meta/> <link> <link/> <param> <param/> [
+                append-child niwashi [type: tag-to-word cmd properties: data]
+            ]
+            <col> <col/> <br> <br/> <basefont> <basefont/> <area> <area/> <input> <input/> [
+                attempt [
+                    split-branch niwashi 'head
+                    leave-child niwashi
+                ]
+                append-child niwashi [type: tag-to-word cmd properties: data]
+            ]
+            ; block level
+            <h1> <h2> <h3> <h4> <h5> <h6> <address> <p> <ul> <ol> <dl> <pre> <dt> <dd>
+            <div> <center> <blockquote> [
+                open-tag tag-to-word cmd data [h1 h2 h3 h4 h5 h6 address p dt dd] [table]
+            ]
+            <table> [
+                ; allow table inside p because people are stupid
+                open-tag 'table data [h1 h2 h3 h4 h5 h6 address dt dd] [ ]
+            ]
+            <li> [
+                open-tag 'li data [li h1 h2 h3 h4 h5 h6 address p dt dd] [ul ol]
+            ]
+            <form> [
+                open-tag 'form data 'form [ ]
+            ]
+            <tr> [
+                open-tag 'tr data [tr td th colgroup] 'table
+            ]
+            <td> <th> [
+                open-tag tag-to-word cmd data [td th] 'table
+            ]
+            <thead> <tfoot> <tbody> [
+                open-tag tag-to-word cmd data [thead tfoot tbody tr td th colgroup] 'table
+            ]
+            <colgroup> [
+                open-tag 'colgroup data 'colgroup 'table
+            ]
+            <hr> <hr/> [
+                attach?: no
+                unless attempt [
+                    split-branch niwashi 'head
+                    leave-child niwashi
+                    true
+                ] [
+                    attempt [
+                        split-branch/knots niwashi [h1 h2 h3 h4 h5 h6 address p dt] 'table
+                        leave-child niwashi
+                        attach?: yes
+                    ]
+                ]
+                append-child niwashi [type: 'hr properties: data]
+                ; ???
+                if attach? [attach-branch niwashi]
+            ]
+            ; (non simple) inline level
+            <a> <map> <option> [
+                open-tag cmd: tag-to-word cmd data cmd [ ]
+            ]
+            </tt> </i> </b> </u> </strike> </s> </big> </small> </sub> </sup>
+            </em> </strong> </dfn> </code> </samp> </kbd> </var> </cite>
+            </a> </font> </map> </label> </span> </abbr> </acronym> </q> [
+                attempt [
+                    split-branch niwashi tag-to-word cmd
+                    leave-child niwashi
+                    attach-branch niwashi
+                ]
+            ]
+            ; rebol.com uses the spelling <image>... and FF accepts it!
+            <img> <img/> <image> <image/> [
+                attempt [
+                    split-branch niwashi 'head
+                    leave-child niwashi
+                ]
+                append-child niwashi [type: 'img properties: data]
+            ]
+            ; closing tags
+            </head> </title> </script> </style> </object> </legend> </caption>
+            </fieldset> </noscript> </ins> </del> </iframe> 
+            ; attach-branch?
+            </h1> </h2> </h3> </h4> </h5> </h6> </address> </ul> </ol> </li> </dl> </dt>
+            </dd> </pre> </div> </center> </blockquote> </form> </table> 
+            </tr> </td> </th> </colgroup> </thead> </tfoot> </tbody>
+            </select> </textarea> </button> </option> </optgroup> [
+                attempt [
+                    split-branch niwashi tag-to-word cmd
+                    leave-child niwashi
+                ]
+            ]
+            </p> [
+                attempt [
+                    split-branch/knots niwashi 'p 'table
+                    leave-child niwashi
+                ]
+            ]
+        ]
+    ]
+    leave-all niwashi
+    result: niwashi/root
+    either html-node: get-node result/childs/html [
+        unless body-node: get-node html-node/childs/body [
+            body-node: make-node 'body
+            set-node body-node/parent: html-node
+        ]
+        unless head-node: get-node html-node/childs/head [
+            head-node: make-tree [head [ ] [title [ ]]]
+            set-node body-node/previous: head-node
+        ]
+        unless get-node head-node/childs/title [
+            set-node head-node/childs/1/previous: make-node 'title
+        ]
+    ] [
+        enter-child niwashi [type: 'html]
+        enter-child niwashi [type: 'head]
+        append-child niwashi [type: 'title]
+        leave-child niwashi
+        append-child niwashi [type: 'body]
+        leave-child niwashi
+    ]
+    result
+
+---|load-html|'s locals
+
+    -lh-locals-:
+    attach? result html-node head-node body-node
+
+===Form |html| into HTML text
+
+    -form-html-:
+    set-ml-encoding 'html-ascii
+    emit make string! 1024 [
+        emit-childs html
+    ]
+
+===Rules for the niwashi
+
+Inline level nodes:
+
+    text tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
+    a img applet object font basefont br script map q sub sup span bdo iframe
+    input select textarea label button
+
+Block level nodes:
+
+    p h1 h2 h3 h4 h5 h6 ul ol dir menu pre dl div center noscript noframes blockquote form
+    isindex hr table fieldset address
+
+Flow means both block and inline.
+
+    -main-:
+    html-rules: [
+        except [html comment declaration xml-proc] force html
+        ignore whitespace
+        inside html [
+            except [comment head body] force body
+            ignore [whitespace html declaration xml-proc]
+            on [title isindex base script style meta link object] force head
+            inside head [
+                ignore [whitespace head html declaration xml-proc]
+                inside title [
+                    on text merge-text
+                    on whitespace add-space-after-text
+                    ignore [declaration xml-proc html head title script style object]
+                ]
+                inside object [
+                    only param
+                ]
+            ]
+            inside body [
+                ignore [td th caption tr thead tbody tfoot col colgroup]
+                on whitespace add-space-after-text
+                always [
+                    ignore [declaration xml-proc html head body]
+                    on legend force fieldset
+                    ;on [title base meta link style] move to head
+                    inside [h1 h2 h3 h4 h5 h6 p address dt] [
+                        on text merge-text
+                        on whitespace add-space
+                    ]
+                    inside [pre textarea] [
+                        on [text whitespace] preserve-whitespace
+                        on br add-newline
+                    ]
+                    inside all but [table thead tbody tfoot tr td th caption colgroup] [
+                        ignore [td th caption tr thead tbody tfoot col colgroup]
+                    ]
+                    inside table [
+                        only [thead tfoot tbody tr td caption th col colgroup]
+                        on tr force tbody
+                        on [td th] force tr
+                        inside caption [
+                            on text merge-text
+                            on whitespace add-space
+                        ]
+                        inside [thead tfoot tbody] [
+                            only [tr td th]
+                            on [td th] force tr
+                            inside tr [
+                                only [td th]
+                                inside [td th] [
+                                    on text merge-text
+                                    on whitespace add-space
+                                ]
+                            ]
+                        ]
+                        inside colgroup [
+                            only col
+                        ]
+                    ]
+                    inside all but [
+                        h1 h2 h3 h4 h5 h6 p address dt pre caption td th
+                        tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
+                        a applet object font map q sub sup span bdo iframe
+                        option textarea label button
+                    ] [
+                        on whitespace add-space-after-text
+                    ]
+                ]
+            ]
+        ]
+    ]
+    merge-text: func [node /local prev] [
+        if all [prev: get-node node/previous 'text = get-node prev/type] [
+            append get-node prev/prop/value get-node node/prop/value
+            set-node node/parent: none
+        ]
+    ]
+    add-space: func [node /local prev text] [
+        either all [prev: get-node node/previous 'text = get-node prev/type] [
+            text: get-node prev/prop/value
+            unless #" " = last text [append text #" "]
+            set-node node/parent: none
+        ] [
+            set-node node/type: 'text
+            set-node node/prop/value: copy " "
+        ]
+    ]
+    add-space-after-text: func [node /local prev text] [
+        if all [prev: get-node node/previous 'text = get-node prev/type] [
+            text: get-node prev/prop/value
+            unless #" " = last text [append text #" "]
+        ]
+        set-node node/parent: none
+    ]
+    preserve-whitespace: func [node] [
+        set-node node/type: 'text
+        merge-text node
+    ]
+    add-newline: func [node] [
+        set-node node/properties: copy/deep [value "^/"]
+        preserve-whitespace node
+    ]
+
+===Support functions
+
+    -main-:
+    tag-to-word: func [tag] [
+        to word! lowercase trim/with to string! tag #"/"
+    ]
+    open-tag: func [type prop split knots /local attach?] [
+        unless attempt [
+            split-branch niwashi 'head
+            leave-child niwashi
+            true
+        ] [
+            attach?: attempt [
+                split-branch/knots niwashi split knots
+                leave-child niwashi
+                true
+            ]
+        ]
+        enter-child niwashi [type: type properties: prop]
+        if attach? [attach-branch niwashi]
+    ]
+    emit-childs: macro/custom [type cdata? node] [
+        [/cdata (cdata?: yes) | (cdata?: no)] do-next (
+            node: pop-result
+            foreach node get-node node/childs [
+                emit output [
+                    switch type: get-node node/type [
+                        text whitespace [either cdata? [(get-node node/prop/value)] [text get-node node/prop/value]]
+                        xml-proc declaration [(get-node node/prop/value) #"^/"]
+                        comment [(get-node node/prop/value)]
+                        style [
+                            tag 'style get-node node/properties [
+                                cdata/options [emit-childs /cdata node] [commented: yes]
+                            ]
+                        ]
+                        /default [
+                            tag type get-node node/properties either find [
+                                base link hr area input img br col isindex script meta
+                                basefont
+                            ] type [
+                                'empty
+                            ] [
+                                [
+                                    if find [
+                                        html head script style object body noscript 
+                                        ul ol dl div center blockquote
+                                        table form tr thead tfoot tbody
+                                    ] type [
+                                        #"^/"
+                                    ]
+                                    emit-childs node
+                                ]
+                            ]
+                            if find [
+                                html head title script style object body legend caption
+                                fieldset noscript iframe isindex base meta link br basefont
+                                h1 h2 h3 h4 h5 h6 address p ul ol dl pre dt dd div center blockquote
+                                table li form tr td th thead tfoot tbody hr
+                            ] type [
+                                #"^/"
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        )
+    ]

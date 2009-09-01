@@ -22,6 +22,8 @@
 ^mezz/filter-html.r$
 ^mezz/html-to-text.html$
 ^mezz/html-to-text.r$
+^mezz/load-html.html$
+^mezz/load-html.r$
 ^mezz/module.html$
 ^mezz/module.r$
 ^mezz/niwashi.html$

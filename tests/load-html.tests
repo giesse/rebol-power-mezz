@@ -1,0 +1,61 @@
+REBOL [
+    Type: Module
+    Title: "Tests for LOAD-HTML"
+    Author: "Gabriele Santilli"
+    Imports: [%mezz/load-html.r %mezz/trees.r]
+]
+
+[
+    form-html load-html "Some text"
+]
+[
+    form-html load-html "<p>Some text"
+]
+[
+    form-html load-html "<html><head><title>A test</head><body><p>Paragraph<div><p><i>Italic text<div>Still italic?</html>"
+]
+[
+    form-html load-html read %tests/data/rebol.com.html
+]
+[
+    form-html load-html read %tests/data/w3.org.html
+]
+[
+    form-html load-html read %tests/data/fairy.html
+]
+[
+    form-html load-html "<a>Text<font>Text</a>Text</font>"
+]
+[
+    form-html load-html {<p align="center"><table></table></p>}
+]
+[
+    form-html load-html ""
+]
+[
+    form-html load-html "<br>"
+]
+[
+    form-html load-html "<p><br></p>"
+]
+[
+    form-html load-html "<br><br>"
+]
+[
+    form-html load-html "Text<br>"
+]
+[
+    form-html load-html "<pre>Some<br>text<br>on<br>multiple lines</pre>"
+]
+[
+    form-html load-html "A rule.<br><hr>Text"
+]
+[
+    form-html load-html "Text.<div>Text.</div><div>Text.</div>"
+]
+[
+    form-html load-html "<table><tr><td>Cell"
+]
+[
+    form-html load-html {<p align="center"><table><tr><td><p>Cell}
+]

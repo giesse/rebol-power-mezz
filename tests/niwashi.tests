@@ -97,24 +97,12 @@ REBOL [
 [
     n: make-niwashi
     define-rules n [
-        on enter [p div] [set-node node/prop/processed: yes node]
-        on leave [root/p root/div] add-html
-        on leave root/html merge-html
-    ]
-    add-html: func [node /local html] [
-        either all [html: get-node node/previous 'html = get-node html/type] [
-            set-node node/parent: html
-        ] [
-            set-node node/parent: none
-            html: make-node 'html
-            set-node html/parent: n/root
-            set-node node/parent: html
+        always [
+            on [p div] [set-node node/prop/processed: yes]
         ]
-    ]
-    merge-html: func [node /local prev] [
-        if all [prev: get-node node/previous 'html = get-node prev/type] [
-            set-node node/parent: prev
-            unwrap-node node
+        on [p div] force html
+        inside html [
+            ignore html
         ]
     ]
     enter-child n [type: 'p]

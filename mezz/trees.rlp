@@ -7,7 +7,7 @@ Functions for handling trees
     }
     Author: "Gabriele Santilli"
     File: %trees.r
-    Version: 2.1.0
+    Version: 2.1.1
     Imports: [
         %parsers/rule-arguments.r
         %parsers/common-rules.r
@@ -45,10 +45,10 @@ zero or more child nodes.
     ]
     invalid-arg: func [val] [throw make error! compose/only [script invalid-arg (:val)]]
     set-assoc: func [block word value /local pos] [
-        either pos: find block word [
+        either pos: find/only block word [
             pos/2: :value
         ] [
-            insert/only insert tail block word :value
+            insert/only insert/only tail block word :value
         ]
     ]
     remove-node: func [node] [
@@ -138,10 +138,12 @@ zero or more child nodes.
                 ['prop | 'properties] end (
                     unless block? :value [invalid-arg :value]
                     parse value [
-                        any [word! skip] end (node/:node-properties: value)
+                        any [[word! | path!] skip] end (node/:node-properties: value)
                         |
                         any [
                             set word set-word! do-next (set-assoc node/:node-properties to word! word pop-result)
+                            |
+                            set word set-path! do-next (set-assoc node/:node-properties to path! word pop-result)
                         ] end
                         |
                         pos: (invalid-arg pos)

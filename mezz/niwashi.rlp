@@ -7,7 +7,7 @@ Grow trees using constraints
     }
     Author: "Gabriele Santilli"
     File: %niwashi.r
-    Version: 1.0.0
+    Version: 1.1.0
     Imports: [
         %mezz/trees.r
         %parsers/common-rules.r
@@ -21,6 +21,7 @@ Grow trees using constraints
         split-branch
         attach-branch
         define-rules
+        leave-all
     ]
 
 ===Introduction
@@ -359,7 +360,8 @@ A common thing you do with trees is:
 We want to join those two steps into one, "build a tree while transforming it into something else".
 So, here we enter the realm of black magic... no, actually, it's easier than what it may seem.
 
-The trick is defining a set of rules that are applied while the tree is being built.
+The trick is defining a set of rules that are applied while the tree is being built - basically
+definining constraints on the way the tree is able to grow, "forcing" it to grow in a certain way.
 
     -rules-:
     define-rules: func [
@@ -367,8 +369,6 @@ The trick is defining a set of rules that are applied while the tree is being bu
         [catch]
         niwashi [object!]
         rules [block!]
-
-        /local -dr-locals-
     ] [
         -define-rules-
     ]
@@ -376,56 +376,118 @@ The trick is defining a set of rules that are applied while the tree is being bu
 (Note that you may call |define-rules| many times, "adding" new rules to previously defined ones,
 or overriding them.)
 
-Rules are *actions* (eg. a function call) that are performed on specified *events*. There are just
-two types of events: |enter| and |leave|. Each rule has the following grammar:
+Rules are mainly *actions* (eg. a function call) that are performed on specified *events* (for example
+when a node is added to the tree).
+Each rule has the following grammar:
 
-    'on ['enter | 'leave] node-patterns action
+    "Grammar for the niwashi rules"
+    rule: [
+        ['on | 'except] node-types ['force node-type | 'move 'to target-name | action]
+        |
+        ['ignore | 'only] node-types
+        |
+        'move 'target target-name
+        |
+        'inside opt ['all 'but] node-types into rules
+        |
+        'always into rules
+    ]
+    node-type: [word!]
+    node-types: [node-type | into [some node-type]]
+    target-name: [word!]
+    action: [word! | block!]
+    rules: [some rule]
 
-where |node-patterns| can specify one or more (as a block) of:
+(See |-niwashi-rules-| for more details.) |node-type| is the type of the node that has
+been added, while |action| can be a word referring
+to a function (must take one argument, the added node), or
+a block (will be made into a function with one argument, named |node|). The function is called
+once the node *is complete*, that is, all its children have been added; in other words, this happens on |leave-child|.
 
-*any node, eg. |*| matches all nodes;
+|move to| actions and |move target| are currently not implemented. (Hopefully coming soon.)
 
-*a node type, eg. |para| matches all nodes of type |'para|;
-
-*any direct child of a node of a specified type, eg. |para/*| matches all nodes that are direct childs of
-a node of type |'para|;
-
-*a direct child of the specified type of a node of a specified type, eg. |para/b| matches all nodes of type
-|'b| that are direct childs of a node of type |'para|;
-
-*any child, at any level, of a node of a specified type, eg. |para/**/*| matches all nodes that
-are childs of a node of type |'para| (direct childs, direct childs of any direct child, and so on);
-
-*a child, at any level, of the specified type, of a node of a specified type, eg. |para/**/b| matches all
-nodes of type |'b| that are childs of a node of type |'para| (direct childs, direct childs of any direct
-child, and so on);
-
-while |action| can be a word referring to a function (must take one argument, the matched node), or
-a block (will be made into a function with one argument, named |node|).
-
-The actual action that will be called depends on the order of the rules. *The last rule that
-matches wins*. That is, if you have:
+All the actions that match are called, in the order they appear in the rules. For example:
 
     define-rules my-niwashi [
-        on enter * f1
-        on enter p f2
+        except div f1
+        on p f2
     ]
 
-|f1| will be called for all nodes, except |'p| nodes, for which |f2| is called.
-
-Actions for |enter| events take the matched node *before* it has been added to the tree; their
-return value (which can be the passed argument or a new node) is added to the tree. (Note that
-it is an error to return any other type of value.) Actions for |leave| events take the matched node
-as argument as well, and their result is ignored.
-
-For example, the following:
+For |'p| nodes, first |f1| will be called (because it is not |'div|), then |f2| is called (because it is |'p|).
+There are, however, some exceptions. Actions are never called for ignored nodes, no matter the order of
+rules. (And you cannot override an ignore rule at this point.) Also, there can only be one valid
+|force| action at a time for a specific node, a new one always overrides any existing ones; that is, in
+a case like:
 
     define-rules my-niwashi [
-        on enter p [probe node]
-        on leave b [probe node]
+        on p force 'body
+        on p force 'html
     ]
 
-will |probe| each |'p| node *before* entering it, and each |'b| node *after* leaving it.
+the second rule *overrides* the first one.
+
+The rules passed to |define-rules| apply to all the direct children of the root node, that is,
+all the nodes added to the root node. The |inside| rule can be used to specify rules for other
+nodes (see examples below).
+
+Let's make some examples:
+
+    on p [probe node]
+
+means that *after* |leave-child| is called on P, the node is probed.
+
+    on p force body
+
+means that *before* entering P, a node of type |'body| is created and entered; this means that
+when the rules applies, |enter-child my-niwashi [type: 'p]| becomes equivalent to
+|enter-child my-niwashi [type: 'body] enter-child my-niwashi [type: 'p]|.
+
+    except [p h1] f
+
+means that for all node except those of type |'p| or |'h1|, the function |f| is called.
+
+    ignore whitespace
+
+means that nodes of type |'whitespace| are ignored - that is, they are never added to the tree.
+
+    only col
+
+means that only nodes of type |'col| are added, any other node is ignored.
+
+    inside html [
+        ; ...
+    ]
+
+means that when a node of type |'html| is entered, the specified rules are applied. The
+new rules replace the existing ones, and are as well replaced when a new child is entered.
+
+As we said, the rules passed to |define-rules| only apply while the root node is the current node.
+As soon as a new node is entered, they are replaced with either a set of rules defined by |inside|,
+or by an empty set. You can control which rules are applied at any time by using |inside| carefully.
+
+Using |inside| multiple time for the same node means *adding* more rules to the ones that already
+exist for that node.
+
+    always [
+        ; ...
+    ]
+
+|always| works like |inside| except that the given rules apply to the current node and to *all* its
+children; they are not replaced when a new child is entered, so basically they are always in effect
+until the node that added them is left.
+
+Since actions are performed when nodes are "left", you can use this handy function when you're
+done building the tree to make sure you are back to the root node:
+
+    -rules-:
+    leave-all: func [
+        "Leave all nodes, go back to the root node"
+        niwashi [object!]
+
+        /local -la-locals-
+    ] [
+        -leave-all-
+    ]
 
 ===Implementation
 
@@ -435,14 +497,16 @@ will |probe| each |'p| node *before* entering it, and each |'b| node *after* lea
     context [
         root: current-node: make-node 'root
         branch: none
-        rules: copy [ ]
-        parent-stack: copy [root]
+        cn-rules: copy [ ]
+        cnr-stack: copy [ ]
+        always-rules: copy [ ]
+        ar-stack: copy [ ]
     ]
 
 ---Append a new child and make it the current node
 
     -enter-child-:
-    node: on-enter niwashi make-child spec
+    on-enter niwashi node: make-child spec
     set-node node/parent: niwashi/current-node
     niwashi/current-node: node
 
@@ -469,7 +533,7 @@ will |probe| each |'p| node *before* entering it, and each |'b| node *after* lea
 ---Append a new child to the current node
 
     -append-child-:
-    node: on-enter niwashi make-child spec
+    on-enter niwashi node: make-child spec
     set-node node/parent: niwashi/current-node
     on-leave niwashi node
 
@@ -521,7 +585,7 @@ will |probe| each |'p| node *before* entering it, and each |'b| node *after* lea
         throw make error! "No branch to attach"
     ]
     foreach node niwashi/branch [
-        node: on-enter niwashi node
+        on-enter niwashi node
         set-node node/parent: niwashi/current-node
         niwashi/current-node: node
     ]
@@ -530,24 +594,74 @@ will |probe| each |'p| node *before* entering it, and each |'b| node *after* lea
 ---Define the rules to apply while building the tree
 
     -define-rules-:
-    parse rules [
-        some [
-            'on ['enter | 'leave] [into [some node-pattern] | node-pattern] [word! | block!]
-            |
-            pos: skip (invalid-arg pos)
-        ]
+    always: niwashi/always-rules
+    parse rules rules-check+
+    append niwashi/cn-rules rules
+
+---Leave all nodes and go back to the root node
+
+    -leave-all-:
+    node: niwashi/current-node
+    while [parent: get-node node/parent] [
+        niwashi/current-node: parent
+        on-leave niwashi node
+        node: parent
     ]
-    niwashi/rules: rules
 
-+++|define-rules|' locals
++++|leave-all|'s locals
 
-    -dr-locals-:
-    pos
+    -la-locals-:
+    node parent
+
+===Niwashi rules grammar
+
+    -niwashi-rules-:
+    rule-check-: [
+        'debug
+        |
+        ['on | 'except] node-types pos: ['move 'to word!] (
+            throw make error! join "MOVE TO not supported at this time: " mold/only pos
+        )
+        |
+        ['on | 'except] node-types ['force word! | action]
+        |
+        ['ignore | 'only] node-types
+        |
+        pos: 'move 'target word! (
+            throw make error! join "MOVE TARGET not supported at this time: " mold/only pos
+        )
+        |
+        'inside opt ['all 'but] node-types into rules-check
+        |
+        pos: 'always block! (
+            throw make error! join "ALWAYS inside ALWAYS: " mold/only pos
+        )
+        |
+        pos: skip (invalid-arg pos)
+    ]
+    alw: none
+    always: [ ]
+    rule-check: [
+        'always into rules-check-
+        |
+        rule-check-
+    ]
+    rule-check+: [
+        'always set alw into rules-check- (append always alw)
+        |
+        rule-check-
+    ]
+    node-types: [word! | into [some word!]]
+    node-path: [word! | path!]
+    action: [word! | block!]
+    rules-check-: [some rule-check-]
+    rules-check: [some rule-check]
+    rules-check+: [some rule-check+]
 
 ===Support functions
 
     -main-:
-    node-pattern: [word! | into [word! '** word! | word! word!]]
+    -niwashi-rules-
     invalid-arg: func [val] [throw make error! compose/only [script invalid-arg (:val)]]
     make-child: func [spec /local pos word type properties node] [
         parse spec [
@@ -570,75 +684,125 @@ will |probe| each |'p| node *before* entering it, and each |'b| node *after* lea
         ]
         node
     ]
-    on-enter: func [niwashi node /local type candidate-action action patterns] [
-        type: get-node node/type
-        parse niwashi/rules [
-            some [
-                'on 'enter set patterns [block! | path! | word!] set candidate-action [word! | block!] (
-                    if match-pattern? patterns type niwashi/parent-stack [
-                        action: candidate-action
-                    ]
-                )
-                |
-                'on 'leave skip skip
+    on-enter: func [niwashi node /local type node-match force-node ignore? rules new-rules debug?] [
+        type: to lit-word! get-node node/type
+        node-match: [type | into [to type to end]]
+        new-rules: copy [ ]
+        foreach rules [niwashi/always-rules niwashi/cn-rules] [
+            ; DO to fetch the path!'s value
+            parse do rules [
+                some [
+                    'debug (debug?: yes)
+                    |
+                    'on node-match 'force set force-node word!
+                    |
+                    'except node-match 'force word!
+                    |
+                    'except node-types 'force set force-node word!
+                    |
+                    'ignore node-match (ignore?: yes)
+                    |
+                    'only node-match
+                    |
+                    'only node-types (ignore?: yes)
+                    |
+                    'inside 'all 'but node-match block!
+                    |
+                    'inside 'all 'but node-types set rules block! (append new-rules rules)
+                    |
+                    'inside node-match set rules block! (append new-rules rules)
+                    |
+                    rule-check ; catch everything else
+                ]
             ]
         ]
-        action: either block? action [
-            func [node] action
-        ] [
-            ; get none is none; otherwise action is word!
-            get action
+        if debug? [
+            print ""
+            print ["*** ENTER" type "*******************************************************"]
+            print ""
+            print "Current set of rules:"
+            print mold/only niwashi/always-rules
+            print mold/only niwashi/cn-rules
+            print ""
+            print ["force-node:" force-node "ignore:" ignore? "new-rules:" length? new-rules]
+            print "*************************************************************************"
         ]
-        ; if action is none, node is returned
-        node: (action node)
-        append niwashi/parent-stack get-node node/type
-        node
+        case [
+            ignore? [
+                append/only niwashi/cnr-stack niwashi/cn-rules
+                append/only niwashi/ar-stack niwashi/always-rules
+            ]
+            force-node [
+                ; TODO: infinite recursion protection
+                enter-child niwashi [type: force-node]
+                ; enter-child changes the rules, so we need to do all the above again
+                on-enter niwashi node
+            ]
+            'else [
+                append/only niwashi/cnr-stack niwashi/cn-rules
+                append/only niwashi/ar-stack copy niwashi/always-rules
+                parse niwashi/cn-rules: new-rules [
+                    some [
+                        'always set rules block! (append niwashi/always-rules rules)
+                        |
+                        rule-check-
+                    ]
+                ]
+            ]
+        ]
     ]
-    on-leave: func [niwashi node /local type candidate-action action patterns] [
-        remove back tail niwashi/parent-stack
-        type: get-node node/type
-        parse niwashi/rules [
-            some [
-                'on 'leave set patterns [block! | path! | word!] set candidate-action [word! | block!] (
-                    if match-pattern? patterns type niwashi/parent-stack [
-                        action: candidate-action
-                    ]
-                )
-                |
-                'on 'enter skip skip
+    on-leave: func [niwashi node /local type node-match act actions ignore? debug?] [
+        type: to lit-word! get-node node/type
+        node-match: [type | into [to type to end]]
+        actions: clear [ ]
+        niwashi/always-rules: last niwashi/ar-stack
+        remove back tail niwashi/ar-stack
+        niwashi/cn-rules: last niwashi/cnr-stack
+        remove back tail niwashi/cnr-stack
+        foreach rules [niwashi/always-rules niwashi/cn-rules] [
+            ; DO to fetch the path!'s value
+            parse do rules [
+                some [
+                    'debug (debug?: yes)
+                    |
+                    ['on | 'except] node-types 'force word!
+                    |
+                    'on node-match set act action (append/only actions act)
+                    |
+                    'except node-match action
+                    |
+                    'except node-types set act action (append/only actions act)
+                    |
+                    'ignore node-match (ignore?: yes)
+                    |
+                    'only node-match
+                    |
+                    'only node-types (ignore?: yes)
+                    |
+                    rule-check ; skip everything else
+                ]
             ]
         ]
-        action: either block? action [
-            func [node] action
+        if debug? [
+            print ""
+            print ["*** LEAVE" type "*******************************************************"]
+            print ""
+            print "Current set of rules:"
+            print mold/only niwashi/always-rules
+            print mold/only niwashi/cn-rules
+            print ""
+            print ["ignore:" ignore? "actions:" mold actions]
+            print "*************************************************************************"
+        ]
+        either ignore? [
+            unwrap-node node
         ] [
-            get action
-        ]
-        action node
-    ]
-    match-pattern?: func [patterns type parent-stack /local parent child] [
-        unless block? patterns [patterns: reduce [patterns]]
-        parse patterns [
-            some [
-                '* (return true)
-                |
-                set child word! (if type = child [return true])
-                |
-                into [set parent word! '*] (if parent = last parent-stack [return true])
-                |
-                into [set parent word! set child word!] (
-                    if all [parent = last parent-stack type = child] [
-                        return true
-                    ]
-                )
-                |
-                into [set parent word! '** '*] (if find parent-stack parent [return true])
-                |
-                into [set parent word! '** set child word!] (
-                    if all [find parent-stack parent type = child] [
-                        return true
-                    ]
-                )
+            parse actions [
+                some [
+                    set act word! (act: get act act node)
+                    |
+                    set act block! (act: func [node] act act node)
+                ]
             ]
         ]
-        false
     ]
