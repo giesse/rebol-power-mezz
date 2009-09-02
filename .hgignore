@@ -32,6 +32,8 @@
 ^mezz/normalize-html.r$
 ^mezz/pipe.html$
 ^mezz/pipe.r$
+^mezz/profiling.html$
+^mezz/profiling.r$
 ^mezz/sequences.html$
 ^mezz/sequences.r$
 ^mezz/text-encoding.html$

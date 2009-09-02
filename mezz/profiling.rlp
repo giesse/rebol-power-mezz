@@ -1,0 +1,114 @@
+REBOL functions profiler
+
+    Type: Module
+    Purpose: {
+        Defines functions that allow profiling (measuring relative performance) of functions
+        in a REBOL program.
+    }
+    Author: "Gabriele Santilli"
+    File: %profiling.r
+    Version: 1.0.0
+    Exports: [
+        in-func
+        out-func
+        reset-profiler
+        show-profiler-results
+    ]
+
+===Introduction
+
+Performance optimization is an important part of software engineering.
+This module defines tools that can be used to profile function performance
+in REBOL applications.
+
+===Overview
+
+    -main-:
+    profiler-table: context [ ]
+    profiler-call-stack: [ ]
+    in-func: func [name /local w stats] [
+        if not word? name [exit]
+        if not empty? profiler-call-stack [
+            if w: in profiler-table last profiler-call-stack [
+                stats: get w
+                if stats/start [
+                    stats/time: stats/time + difference now/precise stats/start
+                    stats/start: none
+                ]
+            ]
+        ]
+        append profiler-call-stack name
+        either w: in profiler-table name [
+            stats: get w
+            stats/start: now/precise
+        ] [
+            profiler-table: make profiler-table reduce [
+                to set-word! name context [
+                    start: now/precise
+                    time: 0:00 count: 0
+                ]
+            ]
+        ]
+    ]
+    out-func: func [name /local t w stats] [
+        t: now/precise
+        if not word? name [exit]
+        stats: get w: in profiler-table name
+        if stats/start [
+            stats/time: stats/time + difference t stats/start
+            stats/count: stats/count + 1
+            stats/start: none
+        ]
+        remove back tail profiler-call-stack
+        if not empty? profiler-call-stack [
+            if w: in profiler-table last profiler-call-stack [
+                stats: get w
+                stats/start: now/precise
+            ]
+        ]
+    ]
+
+    -left: func [str n] [head insert/dup tail str " " n - length? str]
+    -right: func [str n] [head insert/dup str " " n - length? str]
+
+    reset-profiler: does [
+        foreach stats next second profiler-table [
+            stats/time: 0:00
+            stats/count: 0
+        ]
+    ]
+
+    show-profiler-results: has [res stats str total-time total-calls] [
+        res: clear [ ]
+        str: copy {^/Top ten functions by total time:^/+------------------------------+------------------+---------+^/| Name                         |             Time |   Calls |^/+------------------------------+------------------+---------+^/}
+        foreach w next first profiler-table [
+            stats: get in profiler-table w
+            append/only res reduce [stats/time stats/count w]
+        ]
+        sort/reverse res
+        foreach row copy/part res 10 [
+            append str reduce [
+                "| " -left form row/3 28 " | " -right form row/1 16 " | " -right form row/2 7 " |^/"
+            ]
+        ]
+        clear res
+        foreach w next first profiler-table [
+            stats: get in profiler-table w
+            if stats/count > 0 [append/only res reduce [stats/time / stats/count w]]
+        ]
+        sort/reverse res
+        append str {+------------------------------+------------------+---------+^/^/Top ten functions by average time:^/+------------------------------+------------------+^/| Name                         |             Time |^/+------------------------------+------------------+^/}
+        foreach row copy/part res 10 [
+            append str reduce [
+                "| " -left form row/2 28 " | " -right form row/1 16 " |^/"
+            ]
+        ]
+        append str {+------------------------------+------------------+^/^/Total execution time: }
+        total-time: 0:00
+        total-calls: 0
+        foreach stats next second profiler-table [
+            if stats/time [total-time: total-time + stats/time]
+            if stats/count [total-calls: total-calls + stats/count]
+        ]
+        repend str [total-time " for " total-calls " function calls."]
+    ]

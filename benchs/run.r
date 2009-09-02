@@ -30,23 +30,27 @@ change-dir %../
 do %mezz/module.r
 load-module/from what-dir
 
-run-benchmark: func [file /local benchs name blk results] [
-	benchs: load/header clean-path join %benchs/ file
-	module benchs/1 reduce [benchs]
-	results: copy [ ]
-	parse benchs [
-		object! ; skip the header
-		opt [
-			; optional initialization
-			'init set blk block! (do blk)
-		]
-		some [
-			set name word! set blk block! (
-				insert insert tail results name time blk
-			)
-		]
-	]
-	save-results join %benchs/results/ [current-version %/ file] results
+module [imports: [%mezz/profiling.r] globals: [run-benchmark]] [
+    run-benchmark: func [file /local benchs name blk results] [
+        reset-profiler
+        benchs: load/header clean-path join %benchs/ file
+        module benchs/1 reduce [benchs]
+        results: copy [ ]
+        parse benchs [
+            object! ; skip the header
+            opt [
+                ; optional initialization
+                'init set blk block! (do blk)
+            ]
+            some [
+                set name word! set blk block! (
+                    insert insert tail results name time blk
+                )
+            ]
+        ]
+        save-results join %benchs/results/ [current-version %/ file] results
+        write join %benchs/results/ [current-version %/ file %.profile] show-profiler-results
+    ]
 ]
 
 save-results: func [file results] [
@@ -76,9 +80,15 @@ show-results: func [file /local lay results r max-speed max-time] [
 			Text (join "Version " version) Return
 		]
 		foreach [name result] results [
-			append lay compose [
+			append lay compose/deep [
 				Text 150 (form name)
-				Box red (as-pair 600 / (result * max-speed) 22) yellow (form round/to max-time / result 0.01) Return
+				Box red (as-pair 600 / (result * max-speed) 22) yellow (form round/to max-time / result 0.01) [
+                    if exists? r: join %benchs/results/ [(version) file %.profile] [
+                        view/new layout [
+                            area 600x400 font-name "Monospace" read r
+                        ]
+                    ]
+                ] Return
 			]
 		]
 	]
