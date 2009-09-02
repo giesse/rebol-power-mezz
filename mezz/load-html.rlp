@@ -6,7 +6,7 @@ Parse HTML text into a tree
     }
     Author: "Gabriele Santilli"
     File: %load-html.r
-    Version: 1.0.0
+    Version: 1.1.0
     Imports: [
         %parsers/ml-parser.r
         %mezz/niwashi.r
@@ -40,10 +40,16 @@ This module is a complete HTML parser, supporting HTML 3.2 to 4.1 and XHTML 1.0.
     form-html: func [
         "Forms a HTML tree (eg. from LOAD-HTML) into HTML text"
         html [block!]
-        /pretty "Format the text nicely (indent tags etc.)"
+        /with options "Specify format options"
     ] [
         -form-html-
     ]
+
+---Options for |form-html|
+
+    -default-fh-options-:
+    pretty?: false ; pretty print output (indent etc.)
+    utf8?: false ; output UTF-8 instead of ASCII
 
 ===Parse |html| and generate a tree
 
@@ -200,7 +206,10 @@ This module is a complete HTML parser, supporting HTML 3.2 to 4.1 and XHTML 1.0.
 ===Form |html| into HTML text
 
     -form-html-:
-    set-ml-encoding 'html-ascii
+    options: make default-fh-options any [options [ ]]
+    set-ml-encoding pick [html-utf8 html-ascii] to logic! options/utf8?
+    pretty-print?: to logic! options/pretty?
+    clear indent
     emit make string! 1024 [
         emit-childs html
     ]
@@ -221,6 +230,22 @@ Block level nodes:
 Flow means both block and inline.
 
     -main-:
+    inside-flow: [
+        on whitespace add-space
+        on text merge-text
+        ignore [td th caption tr thead tbody tfoot col colgroup]
+        after [
+            p h1 h2 h3 h4 h5 h6 ul ol dir menu pre dl div center noscript noframes
+            blockquote form isindex hr table fieldset address
+        ] outside-flow
+    ]
+    outside-flow: [
+        ignore [td th caption tr thead tbody tfoot col colgroup whitespace]
+        after [
+            text tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
+            a font q sub sup span bdo
+        ] inside-flow
+    ]
     html-rules: [
         except [html comment declaration xml-proc] force html
         ignore whitespace
@@ -232,62 +257,64 @@ Flow means both block and inline.
                 ignore [whitespace head html declaration xml-proc]
                 inside title [
                     on text merge-text
-                    on whitespace add-space-after-text
-                    ignore [declaration xml-proc html head title script style object]
+                    after text [
+                        on text merge-text
+                        on whitespace add-space
+                        ignore [declaration xml-proc html head title script style object]
+                    ]
+                    ignore [whitespace declaration xml-proc html head title script style object]
                 ]
                 inside object [
                     only param
                 ]
             ]
+            inside body outside-flow
             inside body [
-                ignore [td th caption tr thead tbody tfoot col colgroup]
-                on whitespace add-space-after-text
                 always [
                     ignore [declaration xml-proc html head body]
                     on legend force fieldset
+                    on style move-to-head
                     ;on [title base meta link style] move to head
-                    inside [h1 h2 h3 h4 h5 h6 p address dt] [
-                        on text merge-text
-                        on whitespace add-space
-                    ]
                     inside [pre textarea] [
                         on [text whitespace] preserve-whitespace
                         on br add-newline
                     ]
-                    inside all but [table thead tbody tfoot tr td th caption colgroup] [
-                        ignore [td th caption tr thead tbody tfoot col colgroup]
+                    inside all but [table thead tbody tfoot tr td th caption colgroup select] [
+                        ignore [td th caption tr thead tbody tfoot col colgroup option optgroup]
                     ]
                     inside table [
                         only [thead tfoot tbody tr td caption th col colgroup]
                         on tr force tbody
                         on [td th] force tr
-                        inside caption [
-                            on text merge-text
-                            on whitespace add-space
-                        ]
+                        inside caption inside-flow
                         inside [thead tfoot tbody] [
                             only [tr td th]
                             on [td th] force tr
                             inside tr [
                                 only [td th]
-                                inside [td th] [
-                                    on text merge-text
-                                    on whitespace add-space
-                                ]
+                                inside [td th] inside-flow
                             ]
                         ]
                         inside colgroup [
                             only col
                         ]
                     ]
-                    inside all but [
+                    inside select [
+                        only [option optgroup]
+                    ]
+                    inside optgroup [
+                        only option
+                    ]
+                    inside [
+                        blockquote center dd del div dl fieldset form ins legend li noscript ol
+                        ul
+                    ] outside-flow
+                    inside [
                         h1 h2 h3 h4 h5 h6 p address dt pre caption td th
                         tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
                         a applet object font map q sub sup span bdo iframe
                         option textarea label button
-                    ] [
-                        on whitespace add-space-after-text
-                    ]
+                    ] inside-flow
                 ]
             ]
         ]
@@ -308,13 +335,6 @@ Flow means both block and inline.
             set-node node/prop/value: copy " "
         ]
     ]
-    add-space-after-text: func [node /local prev text] [
-        if all [prev: get-node node/previous 'text = get-node prev/type] [
-            text: get-node prev/prop/value
-            unless #" " = last text [append text #" "]
-        ]
-        set-node node/parent: none
-    ]
     preserve-whitespace: func [node] [
         set-node node/type: 'text
         merge-text node
@@ -323,10 +343,21 @@ Flow means both block and inline.
         set-node node/properties: copy/deep [value "^/"]
         preserve-whitespace node
     ]
+    move-to-head: func [node /local head-node root] [
+        root: niwashi/root
+        unless head-node: get-node root/childs/html/childs/head [
+            head-node: make-node 'head
+            set-node root/childs/html/childs/body/previous: head-node
+        ]
+        set-node node/parent: head-node
+    ]
 
 ===Support functions
 
     -main-:
+    default-fh-options: context [
+        -default-fh-options-
+    ]
     tag-to-word: func [tag] [
         to word! lowercase trim/with to string! tag #"/"
     ]
@@ -345,6 +376,7 @@ Flow means both block and inline.
         enter-child niwashi [type: type properties: prop]
         if attach? [attach-branch niwashi]
     ]
+    indent: ""
     emit-childs: macro/custom [type cdata? node] [
         [/cdata (cdata?: yes) | (cdata?: no)] do-next (
             node: pop-result
@@ -352,12 +384,13 @@ Flow means both block and inline.
                 emit output [
                     switch type: get-node node/type [
                         text whitespace [either cdata? [(get-node node/prop/value)] [text get-node node/prop/value]]
-                        xml-proc declaration [(get-node node/prop/value) #"^/"]
+                        xml-proc declaration [(get-node node/prop/value) if pretty-print? [#"^/" indent]]
                         comment [(get-node node/prop/value)]
                         style [
                             tag 'style get-node node/properties [
                                 cdata/options [emit-childs /cdata node] [commented: yes]
-                            ]
+                                if pretty-print? [indent]
+                            ] if pretty-print? [#"^/" indent]
                         ]
                         /default [
                             tag type get-node node/properties either find [
@@ -367,23 +400,30 @@ Flow means both block and inline.
                                 'empty
                             ] [
                                 [
-                                    if find [
-                                        html head script style object body noscript 
-                                        ul ol dl div center blockquote
-                                        table form tr thead tfoot tbody
-                                    ] type [
-                                        #"^/"
+                                    if all [
+                                        pretty-print?
+                                        find [
+                                            html head script style object body noscript 
+                                            ul ol dl div center blockquote
+                                            table form tr thead tfoot tbody
+                                        ] type
+                                    ] [
+                                        #"^/" (append indent "    ")
                                     ]
                                     emit-childs node
+                                    (clear skip tail indent -4)
                                 ]
                             ]
-                            if find [
-                                html head title script style object body legend caption
-                                fieldset noscript iframe isindex base meta link br basefont
-                                h1 h2 h3 h4 h5 h6 address p ul ol dl pre dt dd div center blockquote
-                                table li form tr td th thead tfoot tbody hr
-                            ] type [
-                                #"^/"
+                            if all [
+                                pretty-print?
+                                find [
+                                    html head title script style object body legend caption
+                                    fieldset noscript iframe isindex base meta link br basefont
+                                    h1 h2 h3 h4 h5 h6 address p ul ol dl pre dt dd div center blockquote
+                                    table li form tr td th thead tfoot tbody hr 
+                                ] type
+                            ] [
+                                #"^/" indent
                             ]
                         ]
                     ]

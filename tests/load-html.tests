@@ -6,22 +6,24 @@ REBOL [
 ]
 
 [
-    form-html load-html "Some text"
+    form-html/with load-html "Some text" [pretty?: true]
 ]
 [
-    form-html load-html "<p>Some text"
+    form-html/with load-html "<p>Some text" [pretty?: true]
 ]
 [
-    form-html load-html "<html><head><title>A test</head><body><p>Paragraph<div><p><i>Italic text<div>Still italic?</html>"
+    form-html/with load-html "<html><head><title>A test</head><body><p>Paragraph<div><p><i>Italic text<div>Still italic?</html>" [
+        pretty?: true
+    ]
 ]
 [
-    form-html load-html read %tests/data/rebol.com.html
+    form-html/with load-html read %tests/data/rebol.com.html [pretty?: true]
 ]
 [
-    form-html load-html read %tests/data/w3.org.html
+    form-html/with load-html read %tests/data/w3.org.html [pretty?: true]
 ]
 [
-    form-html load-html read %tests/data/fairy.html
+    form-html/with load-html read %tests/data/fairy.html [pretty?: true]
 ]
 [
     form-html load-html "<a>Text<font>Text</a>Text</font>"

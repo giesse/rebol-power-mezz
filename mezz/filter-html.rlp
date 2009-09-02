@@ -8,16 +8,11 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 3.2.0
+    Version: 4.0.0
     Imports: [
-        %dialects/fsm.r         "Used for the state machine"
         %parsers/common-rules.r "We need the NAME rule"
-        %parsers/rule-arguments.r "We need POP-RESULT"
-        %parsers/ml-parser.r    "Used to parse the HTML text"
-        %mezz/normalize-html.r  "Used to normalize the HTML before regenerating it"
+        %mezz/load-html.r       "Used to load the HTML text and to form the result"
         %parsers/uri-parser.r   "Used to check and normalize the URLs"
-        %dialects/emit.r        "Used to generate output"
-        %dialects/ml-emitter.r  "Used to generate HTML"
         %mezz/trees.r           "Used to represent the HTML document and for tree rewriting"
         %parsers/css-parser.r   "Used to parse the style attribute"
     ]
@@ -40,11 +35,11 @@ harmful content is removed, it is possible to safely embed the HTML into any pag
 
 This program defines the |filter-html| function, that can be used to sanitize any HTML
 text. The string passed as argument is fully parsed and completely regenerated as
-XHTML 1.0 Strict, which is returned as a string.
+HTML 4.01 Transitional (or XHTML 1.0 Strict if the source document was XHTML), which is returned as a string.
 
-If the |/all| refinement is used, a complete XHTML 1.0 document is returned; otherwise,
+If the |/all| refinement is used, a complete HTML document is returned; otherwise,
 the text returned contains only the "body" part of the document and can be embedded
-directly inside another XHTML document.
+directly inside another HTML document.
 
 More options can be specified with the |/with| refinement, followed by a block
 containing |set-word!|'s and values. See below for the list of available options
@@ -62,13 +57,16 @@ string will be UTF-8 encoded.
 /note
 
     -main-:
-    -stage3-
+    -filter-rules-
+    -support-functions-
 
     filter-html: func [
         "Sanitize HTML text"
         html [string!]
         /all "Return a complete HTML document (including <html> tag, <head> etc.)"
         /with options [block!] "Specify options for the filter"
+
+        /local -fh-locals-
     ] [
         -filter-html-
     ]
@@ -80,12 +78,12 @@ specific filtering options. The available options are:
 
 :|all| - equivalent to the |/all| refinement (|logic!|).
 
-:|id-prefix| - Allows specifying a prefix to be prepended to all tag IDs (or anchor names,
+:|id-prefix| - allows specifying a prefix to be prepended to all tag IDs (or anchor names,
 and so on) that are specified in the source document (thus preventing clashes with IDs
 in the host document). If you are embedding the filtered HTML in a document that makes use
 of IDs, anchors etc., then you **should** specify an |id-prefix| that
 ensures no clashes. (Note: currently the CSS is not being parsed, so references to IDs in
-the CSS will break when using this is used.) If specified, it must be a |string!| value,
+the CSS will break when this is used.) If specified, it must be a |string!| value,
 and be valid as an HTML tag ID encoded in UTF-8.
 
 :|emit-utf8| - can be used to disable the conversion of all non-ASCII characters
@@ -96,13 +94,7 @@ be a |logic!| value.
 :|filter-uris| - allows specifying a handler function for all URIs that appear in the document.
 See |-uri-filtering-| for more details.
 
-:|target| - can be used to tweak the filtering for a specific target. The default is |xhtml|
-which produces generic, cross-browser XHTML 1.0 code. Currently, the only other supported
-target is |editor| which makes the output suitable for usage with Steve Ewing's Free Rich Text
-Editor.
-
-:|editor-class| - when the |target| is |'editor|, some elements get a forced class (that is necessary
-for the editor to work). This option allows specifying a prefix for the classes that are forced.
+:|pretty-print| - set to true to add indentation and newlines to the output.
 
     -filter-options-:
     default-options: context [
@@ -110,8 +102,7 @@ for the editor to work). This option allows specifying a prefix for the classes 
         id-prefix: none
         emit-utf8: no
         filter-uris: none
-        target: 'xhtml
-        editor-class: none
+        pretty-print: no
     ]
 
 ===URI filtering
@@ -130,7 +121,7 @@ return it).
     -uri-filtering-:
     uri-filter: func [uri] [
         case [
-            all [uri/tag-name = "img" uri/attribute-name = 'src] [
+            all [uri/tag-name = 'img uri/attribute-name = 'src] [
                 ; disable images
                 none
             ]
@@ -152,766 +143,101 @@ return it).
 
 ===Parse and regenerate the |html| text
 
-Parsing and regeneration is done using a multi-stage pipeline of
-finite state machines (FSMs). The first stage uses |parse-ml| on
-the source text, parsing tags, text and character entities,
-and sends the parsed elements to the second stage, the |html-normalizer| module,
-via the |process-tag| function; that in turn sends the normalized elements
-to the |stage3| function, which builds a tree to represent the whole document.
-The tree is then processed using the |rewrite-tree| function from the |trees| module,
-and then converted back to XHTML.
+The HTML text is parsed into a tree using |load-html|, and a set of custom rules for the niwashi.
+The rules do most of the job of filtering. We then normalize the tree to an XHTML 1.0 one, and
+form it back to HTML text.
 
     -filter-html-:
     options: make default-options any [options [ ]]
     if all [options/all: yes]
-    init-stage3 options
-    init-normalizer :stage3
-    parse-ml html :process-tag
-    reset-normalizer
-    end-stage3
+    current-options: options
+    filter-uris?: any-function? get in options 'filter-uris
+    tree: load-html/with html filter-rules
+    either options/all [
+        result: make-node 'root
+        doctype: get-node tree/childs/declaration
+        doctype: case [
+            none? doctype ['none]
+            xhtml = get-node doctype/prop/value [
+                node: make-node 'xml-proc
+                set-node node/prop/value: <?xml version="1.0" encoding="UTF-8"?>
+                set-node node/parent: result
+                node: make-node 'declaration
+                set-node node/prop/value: xhtml
+                set-node node/parent: result
+                'xhtml
+            ]
+            html4 = get-node doctype/prop/value [
+                node: make-node 'declaration
+                set-node node/prop/value: html4
+                set-node node/parent: result
+                'html4
+            ]
+            'else ['none]
+        ]
+        html: make-node 'html
+        if doctype = 'xhtml [
+            set-node html/prop/xmlns: http://www.w3.org/1999/xhtml
+        ]
+        set-node html/parent: result
+        if lang: get-node tree/childs/html/prop/lang [
+            set-node html/properties: [lang: lang xml/lang: lang]
+        ]
+        node: get-node tree/childs/html/childs/head
+        set-node node/parent: html
+        node: get-node tree/childs/html/childs/body
+        set-node node/parent: html
+    ] [
+        result: get-node tree/childs/html/childs/body
+    ]
+    form-html/with result [
+        utf8?: options/emit-utf8
+        pretty?: options/pretty-print
+    ]
 
-===Tree generation
+---|filter-html|'s locals
 
-In this stage, we use a FSM to generate a tree from the output of the HTML Normalizer.
-The |stage3| function just calls |process-event|; |init-stage3| takes care of the initialization
-of this stage, while |end-stage3| resets the state machine, applies the tree rewriting rules
-to the generated tree, and finally converts it back to XHTML text.
+    -fh-locals-:
+    tree result node lang doctype
 
-    -stage3-:
+===Filtering rules
+
+    -filter-rules-:
+    filter-rules: [
+        always [
+            ignore [script object applet comment meta]
+            except [text whitespace xml-proc declaration] check-attributes
+            inside style [
+                on text sanitize-style
+            ]
+            on [i u b em strong span strike] unwrap-empty-fmt
+            on [i u b em strong span strike] merge-with-previous
+            on a remove-empty-a
+            on span unwrap-noattrs
+        ]
+    ]
+
+===Support functions
+
+    -support-functions-:
+    xhtml: {<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">}
+    html4: {<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">}
     -filter-options-
-    stage3: func [cmd data] [
-        process-event stage3-fsm cmd data
-    ]
-    init-stage3: func [options] [
-        root: current-node: make-node 'root
-        current-options: options
-        filter-uris?: any-function? get in current-options 'filter-uris
-        reset-fsm/only stage3-fsm
-    ]
-    end-stage3: does [
-        reset-fsm stage3-fsm
-        -tree-rewriting-
-        -emitter-
-    ]
-    -state-machine-
-    -emitter-functions-
-
----Finite State Machine to generate a tree from the parsed and normalized HTML
-
-    -state-machine-:
-    -fsm-support-functions-
-    stage3-fsm: make-fsm [
-        initial-state: [
-            ; whitespace before <html> removed
-            comment: (make-comment-node data)
-            <html> (
-                enter-tag 'html data [xmlns force http://www.w3.org/1999/xhtml]
-            ) in-html (
-                leave-tag
-            )
-        ]
-        common: [
-            comment: (make-comment-node data)
-            whitespace: (make-text-node data)
-        ]
-        in-html: inherit common [
-            <head> (enter-tag 'head data [ ]) in-head (leave-tag)
-            <body> (
-                enter-tag 'body data [
-                    background [style* uri   "background-image"] none
-                    text       [style* color "color"]            none
-                    link       color                             none
-                    vlink      color                             none
-                    alink      color                             none
-                ]
-            ) in-body (leave-tag)
-            </html> return
-        ]
-        in-head: inherit common [
-            </head> return
-            <title> (enter-tag 'title data [ ]) in-title (leave-tag)
-            <base/> (
-                make-tag-node 'base data [
-                    href   uri             none
-                    target [enum "_blank"] none
-                ]
-            )
-            <style> (
-                enter-tag 'style data [
-                    type  force      "text/css"
-                    media media-desc none
-                ]
-            ) in-style (leave-tag)
-            ;<meta/>
-            <link/> (
-                make-tag-node 'link data [
-                    href     uri             none
-                    hreflang name*           none
-                    type     cdata           none
-                    rel      name-list       none
-                    rev      name-list       none
-                    charset  cdata           none
-                    target   [enum "_blank"] none
-                    media    media-desc      none
-                ]
-            )
-        ]
-        in-style: [
-            text: whitespace: (make-text-node data)
-            </style> return
-        ]
-        in-title: [
-            text: whitespace: (make-text-node data)
-            </title> return
-        ]
-        in-body: inherit common [
-            </body> return
-
-            <style> (
-                ; move to HEAD
-                save-node: current-node
-                current-node: get-node root/childs/html/childs/head
-                enter-tag 'style data [
-                    type  force      "text/css"
-                    media media-desc none
-                ]
-            ) in-style (current-node: save-node)
-
-            <h1> (
-                unless data [data: [ ]]
-                if current-options/target = 'editor [
-                    h1-class: make-class-name "h1"
-                    data: reduce [
-                        'class any [
-                            attr-types/enum select data 'class reduce [h1-class make-class-name "toc-h1"]
-                            h1-class
-                        ]
-                    ]
-                ]
-                enter-tag 'h1 data [ ]
-            ) in-para (leave-tag)
-
-            <h2> <h3> <h4> <h5> <h6> (
-                if current-options/target = 'editor [
-                    data: reduce [
-                        'class make-class-name as-string event
-                    ]
-                ]
-                enter-tag tag-name? event data [ ]
-            ) in-para (leave-tag)
-
-            <address> <legend>
-                (enter-tag tag-name? event data [ ]) in-para (leave-tag)
-
-            <p> (
-                created: 1
-                unless data [data: [ ]]
-                either current-options/target = 'editor [
-                    if p-style: select data 'style [
-                        p-style: parse-css p-style
-                        if p-align: select p-style 'text-align [
-                            enter-tag 'div reduce ['align p-align] [
-                                align [enum "left" "center" "right" "justify"] none
-                            ]
-                            created: created + 1
-                            p-style/text-align: none
-                        ]
-                    ]
-                    enter-tag 'p [ ] [ ]
-                    if all [p-style not empty? p-style: form-css p-style] [
-                        created: created + enter-span-tag reduce ['style p-style]
-                    ]
-                ] [
-                    enter-tag 'p data [ ]
-                ]
-                set-node current-node/prop/created: created
-            ) in-para (
-                created: get-node current-node/prop/created
-                set-node current-node/prop/created: none
-                loop created [leave-tag <p>]
-            )
-
-            <pre> (
-                if current-options/target = 'editor [
-                    data: reduce ['class make-class-name "pre"]
-                ]
-                enter-tag 'pre data [ ]
-            ) in-para (leave-tag)
-
-            <ul> (
-                if current-options/target = 'editor [
-                    data: reduce [
-                        'class make-class-name "list"
-                    ]
-                ]
-                enter-tag 'ul data [
-                    type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
-                ]
-            ) in-list (leave-tag)
-            <ol> (
-                if current-options/target = 'editor [
-                    data: reduce [
-                        'class make-class-name "list"
-                    ]
-                ]
-                enter-tag 'ol data [
-                    type  [style* list-style "list-style-type"] none
-                    start number                                none
-                ]
-            ) in-list (leave-tag)
-            <dl> (enter-tag 'dl data [ ]) in-dlist (leave-tag)
-
-            <div> (
-                created: 1
-                valid-attrs: [ ]
-                unless data [data: [ ]]
-                if current-options/target = 'editor [
-                    either div-style: select data 'style [
-                        div-style: parse-css div-style
-                        switch select div-style 'margin-left [
-                            "40px" [
-                                enter-tag 'blockquote [ ] [ ]
-                                created: 2
-                            ]
-                            "80px" [
-                                enter-tag 'blockquote [ ] [ ]
-                                enter-tag 'blockquote [ ] [ ]
-                                created: 3
-                            ]
-                        ]
-                        data: reduce [
-                            'align any [select div-style 'text-align select data 'align]
-                            'class attr-types/enum select data 'class reduce [
-                                make-class-name "toc-h1-div"
-                                make-class-name "toc-h2-div"
-                                make-class-name "toc-h3-div"
-                                make-class-name "toc-h4-div"
-                                make-class-name "toc-h5-div"
-                                make-class-name "toc-h6-div"
-                            ]
-                        ]
-                    ] [
-                        data: reduce [
-                            'align select data 'align
-                            'class attr-types/enum select data 'class reduce [
-                                make-class-name "toc-h1-div"
-                                make-class-name "toc-h2-div"
-                                make-class-name "toc-h3-div"
-                                make-class-name "toc-h4-div"
-                                make-class-name "toc-h5-div"
-                                make-class-name "toc-h6-div"
-                            ]
-                        ]
-                    ]
-                    valid-attrs: [
-                        align [enum "left" "center" "right" "justify"] none
-                    ]
-                ]
-                enter-tag 'div data valid-attrs
-                set-node current-node/prop/created: created
-            ) in-body (
-                created: get-node current-node/prop/created
-                set-node current-node/prop/created: none
-                loop created [leave-tag <div>]
-            )
-            <fieldset> (enter-tag 'fieldset data [ ]) in-body (leave-tag)
-            <center> (enter-tag 'div append copy [align "center"] data [ ]) in-body (leave-tag)
-
-            <blockquote> (
-                if current-options/target = 'editor [data: none]
-                enter-tag 'blockquote data [cite uri none]
-            ) in-body (leave-tag)
-            <form>  (enter-tag 'form data [
-                action  force "#" ; disable forms!
-                method  force "GET"
-                name    name* none
-            ]) in-body (leave-tag)
-
-            <table> (
-                if all [current-options/target = 'editor data] [
-                    if table-style: select data 'style [
-                        table-style: parse-css table-style
-                        table-style: form-css reduce [
-                            'width select table-style 'width
-                        ]
-                    ]
-                    data: reduce [
-                        'class attr-types/enum select data 'class reduce [
-                            make-class-name "table"
-                            make-class-name "box1-container"
-                            make-class-name "box2-container"
-                            make-class-name "box3-container"
-                            make-class-name "box4-container"
-                            make-class-name "box5-container"
-                            make-class-name "toc-table"
-                        ]
-                        'style table-style
-                        'align select data 'align
-                    ]
-                ]
-                enter-tag 'table data [
-                    summary     cdata                          none
-                    align       [enum "left" "center" "right"] none
-                    width       [style* lengthpx "width"]      none
-                    frame       [
-                        enum "void" "above" "below" "hsides"
-                            "lhs" "rhs" "vsides" "box" "border"
-                    ]                                          none
-                    rules       [
-                        enum "none" "groups" "rows" "cols" "all"
-                    ]                                          none
-                    border      [style* pixels "border-width"] none
-                    cellspacing length                         none
-                    cellpadding length                         none
-                ]
-            ) in-table (leave-tag)
-            
-            <ins> <del> (enter-tag tag-name? event data [
-                cite     uri   none
-                datetime cdata none
-            ]) in-body (leave-tag)
-
-            <hr/> (
-                if current-options/target = 'editor [
-                    data: reduce ['class make-class-name "hr"]
-                ]
-                make-tag-node 'hr data [
-                    ; this is quite hard to convert to CSS automatically
-                    ; so will keep the deprecated attributes
-                    align   [enum "left" "right" "center"] none
-                    noshade [bool "noshade"]               none
-                    size    number                         none
-                    width   length                         none
-                ]
-            )
-
-            ; normalizer may now let them pass here
-            <br/> (make-tag-node 'br data [clear brclear none])
-            
-            </div> </blockquote> </form> </fieldset> </ins> </del> </center> return
-        ]
-        in-para: inherit common [
-            </h1> </h2> </h3> </h4> </h5> </h6> </address> </p>
-            </dt> </pre> </caption> </legend> </font>
-            </tt> </i> </b> </u> </strike> </s> </big> </small> </sub> </sup>
-            </em> </strong> </dfn> </code> </samp> </kbd> </var> </cite>
-            </a> </map> </button> </label> </span>
-            </abbr> </acronym> </q> ;</object>
-            </ins> </del> ; should be treated specially, but noone uses them so...
-                return
-
-            <i> <b> <u> <strike> <em> <strong> (
-                either current-options/target = 'editor [
-                    enter-tag select [
-                        <i> em <b> strong <u> span
-                        <strike> span <em> em <strong> strong
-                    ] event select [
-                        <i> [] <b> [] <u> [style "text-decoration: underline;"]
-                        <strike> [style "text-decoration: line-through;"] <em> [] <strong> []
-                    ] event [ ]
-                ] [
-                    enter-tag tag-name? event data [ ]
-                ]
-            ) in-para (leave-tag)
-
-            <tt> <s> <big> <small> <sub> <sup> <dfn> <code> <samp> <kbd> <var> <cite>
-            <abbr> <acronym> (enter-tag tag-name? event data [ ]) in-para (leave-tag)
-
-            <a> (
-                if all [current-options/target = 'editor data] [
-                    data: reduce [
-                        'href a-href: select data 'href
-                        'name select data 'name
-                        'class if a-href [
-                            any [
-                                attr-types/enum select data 'class reduce [
-                                    external-link-class: make-class-name "external-link"
-                                    make-class-name "internal-link"
-                                    make-class-name "toc-h1-link"
-                                    make-class-name "toc-h2-link"
-                                    make-class-name "toc-h3-link"
-                                    make-class-name "toc-h4-link"
-                                    make-class-name "toc-h5-link"
-                                    make-class-name "toc-h6-link"
-                                ]
-                                external-link-class
-                            ]
-                        ]
-                        'target if a-href [select data 'target]
-                    ]
-                ]
-                enter-tag 'a data [
-                    ;name     name*                                   none
-                    ; in the real world name may be an arbitrary string
-                    name     cdata                                   none
-                    href     uri                                     none
-                    hreflang name*                                   none
-                    type     cdata                                   none
-                    rel      name-list                               none
-                    rev      name-list                               none
-                    charset  cdata                                   none
-                    target   [enum "_blank"]                         none
-                    shape    [enum "default" "rect" "circle" "poly"] none
-                    coords   cdata                                   none
-                ]
-            ) in-para (leave-tag)
-
-            <font> (enter-tag 'span data [
-                size  [style* font-size "font-size"]   none
-                color [style* color     "color"]       none
-                face  [style* cdata     "font-family"] none
-            ]) in-para (leave-tag)
-
-            <span> (
-                set-node current-node/prop/created: enter-span-tag data
-            ) in-para (
-                created: get-node current-node/prop/created
-                set-node current-node/prop/created: none
-                loop created [leave-tag <span>]
-            )
-
-            <map> (enter-tag 'map data [name name* none]) in-para (leave-tag)
-            <area/> (make-tag-node 'area data [
-                shape    [enum "default" "rect" "circle" "poly"] none
-                coords   cdata                                   none
-                nohref   [bool "nohref"]                         none
-                alt      cdata                                   none
-                href     uri                                     none
-                target   [enum "_blank"]                         none
-            ])
-
-            <select> (enter-tag 'select data [
-                name     name*             none
-                size     number            none
-                multiple [bool "multiple"] none
-                disabled force             "disabled"
-            ]) in-select (leave-tag)
-            <textarea> (enter-tag 'textarea data [
-                name     name*             none
-                rows     number            none
-                cols     number            none
-                readonly [bool "readonly"] none
-                disabled force             "disabled"
-            ]) in-option (leave-tag)
-            <button> (enter-tag 'button data [
-                name     name*                            none
-                value    cdata                            none
-                type     [enum "submit" "button" "reset"] none
-                disabled force                            "disabled"
-            ]) in-para (leave-tag)
-            <label> (enter-tag 'label data [for name* none]) in-para (leave-tag)
-            <input/> (make-tag-node 'input data [
-                type      [
-                    enum "text" "password" "checkbox" "radio"
-                        "submit" "reset" "file" "hidden"
-                        "image" "button"
-                ]                           none
-                name      name*             none
-                value     cdata             none
-                size      number            none
-                maxlength number            none
-                checked   [bool "checked"]  none
-                src       uri               none
-                alt       cdata             none
-                accept    cdata             none
-                readonly  [bool "readonly"] none
-                disabled  force             "disabled"
-                usemap    uri               none
-                ismap     [bool "ismap"]    none
-            ])
-
-            <q> (enter-tag 'q data [cite uri none]) in-para (leave-tag)
-
-            ;<object>
-            
-            <ins> <del> (enter-tag tag-name? event data [
-                cite     uri   none
-                datetime cdata none
-            ]) in-para (leave-tag)
-
-            <img/> (
-                img-node: make-tag-node 'img data either current-options/target = 'editor [[
-                    src      uri            none
-                    dir      force          none
-                    id       force          none
-                    class    force          none
-                    title    force          none
-                    bgcolor  force          none
-                    align    [enum "left" "right"] none
-                ]] [[
-                    src      uri            none
-                    alt      cdata          none
-                    longdesc uri            none
-                    name     name*          none
-                    usemap   uri            none
-                    ismap    [bool "ismap"] none
-                    width    length         none
-                    height   length         none
-                    hspace   [imgmargin "left" "right"] none
-                    vspace   [imgmargin "top" "bottom"] none
-                    border   [style* pixels "border-width"] none
-                    align    imgalign       none
-                ]]
-                if all [current-options/target = 'editor img-style: get-node img-node/prop/style] [
-                    img-style: parse-css img-style
-                    set-node img-node/prop/style: form-css reduce [
-                        'width select img-style 'width
-                        'height select img-style 'height
-                        'border "0px"
-                    ]
-                ]
-            )
-
-            <br/> (make-tag-node 'br data [clear brclear none])
-
-            ;<basefont/>
-
-            text: (make-text-node data)
-        ]
-        in-item: inherit in-body inherit in-para [
-            </li> </td> </th> </dd> return
-        ]
-        in-list: inherit common [
-            <li> (
-                unless data [data: [ ]]
-                created: 1
-                if current-options/target = 'editor [
-                    li-style: select data 'style
-                    data: reduce [
-                        'class either 'ul = get-node current-node/type [
-                            either find [ol ul] get-node current-node/parent/type [
-                                make-class-name "list-ul-nested"
-                            ] [
-                                make-class-name "list-ul"
-                            ]
-                        ] [
-                            make-class-name "list-ol"
-                        ]
-                    ]
-                ]
-                enter-tag 'li data [
-                    type  [style* list-style "list-style-type"] none
-                    value number                                none
-                ]
-                if all [current-options/target = 'editor li-style] [
-                    created: created + enter-span-tag reduce ['style li-style]
-                ]
-                set-node current-node/prop/created: created
-            ) in-item (
-                created: get-node current-node/prop/created
-                set-node current-node/prop/created: none
-                loop created [leave-tag <li>]
-            )
-
-            <ul> (
-                ;enter-tag 'li [ ] [ ]
-                if current-options/target = 'editor [
-                    data: reduce [
-                        'class make-class-name "list"
-                    ]
-                ]
-                enter-tag 'ul data [
-                    type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
-                ]
-            ) in-list (leave-tag) ;(leave-tag leave-tag)
-            <ol> (
-                ;enter-tag 'li [ ] [ ]
-                if current-options/target = 'editor [
-                    data: reduce [
-                        'class make-class-name "list"
-                    ]
-                ]
-                enter-tag 'ol data [
-                    type  [style* list-style "list-style-type"] none
-                    start number                                none
-                ]
-            ) in-list (leave-tag) ;(leave-tag leave-tag)
-
-            </ul> </ol> return
-        ]
-        in-dlist: inherit common [
-            <dt> (enter-tag 'dt data [ ]) in-para (leave-tag)
-            <dd> (enter-tag 'dd data [ ]) in-item (leave-tag)
-
-            </dl> return
-        ]
-        in-table: inherit common [
-            <caption> (enter-tag 'caption data [ ]) in-para (leave-tag)
-
-            <colgroup> (enter-tag 'colgroup data [
-                span   number       none
-                width  multi-length none
-                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-colgroup (leave-tag)
-            <col/> (make-tag-node 'col data [
-                span   number       none
-                width  multi-length none
-                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ])
-
-            <thead> <tfoot> <tbody> (enter-tag tag-name? event data [
-                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-rows (leave-tag)
-
-            <tr> (enter-tag 'tbody [ ] [ ]) continue in-rows (leave-tag)
-
-            </table> return
-        ]
-        in-colgroup: inherit common [
-            <col/> (make-tag-node 'col data [
-                span   number       none
-                width  multi-length none
-                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ])
-            
-            </colgroup> return
-        ]
-        in-rows: inherit common [
-            <tr> (enter-tag 'tr data [
-                valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-            ]) in-cells (leave-tag)
-            
-            </thead> </tfoot> </tbody> return
-
-            </table> 2 return ; no <tbody>
-        ]
-        in-cells: inherit common [
-            <td> <th> (
-                created: 1 td-create-b?: td-create-i?: td-create-span?: td-create-div?: no
-                unless data [data: [ ]]
-                if current-options/target = 'editor [
-                    ; warning: this is a problem in case the <td> contains block elements.
-                    ; we are ignoring this for now, but we should probably create some
-                    ; rewrite rules to correct it
-                    td-style: none
-                    if td-style-extra: select data 'style [
-                        td-create-span?: yes
-                        td-style-extra: parse-css td-style-extra
-                        td-style: form-css reduce [
-                            'background-color select td-style-extra 'background-color
-                            'color select td-style-extra 'color
-                        ]
-                        td-style-extra: exclude/skip td-style-extra [background-color none color none] 2
-                        if "bold" = select td-style-extra 'font-weight [
-                            td-create-b?: yes
-                            td-style-extra/font-weight: none
-                        ]
-                        if "italic" = select td-style-extra 'font-style [
-                            td-create-i?: yes
-                            td-style-extra/font-style: none
-                        ]
-                        if div-align: select td-style-extra 'text-align [
-                            td-create-div?: yes
-                            td-style-extra/text-align: none
-                        ]
-                    ]
-                    data: reduce [
-                        'class attr-types/enum select data 'class make-class-names [
-                            "table-td-header" "table-td-header-right-border" "table-td"
-                            "table-td-right-border" "box1-top-left" "box1-top-center"
-                            "box1-top-right" "box1-middle-left" "box1-middle-center"
-                            "box1-middle-right" "box1-bottom-left" "box1-bottom-center"
-                            "box1-bottom-right" "box2-middle" "box3-middle" "box4-middle"
-                            "box5-top-left" "box5-top-center" "box5-top-right" "box5-middle-left"
-                            "box5-middle-center" "box5-middle-right" "box5-bottom-left"
-                            "box5-bottom-center" "box5-bottom-right"
-                        ]
-                        'style td-style
-                    ]
-                ]
-                enter-tag tag-name? event data [
-                    headers name-list                                none
-                    scope   [enum "row" "col" "rowgroup" "colgroup"] none
-                    abbr    cdata                                    none
-                    axis    cdata                                    none
-                    rowspan number                                   none
-                    colspan number                                   none
-                    nowrap  [style* [bool "nowrap"] "white-space"]   none
-                    width   [style* lengthpx "width"]                  none
-                    height  [style* lengthpx "height"]                 none
-                    ; char alignment not supported (browsers do not support it anyway)
-                    valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
-                ]
-                if td-create-div? [
-                    enter-tag 'div reduce ['align div-align] [
-                        align [enum "left" "center" "right" "justify"] none
-                    ]
-                    created: 2
-                ]
-                if td-create-b? [enter-tag 'strong [ ] [ ] created: created + 1]
-                if td-create-i? [enter-tag 'em [ ] [ ] created: created + 1]
-                if td-create-span? [
-                    enter-tag 'span reduce ['style form-css td-style-extra] [ ]
-                    created: created + 1
-                ]
-                set-node current-node/prop/created: created
-            ) in-item (
-                created: get-node current-node/prop/created
-                set-node current-node/prop/created: none
-                loop created [leave-tag <td>]
-            )
-
-            </tr> return
-        ]
-        in-select: inherit common [
-            <option> (enter-tag 'option data [
-                selected [bool "selected"] none
-                value    cdata             none
-                label    cdata             none
-                disabled force             "disabled"
-            ]) in-option (leave-tag)
-            <optgroup> (enter-tag 'optgroup data [
-                label    cdata none
-                disabled force "disabled"
-            ]) in-optgroup (leave-tag)
-
-            </select> return
-        ]
-        in-option: inherit common [
-            text: (make-text-node data)
-            
-            </option> </textarea> return
-        ]
-        in-optgroup: inherit common [
-            <option> (enter-tag 'option data [
-                selected [bool "selected"] none
-                value    cdata             none
-                label    cdata             none
-                disabled force             "disabled"
-            ]) in-option (leave-tag)
-
-            </optgroup> return
-        ]
-    ]
-
----Support functions used by the FSM
-
-    -fsm-support-functions-:
-    tag-name?: func [tag] [
-        to word! lowercase as-string tag
-    ]
-    make-class-name: func [name] [
-        either current-options/editor-class [
-            join current-options/editor-class [#"-" name]
-        ] [
-            name
-        ]
-    ]
-    make-class-names: func [block /local result] [
-        result: make block! 2 + length? block
-        foreach item block [append result make-class-name item]
-        result
-    ]
-    make-tag-node: func [name attributes valid-attributes /local node value uris] [
-        node: make-node name
-        set-node node/parent: current-node
-        if not block? attributes [attributes: [ ]]
+    -attributes-map-
+    check-attributes: func [node /local attributes valid-attributes value uris name] [
+        name: get-node node/type
+        attributes: get-node node/properties
+        set-node node/properties: copy [ ]
         set-node node/prop/lang: any [
             process-attr select attributes 'xml/lang 'name* none
             process-attr select attributes 'lang     'name* none
         ]
         style: make string! 256
         uris: clear [ ]
+        valid-attributes: any [
+            select attributes-map name
+            [ ]
+        ]
         foreach [attr-name type defvalue] union/skip valid-attributes global-attrs 3 [
             set-node node/prop/:attr-name value: process-attr select attributes attr-name type defvalue
             if all [type = 'uri value] [
@@ -946,7 +272,19 @@ to the generated tree, and finally converts it back to XHTML text.
         if not empty? style [
             set-node node/prop/style: sanitize-css style
         ]
-        node
+        fix-attrs get-node node/properties
+    ]
+    fix-attrs: func [attributes /local lang id] [
+        if lang: select attributes 'lang [
+            insert insert/only tail attributes 'xml/lang lang
+        ]
+        if all [pos: find attributes 'id current-options/id-prefix] [
+            pos/2: join current-options/id-prefix pos/2
+        ]
+        forskip attributes 2 [
+            if all [string? attributes/2 empty? attributes/2] [attributes/2: none]
+        ]
+        attributes
     ]
     ; IE sucks
     non-paren: complement charset "()"
@@ -976,256 +314,6 @@ to the generated tree, and finally converts it back to XHTML text.
             css-text
         ]
     ]
-    enter-tag: func [name attributes valid-attributes] [
-        current-node: make-tag-node name attributes valid-attributes
-    ]
-    enter-span-tag: func [data /local created span-style] [
-        created: 1
-        if current-options/target = 'editor [
-            if span-style: select data 'style [
-                span-style: parse-css span-style
-                if "bold" = select span-style 'font-weight [
-                    created: 2
-                    enter-tag 'strong [ ] [ ]
-                    span-style/font-weight: none
-                ]
-                if "italic" = select span-style 'font-style [
-                    created: created + 1
-                    enter-tag 'em [ ] [ ]
-                    span-style/font-style: none
-                ]
-                if find ["line-through underline" "underline line-through"] select span-style 'text-decoration [
-                    created: created + 1
-                    enter-tag 'span [style "text-decoration: underline;"] [ ]
-                    span-style/text-decoration: "line-through"
-                ]
-                span-style: form-css reduce [
-                    'text-decoration attr-types/enum select span-style 'text-decoration ["underline" "line-through"]
-                ]
-            ]
-            data: reduce [
-                'style span-style
-                'class attr-types/enum select data 'class reduce [
-                    make-class-name "normal"
-                    make-class-name "normal-small"
-                    make-class-name "normal-large"
-                    make-class-name "toc-index"
-                ]
-            ]
-        ]
-        enter-tag 'span data [ ]
-        created
-    ]
-    leave-tag: does [
-        current-node: get-node current-node/parent
-    ]
-    make-text-node: func [text /local node out] [
-        either all [node: get-node current-node/childs/-1 'text = get-node node/type] [
-            out: get-node node/prop/value
-            if all [out = "^/" text = " "] [return node]
-            unless get-node node/prop/copied? [
-                set-node node/prop/copied?: true
-                set-node node/prop/value: out: copy out
-            ]
-            either all [out = " " text = "^/"] [
-                change out "^/"
-            ] [
-                append out text
-            ]
-            node
-        ] [
-            node: make-node 'text
-            set-node node/parent: current-node
-            set-node node/prop/value: text
-            node
-        ]
-    ]
-    make-comment-node: func [comment /local node] [
-        node: make-node 'comment
-        set-node node/parent: current-node
-        set-node node/prop/value: comment
-        node
-    ]
-    global-attrs: [
-        dir     [enum "LTR" "RTL"]                none
-        id      name*                             none
-        class   name-list                         none
-        title   cdata                             none
-        bgcolor [style* color "background-color"] none
-        align   [style* [enum "left" "center" "right" "justify"] "text-align"] none
-    ]
-    attr-types: context [
-        enum: func [value opts] [
-            if value: find opts value [value/1]
-        ]
-        name*: func [value opts] [
-            if parse/all trim/lines value [name] [value]
-        ]
-        name-list: func [value opts] [
-            if parse/all trim/lines value [name any [" " name]] [
-                value
-            ]
-        ]
-        force: func [value opts] [none] ; force default
-        style*: func [value opts] [
-            if value: process-attr value opts/1 none [
-                repend style either opts/1 = 'uri [
-                    [opts/2 ": url('" form-uri value "');"]
-                ] [
-                    [opts/2 ": " value ";"]
-                ]
-            ]
-            none
-        ]
-        color: func [value opts] [
-            if parse/all trim/lines value [
-                "#" 3 6 hexdigit
-                |
-                "aliceblue" | "antiquewhite" | "aqua" | "aquamarine" | "azure" |
-                "beige" | "bisque" | "black" | "blanchedalmond" | "blue" |
-                "blueviolet" | "brown" | "burlywood" | "cadetblue" | "chartreuse" |
-                "chocolate" | "coral" | "cornflowerblue" | "cornsilk" | "crimson" |
-                "cyan" | "darkblue" | "darkcyan" | "darkgoldenrod" | "darkgray" |
-                "darkgreen" | "darkkhaki" | "darkmagenta" | "darkolivegreen" |
-                "darkorange" | "darkorchid" | "darkred" | "darksalmon" |
-                "darkseagreen" | "darkslateblue" | "darkslategray" | "darkturquoise" |
-                "darkviolet" | "deeppink" | "deepskyblue" | "dimgray" |
-                "dodgerblue" | "feldspar" | "firebrick" | "floralwhite" |
-                "forestgreen" | "fuchsia" | "gainsboro" | "ghostwhite" | "gold" |
-                "goldenrod" | "gray" | "green" | "greenyellow" | "honeydew" |
-                "hotpink" | "indianred" | "indigo" | "ivory" | "khaki" | "lavender" |
-                "lavenderblush" | "lawngreen" | "lemonchiffon" | "lightblue" |
-                "lightcoral" | "lightcyan" | "lightgoldenrodyellow" | "lightgreen" |
-                "lightgrey" | "lightpink" | "lightsalmon" | "lightseagreen" |
-                "lightskyblue" | "lightslateblue" | "lightslategray" |
-                "lightsteelblue" | "lightyellow" | "lime" | "limegreen" | "linen" |
-                "magenta" | "maroon" | "mediumaquamarine" | "mediumblue" |
-                "mediumorchid" | "mediumpurple" | "mediumseagreen" |
-                "mediumslateblue" | "mediumspringgreen" | "mediumturquoise" |
-                "mediumvioletred" | "midnightblue" | "mintcream" | "mistyrose" |
-                "moccasin" | "navajowhite" | "navy" | "oldlace" | "olive" |
-                "olivedrab" | "orange" | "orangered" | "orchid" | "palegoldenrod" |
-                "palegreen" | "paleturquoise" | "palevioletred" | "papayawhip" |
-                "peachpuff" | "peru" | "pink" | "plum" | "powderblue" | "purple" |
-                "red" | "rosybrown" | "royalblue" | "saddlebrown" | "salmon" |
-                "sandybrown" | "seagreen" | "seashell" | "sienna" | "silver" |
-                "skyblue" | "slateblue" | "slategray" | "snow" | "springgreen" |
-                "steelblue" | "tan" | "teal" | "thistle" | "tomato" | "turquoise" |
-                "violet" | "violetred" | "wheat" | "white" | "whitesmoke" | "yellow" |
-                "yellowgreen" | "transparent"
-            ] [
-                value
-            ]
-        ]
-        uri: func [value opts] [parse-uri/relative value]
-        cdata: func [value opts] [if value [trim/lines value]]
-        media-desc: func [value opts /local names nm] [
-            names: clear [ ]
-            if all [value parse/all trim/lines value [
-                copy nm name (append names nm)
-                any [
-                    thru "," opt " " copy nm name (append names nm)
-                ]
-                to end
-            ]] [
-                names: intersect names [
-                    "screen" "tty" "tv" "projection" "handheld"
-                    "print" "braille" "aural" "all"
-                ]
-                if empty? names [return none]
-                value: copy first names
-                foreach name next names [
-                    repend value [", " name]
-                ]
-                value
-            ]
-        ]
-        list-style: func [value opts] [
-            if find ["disc" "circle" "square"] value [return value]
-            select/case [
-                "1" "decimal"     #[none]
-                "a" "lower-alpha" #[none]
-                "A" "upper-alpha" #[none]
-                "i" "lower-roman" #[none]
-                "I" "upper-roman" #[none]
-            ] value
-        ]
-        number: func [value opts] [
-            if parse/all trim/lines value [some digit] [value]
-        ]
-        pixels: func [value opts] [
-            if parse/all trim/lines value [some digit] [append value "px"]
-        ]
-        bool: func [value opts] [
-            opts/1
-        ]
-        length: func [value opts] [
-            if parse/all trim/lines value [some digit opt "%"] [value]
-        ]
-        lengthpx: func [value opts] [
-            if parse/all trim/lines value [some digit ["%" | (append value "px") to end]] [value]
-        ]
-        multi-length: func [value opts] [
-            if parse/all trim/lines value [some digit ["%" | "*" | none]] [value]
-        ]
-        font-size: func [value opts] [
-            trim/lines value
-            any [
-                select [
-                    "1"  "xx-small" #[none]
-                    "2"  "x-small"  #[none]
-                    "3"  "small"    #[none]
-                    "4"  "medium"   #[none]
-                    "5"  "large"    #[none]
-                    "6"  "x-large"  #[none]
-                    "7"  "xx-large" #[none]
-                    "+1" "large"    #[none]
-                    "+2" "x-large"  #[none]
-                    "+3" "xx-large" #[none]
-                    "+4" "36pt"     #[none]
-                    "+5" "36pt"     #[none]
-                    "+6" "36pt"     #[none]
-                    "+7" "36pt"     #[none]
-                    "-1" "small"    #[none]
-                    "-2" "x-small"  #[none]
-                    "-3" "xx-small" #[none]
-                    "-4" "xx-small" #[none]
-                    "-5" "xx-small" #[none]
-                    "-6" "xx-small" #[none]
-                    "-7" "xx-small" #[none]
-                ] value
-                length value none
-            ]
-        ]
-        imgmargin: func [value opts] [
-            if value: number value none [
-                repend style [
-                    "margin-" opts/1 ": " value "px;"
-                    "margin-" opts/2 ": " value "px;"
-                ]
-            ]
-            none
-        ]
-        imgalign: func [value opts] [
-            append style any [select [
-                "bottom" "vertical-align: bottom;" #[none]
-                "middle" "vertical-align: middle;" #[none]
-                "top"    "vertical-align: top;"    #[none]
-                "left"   "float: left;"            #[none]
-                "right"  "float: right;"           #[none]
-            ] value ""]
-            none
-        ]
-        brclear: func [value opts] [
-            append style any [select [
-                "none"  "clear: none;"  #[none]
-                "left"  "clear: left;"  #[none]
-                "right" "clear: right;" #[none]
-                "all"   "clear: both;"  #[none]
-            ] value ""]
-            none
-        ]
-    ]
     process-attr: func [value type defvalue /local opts] [
         if defvalue = 'none [defvalue: none]
         if none? value [return defvalue]
@@ -1233,240 +321,441 @@ to the generated tree, and finally converts it back to XHTML text.
         type: get in attr-types type
         value: any [type value opts defvalue]
     ]
-
-===Tree rewriting pass
-
-This is obsolete and needs to be replaced by "rewriting on the fly". Currently keeping it
-as I'm out of time.
-
-    -tree-rewriting-:
-    either current-options/target = 'editor [
-        rewrite-tree root editor-rewrite-rules
-        ; remove <p>s as the editor does not like them
-        rewrite-tree root [
-            [type = 'p] remove-p
-        ]
-    ] [
-        rewrite-tree root xhtml-rewrite-rules
+    attr-types: context [
+        -attr-types-
     ]
-
-We need:
-
-    -stage3-:
-    xhtml-rewrite-rules: [
-        -rewrite-rules-
+    global-attrs: [
+        dir     [enum "LTR" "RTL"]                       none
+        id      name*                                    none
+        class   name-list                                none
+        title   cdata                                    none
+        bgcolor [style* color "background-color"]        none
+        align   [enum "left" "center" "right" "justify"] none
     ]
-    editor-rewrite-rules: head insert [
-        -editor-rewrite-rules-
-    ] xhtml-rewrite-rules
-    remove-node: func [node] [
-        set-node node/parent: none
+    sanitize-style: func [node] [
+        set-node node/prop/value: sanitize-css get-node node/prop/value
     ]
-    remove-br: func [node /local nxt] [
-        if nxt: get-node node/next [set-node nxt/parent: none]
-        set-node node/parent: none
-    ]
-    merge-with-previous: func [node] [
-        set-node node/parent: get-node node/prev
-        unwrap-node node
-    ]
-    remove-table: func [table /local p-node childs element type] [
-        foreach tbody get-node table/childs [
-            foreach tr get-node tbody/childs [
-                foreach td get-node tr/childs [
-                    childs: get-node td/childs
-                    while [not tail? childs] [
-                        element: childs/1
-                        either find [
-                            tt i b u strike s big small sub sup em strong dfn code samp kbd var
-                            cite abbr acronym a span map area select textarea button label input
-                            q img br text
-                        ] type: get-node element/type [
-                            ; inline node
-                            either all [type = 'text "^/" = get-node element/prop/value] [
-                                childs: next childs
-                            ] [
-                                either all [p-node 'future-p = get-node p-node/type] [
-                                    set-node element/parent: p-node
-                                ] [
-                                    p-node: make-node 'future-p
-                                    set-node table/previous: p-node
-                                    set-node element/parent: p-node
-                                ]
-                            ]
-                        ] [
-                            ; block node
-                            if all [p-node 'future-p = get-node p-node/type] [
-                                set-node p-node/type: 'p
-                                set-node p-node/next: make-tree [text [value: "^/"]]
-                            ]
-                            p-node: none
-                            set-node table/previous: element
-                            set-node element/next: make-tree [text [value: "^/"]]
-                        ]
-                    ]
-                    if all [p-node 'future-p = get-node p-node/type] [
-                        set-node p-node/type: 'p
-                        set-node p-node/next: make-tree [text [value: "^/"]]
-                        p-node: none
-                    ]
-                ]
+    unwrap-empty-fmt: func [node /local childs] [
+        if get-node node/parent [
+            childs: get-node node/childs
+            if any [
+                empty? childs
+                br-only? childs
+            ] [
+                unwrap-node node
             ]
         ]
-        set-node table/parent: none
     ]
-    remove-p: func [p-node /local br nxt] [
-        nxt: p-node
-        until [
-            nxt: get-node nxt/next
-            any [not nxt 'text <> get-node nxt/type]
+    br-only?: func [childs /local node] [
+        all [
+            1 = length? childs
+            node: first childs
+            'br = get-node node/type
         ]
-        if all [nxt find [p br] get-node nxt/type] [
-            br: make-node 'br
-            set-node br/parent: p-node
-        ]
-        unwrap-node p-node
     ]
-
----Rewrite rules
-
-    -rewrite-rules-:
-    ; <i,u,b><br />^/</i,u,b> ---> <br />^/
-    [
-        type in [i u b em strong span]
-        childs/1 <> none
-        childs/1/type = 'br
-        any [
-            childs/2 = none
-            all [childs/2/type = 'text childs/2/prop/value = "^/" childs/3 = none]
-        ]
-    ] unwrap-node
-    ; remove empty i, u, b, strike, span
-    [
-        type in [i u b strike span em strong]
-        childs/1 = none
-    ] remove-node
-    ; remove empty a with no name
-    [
-        type = 'a
-        prop/name = none
-        childs/1 = none
-    ] remove-node
-    ; unwrap span with no attributes
-    [
-        type = 'span
-        prop/dir = none
-        prop/id = none
-        prop/class = none
-        prop/title = none
-        prop/style = none
-    ] unwrap-node
-    ; merge consecutive <u>, <i>, <span>, etc.
-    [
-        type in [i u span b em strong strike]
-        prev <> none
-        prev/type = type
-        prev/properties = properties
-    ] merge-with-previous
-    ; <td>^/</td> ---> <td></td>
-    [
-        type ~ td/text
-        prop/value = "^/"
-        next = none
-        prev = none
-    ] remove-node
-
----Rewrite rules for the |editor| target
-
-    -editor-rewrite-rules-:
-    ; remove spurious divs that may be created
-    [
-        type = 'div
-        prop/dir = none
-        prop/id = none
-        prop/class = none
-        prop/title = none
-        prop/style = none
-        prop/align = none
-    ] unwrap-node
-    ; remove some spurious <br />s generated by FF
-    [
-        type = 'br
-        parent/type in [li td]
-        any [
-            next = none
-            all [
-                next/type = 'text
-                next/prop/value = "^/"
-                next/next = none
-            ]
-        ]
-    ] remove-br
-    ; merge consecutive <blockquote>s
-    [
-        type = 'text
-        prop/value = "^/"
-        prev <> none
-        prev/type = 'blockquote
-        next <> none
-        next/type = 'blockquote
-    ] remove-node
-    [
-        type = 'blockquote
-        prev <> none
-        prev/type = 'blockquote
-    ] merge-with-previous
-    ; remove tables not generated by the editor
-    [type = 'table prop/class = none] remove-table
-
-===Generation of XHTML text
-
-    -emitter-:
-    set-ml-encoding pick [html-utf8 html-ascii] to logic! current-options/emit-utf8
-    emit make string! 1024 [
-        either current-options/all [
-            <?xml version="1.0" encoding="UTF-8"?> newline
-            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> newline
-            emit-childs root
+    remove-empty-a: func [node] [
+        if all [
+            empty? get-node node/childs
+            not get-node node/prop/name
         ] [
-            emit-childs get-node root/childs/html/childs/body
+            set-node node/parent: none
         ]
     ]
-
----Functions used to emit XHTML
-
-    -emitter-functions-:
-    emit-childs: macro/custom [type cdata? node] [
-        [/cdata (cdata?: yes) | (cdata?: no)] do-next (
-            node: pop-result
-            foreach node get-node node/childs [
-                emit output [
-                    switch type: get-node node/type [
-                        ; /cdata currently only used by <style>, so this works
-                        text [either cdata? [(sanitize-css get-node node/prop/value)] [text get-node node/prop/value]]
-                        comment [(get-node node/prop/value)]
-                        style [
-                            tag 'style fix-attrs get-node node/properties [
-                                cdata/options [emit-childs /cdata node] [commented: yes]
-                            ]
-                        ]
-                        /default [
-                            tag type fix-attrs get-node node/properties either find [base link hr area input img br col] type ['empty] [[emit-childs node]]
-                        ]
-                    ]
-                ]
+    unwrap-noattrs: func [node] [
+        if get-node node/parent [
+            unless foreach [name value] get-node node/properties [
+                unless none? value [break/return true]
+            ] [
+                unwrap-node node
             ]
-        )
+        ]
     ]
-    fix-attrs: func [attributes /local lang id] [
-        if lang: select attributes 'lang [
-            insert insert/only tail attributes 'xml/lang lang
+    merge-with-previous: func [node /local prev] [
+        if all [
+            prev: get-node node/previous
+            equal? get-node node/type get-node prev/type
+            equal? get-node node/properties get-node prev/properties
+        ] [
+            set-node node/parent: prev
+            unwrap-node node
         ]
-        if all [pos: find attributes 'id current-options/id-prefix] [
-            pos/2: join current-options/id-prefix pos/2
+    ]
+
+---Allowed tag attributes
+
+    -attributes-map-:
+    attributes-map: [
+        body [
+            background [style* uri   "background-image"] none
+            text       [style* color "color"]            none
+            link       color                             none
+            vlink      color                             none
+            alink      color                             none
         ]
-        forskip attributes 2 [
-            if all [string? attributes/2 empty? attributes/2] [attributes/2: none]
+        title [ ]
+        base [
+            href   uri             none
+            target [enum "_blank"] none
         ]
-        attributes
+        style [
+            type  force      "text/css"
+            media media-desc none
+        ]
+        link [
+            href     uri             none
+            hreflang name*           none
+            type     cdata           none
+            rel      name-list       none
+            rev      name-list       none
+            charset  cdata           none
+            target   [enum "_blank"] none
+            media    media-desc      none
+        ]
+        ul [
+            type  [style* [enum "disc" "circle" "square"] "list-style-type"] none
+        ]
+        ol [
+            type  [style* list-style "list-style-type"] none
+            start number                                none
+        ]
+        blockquote [cite uri none]
+        form [
+            action  force "#" ; disable forms!
+            method  force "GET"
+            name    name* none
+        ]
+        table [
+            summary     cdata                          none
+            align       [enum "left" "center" "right"] none
+            width       [style* lengthpx "width"]      none
+            frame       [
+                enum "void" "above" "below" "hsides"
+                    "lhs" "rhs" "vsides" "box" "border"
+            ]                                          none
+            rules       [
+                enum "none" "groups" "rows" "cols" "all"
+            ]                                          none
+            border      [style* pixels "border-width"] none
+            cellspacing length                         none
+            cellpadding length                         none
+        ]
+        ins [
+            cite     uri   none
+            datetime cdata none
+        ]
+        del [
+            cite     uri   none
+            datetime cdata none
+        ]
+        hr [
+            ; this is quite hard to convert to CSS automatically
+            ; so will keep the deprecated attributes
+            align   [enum "left" "right" "center"] none
+            noshade [bool "noshade"]               none
+            size    number                         none
+            width   length                         none
+        ]
+        br [clear brclear none]
+        a [
+            ;name     name*                                   none
+            ; in the real world name may be an arbitrary string
+            name     cdata                                   none
+            href     uri                                     none
+            hreflang name*                                   none
+            type     cdata                                   none
+            rel      name-list                               none
+            rev      name-list                               none
+            charset  cdata                                   none
+            target   [enum "_blank"]                         none
+            shape    [enum "default" "rect" "circle" "poly"] none
+            coords   cdata                                   none
+        ]
+        map [name name* none]
+        area [
+            shape    [enum "default" "rect" "circle" "poly"] none
+            coords   cdata                                   none
+            nohref   [bool "nohref"]                         none
+            alt      cdata                                   none
+            href     uri                                     none
+            target   [enum "_blank"]                         none
+        ]
+        select [
+            name     name*             none
+            size     number            none
+            multiple [bool "multiple"] none
+            disabled force             "disabled"
+        ]
+        textarea [
+            name     name*             none
+            rows     number            none
+            cols     number            none
+            readonly [bool "readonly"] none
+            disabled force             "disabled"
+        ]
+        button [
+            name     name*                            none
+            value    cdata                            none
+            type     [enum "submit" "button" "reset"] none
+            disabled force                            "disabled"
+        ]
+        label [for name* none]
+        input [
+            type      [
+                enum "text" "password" "checkbox" "radio"
+                    "submit" "reset" "file" "hidden"
+                    "image" "button"
+            ]                           none
+            name      name*             none
+            value     cdata             none
+            size      number            none
+            maxlength number            none
+            checked   [bool "checked"]  none
+            src       uri               none
+            alt       cdata             none
+            accept    cdata             none
+            readonly  [bool "readonly"] none
+            disabled  force             "disabled"
+            usemap    uri               none
+            ismap     [bool "ismap"]    none
+        ]
+        q [cite uri none]
+        img [
+            src      uri            none
+            alt      cdata          none
+            longdesc uri            none
+            name     name*          none
+            usemap   uri            none
+            ismap    [bool "ismap"] none
+            width    length         none
+            height   length         none
+            hspace   [imgmargin "left" "right"] none
+            vspace   [imgmargin "top" "bottom"] none
+            border   [style* pixels "border-width"] none
+            align    imgalign       none
+        ]
+        li [
+            type  [style* list-style "list-style-type"] none
+            value number                                none
+        ]
+        colgroup [
+            span   number       none
+            width  multi-length none
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]
+        col [
+            span   number       none
+            width  multi-length none
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]
+        thead [
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]
+        tfoot [
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]
+        tbody [
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]
+        tr [
+            valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]
+        td [
+            headers name-list                                none
+            scope   [enum "row" "col" "rowgroup" "colgroup"] none
+            abbr    cdata                                    none
+            axis    cdata                                    none
+            rowspan number                                   none
+            colspan number                                   none
+            nowrap  [style* [bool "nowrap"] "white-space"]   none
+            width   [style* lengthpx "width"]                  none
+            height  [style* lengthpx "height"]                 none
+            ; char alignment not supported (browsers do not support it anyway)
+            valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]
+        th [
+            headers name-list                                none
+            scope   [enum "row" "col" "rowgroup" "colgroup"] none
+            abbr    cdata                                    none
+            axis    cdata                                    none
+            rowspan number                                   none
+            colspan number                                   none
+            nowrap  [style* [bool "nowrap"] "white-space"]   none
+            width   [style* lengthpx "width"]                  none
+            height  [style* lengthpx "height"]                 none
+            ; char alignment not supported (browsers do not support it anyway)
+            valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+        ]
+        option [
+            selected [bool "selected"] none
+            value    cdata             none
+            label    cdata             none
+            disabled force             "disabled"
+        ]
+        optgroup [
+            label    cdata none
+            disabled force "disabled"
+        ]
+        ; gets converted to a span
+        font [
+            size  font-size                    none
+            color [style* color "color"]       none
+            face  [style* cdata "font-family"] none
+        ]
+    ]
+
+---Attribute types
+
+These are the validation/handling functions for various attribute types.
+    
+    -attr-types-:
+    enum: func [value opts] [
+        if value: find opts value [value/1]
+    ]
+    name*: func [value opts] [
+        if parse/all trim/lines value [name] [value]
+    ]
+    name-list: func [value opts] [
+        if parse/all trim/lines value [name any [" " name]] [
+            value
+        ]
+    ]
+    force: func [value opts] [none] ; force default
+    style*: func [value opts] [
+        if value: process-attr value opts/1 none [
+            repend style either opts/1 = 'uri [
+                [opts/2 ": url('" form-uri value "');"]
+            ] [
+                [opts/2 ": " value ";"]
+            ]
+        ]
+        none
+    ]
+    color: func [value opts] [
+        if parse/all trim/lines value [
+            "#" 3 6 hexdigit
+            |
+            "aliceblue" | "antiquewhite" | "aqua" | "aquamarine" | "azure" |
+            "beige" | "bisque" | "black" | "blanchedalmond" | "blue" |
+            "blueviolet" | "brown" | "burlywood" | "cadetblue" | "chartreuse" |
+            "chocolate" | "coral" | "cornflowerblue" | "cornsilk" | "crimson" |
+            "cyan" | "darkblue" | "darkcyan" | "darkgoldenrod" | "darkgray" |
+            "darkgreen" | "darkkhaki" | "darkmagenta" | "darkolivegreen" |
+            "darkorange" | "darkorchid" | "darkred" | "darksalmon" |
+            "darkseagreen" | "darkslateblue" | "darkslategray" | "darkturquoise" |
+            "darkviolet" | "deeppink" | "deepskyblue" | "dimgray" |
+            "dodgerblue" | "feldspar" | "firebrick" | "floralwhite" |
+            "forestgreen" | "fuchsia" | "gainsboro" | "ghostwhite" | "gold" |
+            "goldenrod" | "gray" | "green" | "greenyellow" | "honeydew" |
+            "hotpink" | "indianred" | "indigo" | "ivory" | "khaki" | "lavender" |
+            "lavenderblush" | "lawngreen" | "lemonchiffon" | "lightblue" |
+            "lightcoral" | "lightcyan" | "lightgoldenrodyellow" | "lightgreen" |
+            "lightgrey" | "lightpink" | "lightsalmon" | "lightseagreen" |
+            "lightskyblue" | "lightslateblue" | "lightslategray" |
+            "lightsteelblue" | "lightyellow" | "lime" | "limegreen" | "linen" |
+            "magenta" | "maroon" | "mediumaquamarine" | "mediumblue" |
+            "mediumorchid" | "mediumpurple" | "mediumseagreen" |
+            "mediumslateblue" | "mediumspringgreen" | "mediumturquoise" |
+            "mediumvioletred" | "midnightblue" | "mintcream" | "mistyrose" |
+            "moccasin" | "navajowhite" | "navy" | "oldlace" | "olive" |
+            "olivedrab" | "orange" | "orangered" | "orchid" | "palegoldenrod" |
+            "palegreen" | "paleturquoise" | "palevioletred" | "papayawhip" |
+            "peachpuff" | "peru" | "pink" | "plum" | "powderblue" | "purple" |
+            "red" | "rosybrown" | "royalblue" | "saddlebrown" | "salmon" |
+            "sandybrown" | "seagreen" | "seashell" | "sienna" | "silver" |
+            "skyblue" | "slateblue" | "slategray" | "snow" | "springgreen" |
+            "steelblue" | "tan" | "teal" | "thistle" | "tomato" | "turquoise" |
+            "violet" | "violetred" | "wheat" | "white" | "whitesmoke" | "yellow" |
+            "yellowgreen" | "transparent"
+        ] [
+            value
+        ]
+    ]
+    uri: func [value opts] [parse-uri/relative value]
+    cdata: func [value opts] [if value [trim/lines value]]
+    media-desc: func [value opts /local names nm] [
+        names: clear [ ]
+        if all [value parse/all trim/lines value [
+            copy nm name (append names nm)
+            any [
+                thru "," opt " " copy nm name (append names nm)
+            ]
+            to end
+        ]] [
+            names: intersect names [
+                "screen" "tty" "tv" "projection" "handheld"
+                "print" "braille" "aural" "all"
+            ]
+            if empty? names [return none]
+            value: copy first names
+            foreach name next names [
+                repend value [", " name]
+            ]
+            value
+        ]
+    ]
+    list-style: func [value opts] [
+        if find ["disc" "circle" "square"] value [return value]
+        select/case [
+            "1" "decimal"     #[none]
+            "a" "lower-alpha" #[none]
+            "A" "upper-alpha" #[none]
+            "i" "lower-roman" #[none]
+            "I" "upper-roman" #[none]
+        ] value
+    ]
+    number: func [value opts] [
+        if parse/all trim/lines value [some digit] [value]
+    ]
+    pixels: func [value opts] [
+        if parse/all trim/lines value [some digit] [append value "px"]
+    ]
+    bool: func [value opts] [
+        opts/1
+    ]
+    length: func [value opts] [
+        if parse/all trim/lines value [some digit opt "%"] [value]
+    ]
+    lengthpx: func [value opts] [
+        if parse/all trim/lines value [some digit ["%" | (append value "px") to end]] [value]
+    ]
+    multi-length: func [value opts] [
+        if parse/all trim/lines value [some digit ["%" | "*" | none]] [value]
+    ]
+    font-size: func [value opts] [
+        trim/lines value
+        any [
+            if find [
+                "1" "2" "3" "4" "5" "6" "7" "+1" "+2" "+3" "+4" "+5" "+6" "+7"
+                "-1" "-2" "-3" "-4" "-5" "-6" "-7"
+            ] value [value]
+            length value none
+        ]
+    ]
+    imgmargin: func [value opts] [
+        if value: number value none [
+            repend style [
+                "margin-" opts/1 ": " value "px;"
+                "margin-" opts/2 ": " value "px;"
+            ]
+        ]
+        none
+    ]
+    imgalign: func [value opts] [
+        append style any [select [
+            "bottom" "vertical-align: bottom;" #[none]
+            "middle" "vertical-align: middle;" #[none]
+            "top"    "vertical-align: top;"    #[none]
+            "left"   "float: left;"            #[none]
+            "right"  "float: right;"           #[none]
+        ] value ""]
+        none
+    ]
+    brclear: func [value opts] [
+        append style any [select [
+            "none"  "clear: none;"  #[none]
+            "left"  "clear: left;"  #[none]
+            "right" "clear: right;" #[none]
+            "all"   "clear: both;"  #[none]
+        ] value ""]
+        none
     ]

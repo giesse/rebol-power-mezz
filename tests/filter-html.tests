@@ -379,3 +379,6 @@ Continued.<br>} [
 	"IE sucks"
 	filter-html/all {<style>.xss {width: expression(alert('XSS'));}</style>}
 ]
+[
+    filter-html/with read %tests/data/rebol.com.html [all: yes pretty-print: yes]
+]

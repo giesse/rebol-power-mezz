@@ -7,7 +7,7 @@ Grow trees using constraints
     }
     Author: "Gabriele Santilli"
     File: %niwashi.r
-    Version: 1.1.0
+    Version: 1.1.1
     Imports: [
         %mezz/trees.r
         %parsers/common-rules.r
@@ -390,6 +390,8 @@ Each rule has the following grammar:
         |
         'inside opt ['all 'but] node-types into rules
         |
+        'after node-types into rules
+        |
         'always into rules
     ]
     node-type: [word!]
@@ -467,6 +469,14 @@ or by an empty set. You can control which rules are applied at any time by using
 
 Using |inside| multiple time for the same node means *adding* more rules to the ones that already
 exist for that node.
+
+    after p [
+        ; ...
+    ]
+
+means that after a node of type |'p| has been added to the current node, the specified additional
+rules apply. It's similar to |inside| except that the rule apply *after* the specified node 
+(up to the end of the current node) instead of *inside* of it.
 
     always [
         ; ...
@@ -631,10 +641,12 @@ done building the tree to make sure you are back to the root node:
             throw make error! join "MOVE TARGET not supported at this time: " mold/only pos
         )
         |
-        'inside opt ['all 'but] node-types into rules-check
+        'inside opt ['all 'but] node-types [into rules-check | word!]
         |
-        pos: 'always block! (
-            throw make error! join "ALWAYS inside ALWAYS: " mold/only pos
+        'after node-types [into rules-check- | word!]
+        |
+        pos: 'always [block! | word!] (
+            throw make error! join "ALWAYS inside ALWAYS or AFTER: " mold/only pos
         )
         |
         pos: skip (invalid-arg pos)
@@ -642,12 +654,14 @@ done building the tree to make sure you are back to the root node:
     alw: none
     always: [ ]
     rule-check: [
-        'always into rules-check-
+        'always [into rules-check- | word!]
         |
         rule-check-
     ]
     rule-check+: [
         'always set alw into rules-check- (append always alw)
+        |
+        'always set alw word! (append always get alw)
         |
         rule-check-
     ]
@@ -706,26 +720,32 @@ done building the tree to make sure you are back to the root node:
                     |
                     'only node-types (ignore?: yes)
                     |
-                    'inside 'all 'but node-match block!
+                    'inside 'all 'but node-match [block! | word!]
                     |
-                    'inside 'all 'but node-types set rules block! (append new-rules rules)
+                    'inside 'all 'but node-types [
+                        set rules block! (append new-rules rules)
+                        |
+                        set rules word! (append new-rules get rules)
+                    ]
                     |
-                    'inside node-match set rules block! (append new-rules rules)
+                    'inside node-match [
+                        set rules block! (append new-rules rules)
+                        |
+                        set rules word! (append new-rules get rules)
+                    ]
                     |
                     rule-check ; catch everything else
                 ]
             ]
         ]
         if debug? [
-            print ""
-            print ["*** ENTER" type "*******************************************************"]
-            print ""
-            print "Current set of rules:"
-            print mold/only niwashi/always-rules
-            print mold/only niwashi/cn-rules
-            print ""
+            print ["ENTER" type]
             print ["force-node:" force-node "ignore:" ignore? "new-rules:" length? new-rules]
-            print "*************************************************************************"
+            if "r" = ask "?" [
+                print mold/only niwashi/always-rules
+                print mold/only niwashi/cn-rules
+                ask "?"
+            ]
         ]
         case [
             ignore? [
@@ -745,13 +765,15 @@ done building the tree to make sure you are back to the root node:
                     some [
                         'always set rules block! (append niwashi/always-rules rules)
                         |
+                        'always set rules word! (append niwashi/always-rules get rules)
+                        |
                         rule-check-
                     ]
                 ]
             ]
         ]
     ]
-    on-leave: func [niwashi node /local type node-match act actions ignore? debug?] [
+    on-leave: func [niwashi node /local type node-match act actions ignore? debug? after-rules after? rules] [
         type: to lit-word! get-node node/type
         node-match: [type | into [to type to end]]
         actions: clear [ ]
@@ -759,6 +781,7 @@ done building the tree to make sure you are back to the root node:
         remove back tail niwashi/ar-stack
         niwashi/cn-rules: last niwashi/cnr-stack
         remove back tail niwashi/cnr-stack
+        after-rules: copy [ ]
         foreach rules [niwashi/always-rules niwashi/cn-rules] [
             ; DO to fetch the path!'s value
             parse do rules [
@@ -779,20 +802,25 @@ done building the tree to make sure you are back to the root node:
                     |
                     'only node-types (ignore?: yes)
                     |
+                    'after node-match [
+                        set rules block! (append after-rules rules after?: yes)
+                        |
+                        set rules word! (append after-rules get rules after?: yes)
+                    ]
+                    |
                     rule-check ; skip everything else
                 ]
             ]
         ]
+        if after? [niwashi/cn-rules: after-rules]
         if debug? [
-            print ""
-            print ["*** LEAVE" type "*******************************************************"]
-            print ""
-            print "Current set of rules:"
-            print mold/only niwashi/always-rules
-            print mold/only niwashi/cn-rules
-            print ""
+            print ["LEAVE" type]
             print ["ignore:" ignore? "actions:" mold actions]
-            print "*************************************************************************"
+            if "r" = ask "?" [
+                print mold/only niwashi/always-rules
+                print mold/only niwashi/cn-rules
+                ask "?"
+            ]
         ]
         either ignore? [
             unwrap-node node
