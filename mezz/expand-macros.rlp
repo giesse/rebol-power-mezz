@@ -6,7 +6,7 @@ Macro expansion
     }
     Author: "Gabriele Santilli"
     File: %expand-macros.r
-    Version: 1.0.0
+    Version: 1.0.1
     Imports: [
         %mezz/collect.r
     ]
@@ -106,9 +106,9 @@ Introduction to be written.
                 |
                 /paren set value paren! (keep/only collect/into [expand-macro* value argument args] make paren! 0)
                 |
-                /only set value paren! (keep/only do bind to block! value args)
+                /only set value paren! (keep/only do either args [bind to block! value args] [value])
                 |
-                set value paren! (keep do bind to block! value args)
+                set value paren! (keep do either args [bind to block! value args] [value])
                 |
                 set value block! (
                     keep/only collect [expand-macro* value argument args]

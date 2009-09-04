@@ -6,7 +6,7 @@ REBOL [
 ]
 
 [
-    m: probe macro [a b] [add a b]
+    m: macro [a b] [add a b]
     f: func [a b] expand-macros [multiply a m b 3]
     mold :f
 ]
@@ -29,4 +29,8 @@ REBOL [
         node: make-node 'leaf
         set-parent node (get-child (get-child root 2) 1)
     ]
+]
+[
+    m: macro [] [1 2 (3)]
+    expand-macros [m]
 ]
