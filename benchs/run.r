@@ -25,6 +25,15 @@ current-version: has [hg] [
 	call/output "hg parents --template {node}" hg: copy ""
 	hg
 ]
+version-info?: func [version /local hg] [
+    version: copy/part version back tail version
+    call/output rejoin [{hg log -r } version { --template "{rev} {desc|firstline}"}] hg: copy ""
+    either all [not empty? hg hg: attempt [load/next hg] integer? first hg] [
+        hg
+    ] [
+        version
+    ]
+]
 
 change-dir %../
 do %mezz/module.r
@@ -68,16 +77,17 @@ show-results: func [file /local lay results r max-speed max-time] [
 	max-speed: max-time: 0
 	foreach version read %benchs/results/ [
 		if exists? r: join %benchs/results/ [version file] [
-			repend results [version r: load r]
+			repend results [version-info? version version r: load r]
 			foreach [name result] r [
 				max-speed: max 1 / result max-speed
 				max-time: max result max-time
 			]
 		]
 	]
-	foreach [version results] results [
+    sort/skip results 3
+	foreach [title version results] results [
 		append lay compose [
-			Text (join "Version " version) Return
+			Text (join "Version " title) Return
 		]
 		foreach [name result] results [
 			append lay compose/deep [

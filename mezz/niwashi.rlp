@@ -7,11 +7,11 @@ Grow trees using constraints
     }
     Author: "Gabriele Santilli"
     File: %niwashi.r
-    Version: 1.1.1
+    Version: 1.1.2
     Imports: [
         %mezz/trees.r
-        %parsers/common-rules.r
-        %parsers/rule-arguments.r
+        %mezz/expand-macros.r
+        %mezz/collect.r
     ]
     Exports: [
         make-niwashi
@@ -51,6 +51,7 @@ Then, we allow defining a set of rules that have to be enforced while the tree i
 They basically allow "transforming" the tree while it is being built.
 
     -main-:
+    -macros-
     -basic-
     -advanced-
     -rules-
@@ -83,8 +84,6 @@ can append a new child node to the current node with |append-child|:
         [catch]
         niwashi [object!]
         spec [block!]
-
-        /local -ac-locals-
     ] [
         -append-child-
     ]
@@ -153,9 +152,7 @@ But, do not dispair, because here we introduce the Swiss Army knife of tree buil
         /prune prune-nodes [word! block!]
 
         /local -sb-locals-
-    ] [
-        -split-branch-
-    ]
+    ] -split-branch-
 
 |split-branch|'s behavior requires explanation, so we'll offer a number of examples. The
 basic idea is that of creating a new tree branch that is basically a copy of the current
@@ -507,10 +504,9 @@ done building the tree to make sure you are back to the root node:
     context [
         root: current-node: make-node 'root
         branch: none
-        cn-rules: copy [ ]
-        cnr-stack: copy [ ]
-        always-rules: copy [ ]
-        ar-stack: copy [ ]
+        stack: copy [ ]
+        cn-rules: make rules! [always: none]
+        always-rules: make rules! [ ]
     ]
 
 ---Append a new child and make it the current node
@@ -543,45 +539,39 @@ done building the tree to make sure you are back to the root node:
 ---Append a new child to the current node
 
     -append-child-:
-    on-enter niwashi node: make-child spec
-    set-node node/parent: niwashi/current-node
-    on-leave niwashi node
-
-+++|append-child|'s locals
-
-    -ac-locals-:
-    node
+    on-append niwashi make-child spec
 
 ---Split the current branch
 
     -split-branch-:
-    unless block? base [base: reduce [base]]
-    unless knots [knot-nodes: [ ]]
-    unless prune [prune-nodes: [ ]]
-    unless block? knot-nodes [knot-nodes: reduce [knot-nodes]]
-    unless block? prune-nodes [prune-nodes: reduce [prune-nodes]]
-    node: niwashi/current-node
-    branch: copy [ ]
-    to-leave: clear [ ]
-    while [not find base type: get-node node/type] [
-        if find knot-nodes type [
-            throw make error! join "Cannot cut through '" [type "' nodes"]
+    expand-macros [
+        unless block? base [base: reduce [base]]
+        unless knots [knot-nodes: [ ]]
+        unless prune [prune-nodes: [ ]]
+        unless block? knot-nodes [knot-nodes: reduce [knot-nodes]]
+        unless block? prune-nodes [prune-nodes: reduce [prune-nodes]]
+        node: niwashi/current-node
+        branch: copy [ ]
+        to-leave: clear [ ]
+        while [not find base type: !get-node-type node] [
+            if find knot-nodes type [
+                throw make error! join "Cannot cut through '" [type "' nodes"]
+            ]
+            unless find prune-nodes type [
+                new-node: !make-node type (!get-node-properties node)
+                insert/only branch new-node
+            ]
+            append/only to-leave node
+            unless node: !get-node-parent node [
+                throw make error! join "No nodes of type '" [base "' found in the current branch"]
+            ]
         ]
-        unless find prune-nodes type [
-            new-node: make-node type
-            set-node new-node/properties: get-node node/properties
-            insert/only branch new-node
+        niwashi/current-node: node
+        foreach node to-leave [
+            on-leave niwashi node
         ]
-        append/only to-leave node
-        unless node: get-node node/parent [
-            throw make error! join "No nodes of type '" [base "' found in the current branch"]
-        ]
+        niwashi/branch: branch
     ]
-    niwashi/current-node: node
-    foreach node to-leave [
-        on-leave niwashi node
-    ]
-    niwashi/branch: branch
 
 +++|split-branch|'s locals
 
@@ -604,9 +594,11 @@ done building the tree to make sure you are back to the root node:
 ---Define the rules to apply while building the tree
 
     -define-rules-:
-    always: niwashi/always-rules
-    parse rules rules-check+
-    append niwashi/cn-rules rules
+    clear named-rules
+    compile-rules rules niwashi/cn-rules
+    if niwashi/cn-rules/always [
+        merge-rules niwashi/always-rules niwashi/cn-rules/always
+    ]
 
 ---Leave all nodes and go back to the root node
 
@@ -626,65 +618,332 @@ done building the tree to make sure you are back to the root node:
 ===Niwashi rules grammar
 
     -niwashi-rules-:
-    rule-check-: [
-        'debug
-        |
-        ['on | 'except] node-types pos: ['move 'to word!] (
-            throw make error! join "MOVE TO not supported at this time: " mold/only pos
-        )
-        |
-        ['on | 'except] node-types ['force word! | action]
-        |
-        ['ignore | 'only] node-types
-        |
-        pos: 'move 'target word! (
-            throw make error! join "MOVE TARGET not supported at this time: " mold/only pos
-        )
-        |
-        'inside opt ['all 'but] node-types [into rules-check | word!]
-        |
-        'after node-types [into rules-check- | word!]
-        |
-        pos: 'always [block! | word!] (
-            throw make error! join "ALWAYS inside ALWAYS or AFTER: " mold/only pos
-        )
-        |
-        pos: skip (invalid-arg pos)
+    named-rules: [ ]
+    rules!: context [
+        debug?: no
+        force-node?: func [type /local result] [#[none]]
+        ignore: [ ] only: [ ]
+        ignore?: func [type] [#[false]]
+        make-new-rules: func [type rules always-rules] [ ]
+        do-actions: func [type node] [ ]
+        make-after-rules: func [type rules /local result] [#[none]]
     ]
-    alw: none
-    always: [ ]
-    rule-check: [
-        'always [into rules-check- | word!]
-        |
-        rule-check-
+    merge-rules: func [target rules] [
+        target/debug?: any [target/debug? rules/debug?]
+        target/force-node?: func [type /local result]
+            head insert remove back tail second get in target 'force-node? second get in rules 'force-node?
+        mk-ignore target target/ignore: union target/ignore rules/ignore target/only: union target/only rules/only
+        target/make-new-rules: func [type rules always-rules]
+            head insert tail second get in target 'make-new-rules second get in rules 'make-new-rules
+        target/do-actions: func [type node]
+            head insert tail second get in target 'do-actions second get in rules 'do-actions
+        target/make-after-rules: func [type rules /local result]
+            head insert remove back tail second get in target 'make-after-rules second get in rules 'make-after-rules
     ]
-    rule-check+: [
-        'always set alw into rules-check- (append always alw)
-        |
-        'always set alw word! (append always get alw)
-        |
-        rule-check-
+    compile-rules: func [
+        rules rules-object
+        /local pos types value force-node cmd ignore only last-force new-rules actions
+            last-action mk-newrules mk-afterrules last-mkr last-mkar
+    ] [
+        ignore: copy rules-object/ignore
+        only: copy rules-object/only
+        force-node: copy second get in rules-object 'force-node?
+        remove back tail force-node
+        last-force: no
+        last-action: no
+        actions: copy second get in rules-object 'do-actions
+        mk-newrules: copy second get in rules-object 'make-new-rules
+        mk-afterrules: head remove back tail copy second get in rules-object 'make-after-rules
+        last-mkr: no
+        parse rules [
+            some [
+                'debug (rules-object/debug?: yes)
+                |
+                ['on | 'except] node-types pos: ['move 'to word!] (
+                    throw make error! join "MOVE TO not supported at this time: " mold/only pos
+                )
+                |
+                'on set types node-types 'force set value word! (
+                    either last-force [
+                        append last force-node compose/deep [
+                            (types) [result: (to lit-word! value)]
+                        ]
+                    ] [
+                        append force-node compose/deep [
+                            switch/all type [
+                                (types) [result: (to lit-word! value)]
+                            ]
+                        ]
+                        last-force: yes
+                    ]
+                )
+                |
+                'except set types node-types 'force set value word! (
+                    last-force: no
+                    append force-node compose/deep [
+                        switch/default type [
+                            (types) [ ]
+                        ] [result: (to lit-word! value)]
+                    ]
+                )
+                |
+                'on set types node-types [
+                    set value word! (value: get value)
+                    |
+                    set value block! (value: func [node] value)
+                ] (
+                    either last-action [
+                        append last actions compose/deep [
+                            (types) [(:value) node]
+                        ]
+                    ] [
+                        append actions compose/deep [
+                            switch/all type [
+                                (types) [(:value) node]
+                            ]
+                        ]
+                        last-action: yes
+                    ]
+                )
+                |
+                'except set types node-types [
+                    set value word! (value: get value)
+                    |
+                    set value block! (value: func [node] value)
+                ] (
+                    last-action: no
+                    append actions compose/deep [
+                        switch/default type [
+                            (types) [ ]
+                        ] [(:value) node]
+                    ]
+                )
+                |
+                set cmd ['ignore | 'only] set types node-types (
+                    append get bind cmd 'ignore types
+                )
+                |
+                pos: 'move 'target word! (
+                    throw make error! join "MOVE TARGET not supported at this time: " mold/only pos
+                )
+                |
+                'inside 'all 'but set types node-types set value word! (
+                    unless new-rules: select named-rules value [
+                        new-rules: make rules! [always: none]
+                        repend named-rules [value new-rules]
+                        compile-rules get value new-rules
+                    ]
+                    append mk-newrules compose/deep [
+                        switch/default type [
+                            (types) [ ]
+                        ] [
+                            (:merge-rules) rules (new-rules)
+                            (either all [in new-rules 'always new-rules/always] [
+                                compose [(:merge-rules) always-rules (new-rules/always)]
+                            ] [
+                                [ ]
+                            ])
+                        ]
+                    ]
+                    last-mkr: no
+                )
+                |
+                'inside 'all 'but set types node-types set value block! (
+                    new-rules: make rules! [always: none]
+                    compile-rules value new-rules
+                    append mk-newrules compose/deep [
+                        switch/default type [
+                            (types) [ ]
+                        ] [
+                            (:merge-rules) rules (new-rules)
+                            (either new-rules/always [
+                                compose [(:merge-rules) always-rules (new-rules/always)]
+                            ] [
+                                [ ]
+                            ])
+                        ]
+                    ]
+                    last-mkr: no
+                )
+                |
+                'inside set types node-types set value word! (
+                    unless new-rules: select named-rules value [
+                        new-rules: make rules! [always: none]
+                        repend named-rules [value new-rules]
+                        compile-rules get value new-rules
+                    ]
+                    either last-mkr [
+                        append last mk-newrules compose/deep [
+                            (types) [
+                                (:merge-rules) rules (new-rules)
+                                (either all [in new-rules 'always new-rules/always] [
+                                    compose [(:merge-rules) always-rules (new-rules/always)]
+                                ] [
+                                    [ ]
+                                ])
+                            ]
+                        ]
+                    ] [
+                        append mk-newrules compose/deep [
+                            switch/all type [
+                                (types) [
+                                    (:merge-rules) rules (new-rules)
+                                    (either all [in new-rules 'always new-rules/always] [
+                                        compose [(:merge-rules) always-rules (new-rules/always)]
+                                    ] [
+                                        [ ]
+                                    ])
+                                ]
+                            ]
+                        ]
+                        last-mkr: yes
+                    ]
+                )
+                |
+                'inside set types node-types set value block! (
+                    new-rules: make rules! [always: none]
+                    compile-rules value new-rules
+                    either last-mkr [
+                        append last mk-newrules compose/deep [
+                            (types) [
+                                (:merge-rules) rules (new-rules)
+                                (either new-rules/always [
+                                    compose [(:merge-rules) always-rules (new-rules/always)]
+                                ] [
+                                    [ ]
+                                ])
+                            ]
+                        ]
+                    ] [
+                        append mk-newrules compose/deep [
+                            switch/all type [
+                                (types) [
+                                    (:merge-rules) rules (new-rules)
+                                    (either new-rules/always [
+                                        compose [(:merge-rules) always-rules (new-rules/always)]
+                                    ] [
+                                        [ ]
+                                    ])
+                                ]
+                            ]
+                        ]
+                        last-mkr: yes
+                    ]
+                )
+                |
+                'after set types node-types set value word! (
+                    unless new-rules: select named-rules value [
+                        new-rules: make rules! [ ]
+                        repend named-rules [value new-rules]
+                        compile-rules get value new-rules
+                    ]
+                    either empty? mk-afterrules [
+                        append mk-afterrules compose/deep [
+                            switch/all type [
+                                (types) [merge-rules rules (new-rules) result: #[true]]
+                            ]
+                        ]
+                    ] [
+                        append last mk-afterrules compose/deep [
+                            (types) [merge-rules rules (new-rules) result: #[true]]
+                        ]
+                    ]
+                )
+                |
+                'after set types node-types set value block! (
+                    new-rules: make rules! [ ]
+                    compile-rules value new-rules
+                    either empty? mk-afterrules [
+                        append mk-afterrules compose/deep [
+                            switch/all type [
+                                (types) [merge-rules rules (new-rules) result: #[true]]
+                            ]
+                        ]
+                    ] [
+                        append last mk-afterrules compose/deep [
+                            (types) [merge-rules rules (new-rules) result: #[true]]
+                        ]
+                    ]
+                )
+                |
+                pos: 'always (
+                    unless in rules-object 'always [
+                        throw make error! join "ALWAYS inside ALWAYS or AFTER: " mold/only pos
+                    ]
+                ) [
+                    set value block! (
+                        new-rules: make rules! [ ]
+                        compile-rules value new-rules
+                        either rules-object/always [
+                            merge-rules rules-object/always new-rules
+                        ] [
+                            rules-object/always: new-rules
+                        ]
+                    )
+                    |
+                    set value word! (
+                        unless new-rules: select named-rules value [
+                            new-rules: make rules! [ ]
+                            repend named-rules [value new-rules]
+                            compile-rules get value new-rules
+                        ]
+                        either rules-object/always [
+                            merge-rules rules-object/always new-rules
+                        ] [
+                            rules-object/always: new-rules
+                        ]
+                    )
+                ]
+                |
+                pos: skip (invalid-arg pos)
+            ]
+        ]
+        append force-node 'result
+        append mk-afterrules 'result
+        rules-object/force-node?: func [type /local result] force-node
+        mk-ignore rules-object rules-object/ignore: unique ignore rules-object/only: unique only
+        rules-object/make-new-rules: func [type rules always-rules] mk-newrules
+        rules-object/do-actions: func [type node] actions
+        rules-object/make-after-rules: func [type rules /local result] mk-afterrules
+    ]
+    mk-ignore: func [rules-object ignore only] [
+        rules-object/ignore?: case [
+            all [empty? ignore empty? only] [
+                func [type] [#[false]]
+            ]
+            empty? only [
+                func [type] compose/only [
+                    find (ignore) type
+                ]
+            ]
+            empty? ignore [
+                func [type] compose/only [
+                    not find (only) type
+                ]
+            ]
+            'else [
+                func [type] compose/deep/only [
+                    any [find (ignore) type not find (only) type]
+                ]
+            ]
+        ]
     ]
     node-types: [word! | into [some word!]]
-    node-path: [word! | path!]
-    action: [word! | block!]
-    rules-check-: [some rule-check-]
-    rules-check: [some rule-check]
-    rules-check+: [some rule-check+]
 
 ===Support functions
 
     -main-:
     -niwashi-rules-
     invalid-arg: func [val] [throw make error! compose/only [script invalid-arg (:val)]]
-    make-child: func [spec /local pos word type properties node] [
+    make-child: func [spec /local pos word type properties value prop] expand-macros [
         parse spec [
             any [
                 pos:
-                set word set-word! (unless find [type: properties:] word [invalid-arg pos])
-                do-next (
-                    set bind word 'type pop-result
-                )
+                set word set-word! (
+                    unless find [type: properties:] word [invalid-arg pos]
+                    set [value pos] do/next next pos
+                    set bind word 'type value
+                ) :pos
                 |
                 skip (invalid-arg pos)
             ]
@@ -692,145 +951,164 @@ done building the tree to make sure you are back to the root node:
         unless word? :type [
             throw make error! "No node type specified"
         ]
-        node: make-node type
+        prop: copy [ ]
         if block? :properties [
-            set-node node/properties: properties
-        ]
-        node
-    ]
-    on-enter: func [niwashi node /local type node-match force-node ignore? rules new-rules debug?] [
-        type: to lit-word! get-node node/type
-        node-match: [type | into [to type to end]]
-        new-rules: copy [ ]
-        foreach rules [niwashi/always-rules niwashi/cn-rules] [
-            ; DO to fetch the path!'s value
-            parse do rules [
+            parse properties [
+                some [[word! | path!] skip] (append prop properties)
+                |
                 some [
-                    'debug (debug?: yes)
+                    pos:
+                    set word set-word! (
+                        set [value pos] do/next next pos
+                        insert/only insert tail prop to word! word :value
+                    ) :pos
                     |
-                    'on node-match 'force set force-node word!
-                    |
-                    'except node-match 'force word!
-                    |
-                    'except node-types 'force set force-node word!
-                    |
-                    'ignore node-match (ignore?: yes)
-                    |
-                    'only node-match
-                    |
-                    'only node-types (ignore?: yes)
-                    |
-                    'inside 'all 'but node-match [block! | word!]
-                    |
-                    'inside 'all 'but node-types [
-                        set rules block! (append new-rules rules)
-                        |
-                        set rules word! (append new-rules get rules)
-                    ]
-                    |
-                    'inside node-match [
-                        set rules block! (append new-rules rules)
-                        |
-                        set rules word! (append new-rules get rules)
-                    ]
-                    |
-                    rule-check ; catch everything else
+                    set word set-path! (
+                        set [value pos] do/next next pos
+                        insert/only insert tail prop to path! word :value
+                    ) :pos
                 ]
+                |
+                pos: skip (invalid-arg pos)
             ]
         ]
-        if debug? [
+        !make-node2 type prop
+    ]
+    on-enter: func [niwashi node /local type force-node new-rules debug? new-alw] expand-macros [
+        type: get-node node/type
+        new-rules: make rules! [always: none]
+        if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
             print ["ENTER" type]
-            print ["force-node:" force-node "ignore:" ignore? "new-rules:" length? new-rules]
-            if "r" = ask "?" [
-                print mold/only niwashi/always-rules
-                print mold/only niwashi/cn-rules
-                ask "?"
-            ]
         ]
         case [
-            ignore? [
-                append/only niwashi/cnr-stack niwashi/cn-rules
-                append/only niwashi/ar-stack niwashi/always-rules
+            any [niwashi/always-rules/ignore? type niwashi/cn-rules/ignore? type] [
+                if debug? [
+                    print "IGNORED"
+                    ask "?"
+                ]
+                !push niwashi [always-rules cn-rules]
             ]
-            force-node [
+            force-node: any [niwashi/cn-rules/force-node? type niwashi/always-rules/force-node? type] [
+                if debug? [
+                    print ["Forcing node:" force-node]
+                    ask "?"
+                ]
                 ; TODO: infinite recursion protection
                 enter-child niwashi [type: force-node]
                 ; enter-child changes the rules, so we need to do all the above again
                 on-enter niwashi node
             ]
             'else [
-                append/only niwashi/cnr-stack niwashi/cn-rules
-                append/only niwashi/ar-stack copy niwashi/always-rules
-                parse niwashi/cn-rules: new-rules [
-                    some [
-                        'always set rules block! (append niwashi/always-rules rules)
-                        |
-                        'always set rules word! (append niwashi/always-rules get rules)
-                        |
-                        rule-check-
-                    ]
+                if debug? [
+                    print "Setting up new rules"
+                    ask "?"
                 ]
+                !push niwashi [always-rules cn-rules]
+                new-alw: make rules! [ ]
+                merge-rules new-alw niwashi/always-rules
+                niwashi/always-rules: new-alw
+                niwashi/always-rules/make-new-rules type new-rules niwashi/always-rules
+                niwashi/cn-rules/make-new-rules type new-rules niwashi/always-rules
+                niwashi/cn-rules: new-rules
             ]
         ]
     ]
-    on-leave: func [niwashi node /local type node-match act actions ignore? debug? after-rules after? rules] [
-        type: to lit-word! get-node node/type
-        node-match: [type | into [to type to end]]
-        actions: clear [ ]
-        niwashi/always-rules: last niwashi/ar-stack
-        remove back tail niwashi/ar-stack
-        niwashi/cn-rules: last niwashi/cnr-stack
-        remove back tail niwashi/cnr-stack
-        after-rules: copy [ ]
-        foreach rules [niwashi/always-rules niwashi/cn-rules] [
-            ; DO to fetch the path!'s value
-            parse do rules [
-                some [
-                    'debug (debug?: yes)
-                    |
-                    ['on | 'except] node-types 'force word!
-                    |
-                    'on node-match set act action (append/only actions act)
-                    |
-                    'except node-match action
-                    |
-                    'except node-types set act action (append/only actions act)
-                    |
-                    'ignore node-match (ignore?: yes)
-                    |
-                    'only node-match
-                    |
-                    'only node-types (ignore?: yes)
-                    |
-                    'after node-match [
-                        set rules block! (append after-rules rules after?: yes)
-                        |
-                        set rules word! (append after-rules get rules after?: yes)
-                    ]
-                    |
-                    rule-check ; skip everything else
-                ]
-            ]
-        ]
-        if after? [niwashi/cn-rules: after-rules]
-        if debug? [
+    on-leave: func [niwashi node /local type debug? after-rules] expand-macros [
+        type: get-node node/type
+        !pop niwashi [always-rules cn-rules]
+        after-rules: make rules! [ ]
+        if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
             print ["LEAVE" type]
-            print ["ignore:" ignore? "actions:" mold actions]
-            if "r" = ask "?" [
-                print mold/only niwashi/always-rules
-                print mold/only niwashi/cn-rules
+        ]
+        either any [niwashi/always-rules/ignore? type niwashi/cn-rules/ignore? type] [
+            if debug? [
+                print "IGNORED"
                 ask "?"
             ]
-        ]
-        either ignore? [
             unwrap-node node
         ] [
-            parse actions [
-                some [
-                    set act word! (act: get act act node)
-                    |
-                    set act block! (act: func [node] act act node)
+            if or~ to logic! niwashi/always-rules/make-after-rules type after-rules
+                to logic! niwashi/cn-rules/make-after-rules type after-rules [
+                if debug? [
+                    print "Setting AFTER rules"
                 ]
+                niwashi/cn-rules: after-rules
+            ]
+            if debug? [
+                print "Doing actions"
+                ask "?"
+            ]
+            niwashi/always-rules/do-actions type node
+            niwashi/cn-rules/do-actions type node
+        ]
+    ]
+    on-append: func [niwashi node /local type debug? force-node after-rules] expand-macros [
+        type: !get-node-type node
+        after-rules: make rules! [ ]
+        if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
+            print ["APPEND" type]
+        ]
+        case [
+            any [niwashi/always-rules/ignore? type niwashi/cn-rules/ignore? type] [
+                if debug? [
+                    print "IGNORED"
+                    ask "?"
+                ]
+            ]
+            force-node: any [niwashi/cn-rules/force-node? type niwashi/always-rules/force-node? type] [
+                if debug? [
+                    print ["Forcing node:" force-node]
+                    ask "?"
+                ]
+                ; TODO: infinite recursion protection
+                enter-child niwashi [type: force-node]
+                ; enter-child changes the rules, so we need to do all the above again
+                on-append niwashi node
+            ]
+            'else [
+                !set-node-parent-quick node niwashi/current-node
+                if or~ to logic! niwashi/always-rules/make-after-rules type after-rules
+                    to logic! niwashi/cn-rules/make-after-rules type after-rules [
+                    if debug? [
+                        print "Setting AFTER rules"
+                    ]
+                    niwashi/cn-rules: after-rules
+                ]
+                if debug? [
+                    print "Doing actions"
+                    ask "?"
+                ]
+                niwashi/always-rules/do-actions type node
+                niwashi/cn-rules/do-actions type node
             ]
         ]
     ]
+
+===Macros
+
+    -macros-:
+    !push: macro [niwashi words] [(compile-push niwashi words)]
+    compile-push: func [niwashi words] [
+        collect [
+            foreach word words [keep :insert]
+            keep :tail
+            keep/only make path! reduce [niwashi 'stack]
+            foreach word words [
+                keep/only make path! reduce [niwashi word]
+            ]
+        ]
+    ]
+    !pop: macro [niwashi words] [
+        (:set) (:bind) words/only niwashi
+            (to set-word! tmp: use [tmp] ['tmp])
+            (:skip) (:tail) /only
+                (make path! reduce [niwashi 'stack])
+                (negate length? words)
+        (:clear) (tmp)
+    ]
+    !get-node-type: macro [node] [(:first) node]
+    !make-node: macro [type properties] [(:reduce) [type #[none] (:copy) properties]]
+    !make-node2: macro [type properties] [(:reduce) [type #[none] properties]]
+    !get-node-properties: macro [node] [(:third) node]
+    !get-node-parent: macro [node] [(:all) [_tmp: (:second) node (:head) _tmp]]
+    !set-node-parent-quick: macro [node parent] [insert/only (:poke) node 2 (:tail) parent/only node]
