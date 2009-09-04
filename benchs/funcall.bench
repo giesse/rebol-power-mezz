@@ -1,0 +1,33 @@
+REBOL [
+    Title: "Function call methods benchmarks"
+    Author: "Gabriele Santilli"
+]
+
+Init [
+    f: func [arg] [ ]
+    actions: [f f [ ] f [ ] [ ]]
+]
+Do [
+    foreach action actions [
+        do either word? action [action] [
+            func [arg] action
+        ] 1
+    ]
+]
+Get [
+    foreach action actions [
+        action: either word? action [get action] [
+            func [arg] action
+        ]
+        action 1
+    ]
+]
+Parse [
+    parse actions [
+        some [
+            set action word! (action: get action action 1)
+            |
+            set action block! (action: func [arg] action action 1)
+        ]
+    ]
+]

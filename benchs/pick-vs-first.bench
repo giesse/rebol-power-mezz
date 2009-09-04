@@ -1,0 +1,9 @@
+REBOL [
+    Title: "PICK vs FIRST benchmark"
+    Author: "Gabriele Santilli"
+]
+
+Init [b: [1 2 3 4 5]]
+Path [b/1]
+Pick [pick b 1]
+First [first b]

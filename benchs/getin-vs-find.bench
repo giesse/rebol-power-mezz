@@ -1,0 +1,22 @@
+REBOL [
+    Title: "Comparison between GET IN and FIND"
+    Author: "Gabriele Santilli"
+]
+
+Init [
+    ctx: context [
+        a: 1
+        b: 2
+        c: 3
+    ]
+    blk: [e 1 f 1 g 1 h 1 i 1 j 1 k 1 l 1 m 1 n 1 o 1 p 1 q 1 r 1 a 1 b 2 c 3]
+]
+Get-In [
+    get in ctx 'b
+]
+Find [
+    select blk 'b
+]
+Parse [
+    parse blk [some ['b set res skip | word! skip]]
+]

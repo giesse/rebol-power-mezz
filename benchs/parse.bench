@@ -1,0 +1,44 @@
+REBOL [
+    Title: "Benchmarks for some parse rules used by niwashi"
+    Author: "Gabriele Santilli"
+]
+
+Init [
+    rules: [
+        on test
+        on non-test
+        on [test1 test2 test test3]
+        on [test1 test2 test3]
+        except test
+        except non-test
+        except [test1 test2 test test3]
+        except [test1 test2 test3]
+    ]
+    types: none
+]
+Find [
+    parse rules [
+        some [
+            'on set types word! (if types = 'test [1 + 1])
+            |
+            'on set types block! (if find types 'test [1 + 1])
+            |
+            'except set types word! (unless types = 'test [1 + 1])
+            |
+            'except set types block! (unless find types 'test [1 + 1])
+        ]
+    ]
+]
+Parse [
+    parse rules [
+        some [
+            'on ['test | into [to 'test to end]] (1 + 1)
+            |
+            'on [word! | block!]
+            |
+            'except ['test | into [to 'test to end]]
+            |
+            'except [word! | block!] (1 + 1)
+        ]
+    ]
+]

@@ -1,0 +1,14 @@
+REBOL [
+    Title: "Benchmark PICK alternatives"
+    Author: "Gabriele Santilli"
+]
+
+Init [
+    block: [1 2 3 4 5 6]
+    f1: does [pick block 4]
+    f2: does compose [(:pick) block 4]
+    f3: does [block/4]
+]
+Pick [f1]
+Reduced [f2]
+Path [f3]

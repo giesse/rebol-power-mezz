@@ -1,0 +1,19 @@
+REBOL [ ]
+
+Init [
+    node1: [test [ ] [ ]]
+    node2: [test #[none] [ ]]
+    head?: func [block] [if block [head block]]
+]
+Repeated [
+    all [second node1 head second node1]
+    all [second node2 head second node2]
+]
+Func [
+    head? second node1
+    head? second node2
+]
+Temp-Word [
+    all [tmp: second node1 head tmp]
+    all [tmp: second node2 head tmp]
+]

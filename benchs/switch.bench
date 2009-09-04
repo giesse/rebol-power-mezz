@@ -1,0 +1,11 @@
+REBOL [
+    Title: "Switch benchmark"
+    Author: "Gabriele Santilli"
+]
+
+Switch [
+    switch 'c [a b c d e [1 + 1]]
+]
+If [
+    if find [a b c d e] 'c [1 + 1]
+]

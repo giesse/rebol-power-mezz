@@ -1,0 +1,154 @@
+REBOL [
+    Title: "Compare implementation strategies for niwashi rules"
+    Author: "Gabriele Santilli"
+]
+
+Init [
+    rules-parse: [
+        ignore [declaration xml-proc html head body]
+        on legend force fieldset
+        inside [pre textarea] [
+            on [text whitespace] preserve-whitespace
+            on br add-newline
+        ]
+        inside all but [table thead tbody tfoot tr td th caption colgroup select] [
+            ignore [td th caption tr thead tbody tfoot col colgroup option optgroup]
+        ]
+        inside table [
+            only [thead tfoot tbody tr td caption th col colgroup]
+            on tr force tbody
+            on [td th] force tr
+            inside caption inside-flow
+            inside [thead tfoot tbody] [
+                only [tr td th]
+                on [td th] force tr
+                inside tr [
+                    only [td th]
+                    inside [td th] inside-flow
+                ]
+            ]
+            inside colgroup [
+                only col
+            ]
+        ]
+        inside select [
+            only [option optgroup]
+        ]
+        inside optgroup [
+            only option
+        ]
+        inside [
+            blockquote center dd del div dl fieldset form ins legend li noscript ol
+            ul
+        ] outside-flow
+        inside [
+            h1 h2 h3 h4 h5 h6 p address dt pre caption td th
+            tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
+            a applet object font map q sub sup span bdo iframe
+            option textarea label button
+        ] inside-flow
+    ]
+    node-match: to lit-word! 'h1
+    node-types: [word! | block!]
+    inside-flow: [
+        on whitespace add-space
+        on text merge-text
+        ignore [td th caption tr thead tbody tfoot col colgroup]
+        after [
+            p h1 h2 h3 h4 h5 h6 ul ol dir menu pre dl div center noscript noframes
+            blockquote form isindex hr table fieldset address
+        ] outside-flow
+    ]
+    outside-flow: [
+        ignore [td th caption tr thead tbody tfoot col colgroup whitespace]
+        after [
+            text tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
+            a font q sub sup span bdo
+        ] inside-flow
+    ]
+    rules-compiled: func [type] [
+        new-rules: copy [ ]
+        switch/all type [
+            declaration xml-proc html head body [ignore?: true exit]
+            legend [force-node: 'fieldset]
+            pre textarea [append new-rules [
+                on [text whitespace] preserve-whitespace
+                on br add-newline
+            ]]
+            table [append new-rules [
+                only [thead tfoot tbody tr td caption th col colgroup]
+                on tr force tbody
+                on [td th] force tr
+                inside caption inside-flow
+                inside [thead tfoot tbody] [
+                    only [tr td th]
+                    on [td th] force tr
+                    inside tr [
+                        only [td th]
+                        inside [td th] inside-flow
+                    ]
+                ]
+                inside colgroup [
+                    only col
+                ]
+            ]]
+            select [append new-rules [
+                only [option optgroup]
+            ]]
+            optgroup [append new-rules [
+                only option
+            ]]
+            blockquote center dd del div dl fieldset form ins legend li noscript ol ul [append new-rules outside-flow]
+            h1 h2 h3 h4 h5 h6 p address dt pre caption td th
+            tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
+            a applet object font map q sub sup span bdo iframe
+            option textarea label button [append new-rules inside-flow]
+        ]
+        unless find [table thead tbody tfoot tr td th caption colgroup select] type [append new-rules [
+            ignore [td th caption tr thead tbody tfoot col colgroup option optgroup]
+        ]]
+    ]
+]
+Parse [
+    new-rules: copy [ ]
+    parse rules-parse [
+        some [
+            'debug (debug?: yes)
+            |
+            'on node-match 'force set force-node word!
+            |
+            'except node-match 'force word!
+            |
+            'except node-types 'force set force-node word!
+            |
+            'ignore node-match (ignore?: yes)
+            |
+            'only node-match
+            |
+            'only node-types (ignore?: yes)
+            |
+            'inside 'all 'but node-match [block! | word!]
+            |
+            'inside 'all 'but node-types [
+                set rules block! (append new-rules rules)
+                |
+                set rules word! (append new-rules get rules)
+            ]
+            |
+            'inside node-match [
+                set rules block! (append new-rules rules)
+                |
+                set rules word! (append new-rules get rules)
+            ]
+            |
+            'on node-types 'force word!
+            |
+            'ignore node-types
+            |
+            'inside node-types [block! | word!]
+        ]
+    ]
+]
+Function [
+    rules-compiled 'h1
+]
