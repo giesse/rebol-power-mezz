@@ -6,7 +6,7 @@ Parse HTML text into a tree
     }
     Author: "Gabriele Santilli"
     File: %load-html.r
-    Version: 1.1.1
+    Version: 1.1.2
     Imports: [
         %parsers/ml-parser.r
         %mezz/niwashi.r
@@ -330,12 +330,12 @@ Flow means both block and inline.
             !set-node-value-quick node (copy " ")
         ]
     ]
-    preserve-whitespace: func [node] [
-        set-node node/type: 'text
+    preserve-whitespace: func [node] expand-macros [
+        !set-node-type node 'text
         merge-text node
     ]
-    add-newline: func [node] [
-        set-node node/properties: copy/deep [value "^/"]
+    add-newline: func [node] expand-macros [
+        !set-node-properties node (copy/deep [value "^/"])
         preserve-whitespace node
     ]
     move-to-head: func [node /local head-node root] [
@@ -353,8 +353,8 @@ Flow means both block and inline.
     default-fh-options: context [
         -default-fh-options-
     ]
-    tag-to-word: func [tag] [
-        to word! lowercase trim/with to string! tag #"/"
+    tag-to-word: func [tag] compose [
+        (:to) (word!) (:lowercase) trim/with (:to) (string!) tag #"/"
     ]
     open-tag: func [type prop split knots /local attach?] [
         unless attempt [

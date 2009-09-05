@@ -7,7 +7,7 @@ Grow trees using constraints
     }
     Author: "Gabriele Santilli"
     File: %niwashi.r
-    Version: 1.1.2
+    Version: 1.1.3
     Imports: [
         %mezz/trees.r
         %mezz/expand-macros.r
@@ -104,9 +104,7 @@ If you use |enter-child| instead, a new node is appended and it is made the curr
         spec [block!]
 
         /local -ec-locals-
-    ] [
-        -enter-child-
-    ]
+    ] -enter-child-
 
 The function is called like |append-child|:
 
@@ -126,9 +124,7 @@ calling |enter-child| - that is, to the current node's parent node:
         niwashi [object!]
 
         /local -lc-locals-
-    ] [
-        -leave-child-
-    ]
+    ] -leave-child-
 
 If the niwashi is already at the root node, it is an error to call |leave-child|.
 
@@ -166,9 +162,7 @@ at any time using |attach-branch|:
         "Attach a previously split branch"
         [catch]
         niwashi [object!]
-    ] [
-        -attach-branch-
-    ]
+    ] -attach-branch-
 
 When the branch is attached, its "leaf" node is made the current node.
 
@@ -493,9 +487,7 @@ done building the tree to make sure you are back to the root node:
         niwashi [object!]
 
         /local -la-locals-
-    ] [
-        -leave-all-
-    ]
+    ] -leave-all-
 
 ===Implementation
 
@@ -513,9 +505,11 @@ done building the tree to make sure you are back to the root node:
 ---Append a new child and make it the current node
 
     -enter-child-:
-    on-enter niwashi node: make-child spec
-    set-node node/parent: niwashi/current-node
-    niwashi/current-node: node
+    expand-macros [
+        on-enter niwashi node: make-child spec
+        !set-node-parent-quick node niwashi/current-node
+        niwashi/current-node: node
+    ]
 
 +++|enter-child|'s locals
 
@@ -525,12 +519,14 @@ done building the tree to make sure you are back to the root node:
 ---Change the current node to the current parent node
 
     -leave-child-:
-    node: niwashi/current-node
-    unless parent: get-node node/parent [
-        throw make error! "Already at the root node"
+    expand-macros [
+        node: niwashi/current-node
+        unless parent: !get-node-parent node [
+            throw make error! "Already at the root node"
+        ]
+        niwashi/current-node: parent
+        on-leave niwashi node
     ]
-    niwashi/current-node: parent
-    on-leave niwashi node
 
 +++|leave-child|'s locals
 
@@ -546,11 +542,11 @@ done building the tree to make sure you are back to the root node:
 
     -split-branch-:
     expand-macros [
-        unless block? base [base: reduce [base]]
-        unless knots [knot-nodes: [ ]]
-        unless prune [prune-nodes: [ ]]
-        unless block? knot-nodes [knot-nodes: reduce [knot-nodes]]
-        unless block? prune-nodes [prune-nodes: reduce [prune-nodes]]
+        !ensure-block base
+        !unless knots [knot-nodes: [ ]]
+        !unless prune [prune-nodes: [ ]]
+        !ensure-block knot-nodes
+        !ensure-block prune-nodes
         node: niwashi/current-node
         branch: copy [ ]
         to-leave: clear [ ]
@@ -562,7 +558,7 @@ done building the tree to make sure you are back to the root node:
                 new-node: !make-node type (!get-node-properties node)
                 insert/only branch new-node
             ]
-            append/only to-leave node
+            insert/only tail to-leave node
             unless node: !get-node-parent node [
                 throw make error! join "No nodes of type '" [base "' found in the current branch"]
             ]
@@ -582,15 +578,17 @@ done building the tree to make sure you are back to the root node:
 ---Attach the split branch to the tree
 
     -attach-branch-:
-    unless niwashi/branch [
-        throw make error! "No branch to attach"
+    expand-macros [
+        unless niwashi/branch [
+            throw make error! "No branch to attach"
+        ]
+        foreach node niwashi/branch [
+            on-enter niwashi node
+            !set-node-parent-quick node niwashi/current-node
+            niwashi/current-node: node
+        ]
+        niwashi/branch: none
     ]
-    foreach node niwashi/branch [
-        on-enter niwashi node
-        set-node node/parent: niwashi/current-node
-        niwashi/current-node: node
-    ]
-    niwashi/branch: none
 
 ---Define the rules to apply while building the tree
 
@@ -604,11 +602,13 @@ done building the tree to make sure you are back to the root node:
 ---Leave all nodes and go back to the root node
 
     -leave-all-:
-    node: niwashi/current-node
-    while [parent: get-node node/parent] [
-        niwashi/current-node: parent
-        on-leave niwashi node
-        node: parent
+    expand-macros [
+        node: niwashi/current-node
+        while [parent: !get-node-parent node] [
+            niwashi/current-node: parent
+            on-leave niwashi node
+            node: parent
+        ]
     ]
 
 +++|leave-all|'s locals
@@ -976,34 +976,34 @@ done building the tree to make sure you are back to the root node:
         !make-node-no-copy type prop
     ]
     on-enter: func [niwashi node /local type force-node new-rules debug? new-alw] expand-macros [
-        type: get-node node/type
+        type: !get-node-type node
         new-rules: make rules! [always: none]
-        if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
-            print ["ENTER" type]
-        ]
+        ;if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
+        ;    print ["ENTER" type]
+        ;]
         case [
             any [niwashi/always-rules/ignore? type niwashi/cn-rules/ignore? type] [
-                if debug? [
-                    print "IGNORED"
-                    ask "?"
-                ]
+                ;if debug? [
+                ;    print "IGNORED"
+                ;    ask "?"
+                ;]
                 !push niwashi [always-rules cn-rules]
             ]
             force-node: any [niwashi/cn-rules/force-node? type niwashi/always-rules/force-node? type] [
-                if debug? [
-                    print ["Forcing node:" force-node]
-                    ask "?"
-                ]
+                ;if debug? [
+                ;    print ["Forcing node:" force-node]
+                ;    ask "?"
+                ;]
                 ; TODO: infinite recursion protection
                 enter-child niwashi [type: force-node]
                 ; enter-child changes the rules, so we need to do all the above again
                 on-enter niwashi node
             ]
             'else [
-                if debug? [
-                    print "Setting up new rules"
-                    ask "?"
-                ]
+                ;if debug? [
+                ;    print "Setting up new rules"
+                ;    ask "?"
+                ;]
                 !push niwashi [always-rules cn-rules]
                 new-alw: make rules! [ ]
                 merge-rules new-alw niwashi/always-rules
@@ -1015,30 +1015,30 @@ done building the tree to make sure you are back to the root node:
         ]
     ]
     on-leave: func [niwashi node /local type debug? after-rules] expand-macros [
-        type: get-node node/type
+        type: !get-node-type node
         !pop niwashi [always-rules cn-rules]
         after-rules: make rules! [ ]
-        if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
-            print ["LEAVE" type]
-        ]
+        ;if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
+        ;    print ["LEAVE" type]
+        ;]
         either any [niwashi/always-rules/ignore? type niwashi/cn-rules/ignore? type] [
-            if debug? [
-                print "IGNORED"
-                ask "?"
-            ]
+            ;if debug? [
+            ;    print "IGNORED"
+            ;    ask "?"
+            ;]
             unwrap-node node
         ] [
             if or~ to logic! niwashi/always-rules/make-after-rules type after-rules
                 to logic! niwashi/cn-rules/make-after-rules type after-rules [
-                if debug? [
-                    print "Setting AFTER rules"
-                ]
+                ;if debug? [
+                ;    print "Setting AFTER rules"
+                ;]
                 niwashi/cn-rules: after-rules
             ]
-            if debug? [
-                print "Doing actions"
-                ask "?"
-            ]
+            ;if debug? [
+            ;    print "Doing actions"
+            ;    ask "?"
+            ;]
             niwashi/always-rules/do-actions type node
             niwashi/cn-rules/do-actions type node
         ]
@@ -1046,21 +1046,21 @@ done building the tree to make sure you are back to the root node:
     on-append: func [niwashi node /local type debug? force-node after-rules] expand-macros [
         type: !get-node-type node
         after-rules: make rules! [ ]
-        if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
-            print ["APPEND" type]
-        ]
+        ;if debug?: any [niwashi/always-rules/debug? niwashi/cn-rules/debug?] [
+        ;    print ["APPEND" type]
+        ;]
         case [
             any [niwashi/always-rules/ignore? type niwashi/cn-rules/ignore? type] [
-                if debug? [
-                    print "IGNORED"
-                    ask "?"
-                ]
+                ;if debug? [
+                ;    print "IGNORED"
+                ;    ask "?"
+                ;]
             ]
             force-node: any [niwashi/cn-rules/force-node? type niwashi/always-rules/force-node? type] [
-                if debug? [
-                    print ["Forcing node:" force-node]
-                    ask "?"
-                ]
+                ;if debug? [
+                ;    print ["Forcing node:" force-node]
+                ;    ask "?"
+                ;]
                 ; TODO: infinite recursion protection
                 enter-child niwashi [type: force-node]
                 ; enter-child changes the rules, so we need to do all the above again
@@ -1070,15 +1070,15 @@ done building the tree to make sure you are back to the root node:
                 !set-node-parent-quick node niwashi/current-node
                 if or~ to logic! niwashi/always-rules/make-after-rules type after-rules
                     to logic! niwashi/cn-rules/make-after-rules type after-rules [
-                    if debug? [
-                        print "Setting AFTER rules"
-                    ]
+                    ;if debug? [
+                    ;    print "Setting AFTER rules"
+                    ;]
                     niwashi/cn-rules: after-rules
                 ]
-                if debug? [
-                    print "Doing actions"
-                    ask "?"
-                ]
+                ;if debug? [
+                ;    print "Doing actions"
+                ;    ask "?"
+                ;]
                 niwashi/always-rules/do-actions type node
                 niwashi/cn-rules/do-actions type node
             ]
@@ -1107,3 +1107,5 @@ done building the tree to make sure you are back to the root node:
                 (negate length? words)
         (:clear) (tmp)
     ]
+    !unless: macro [ ] [(:unless)]
+    !ensure-block: macro [word] [(:unless) (:block?) word [(to set-word! word) (:reduce) [word]]]

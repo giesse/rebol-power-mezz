@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 4.0.1
+    Version: 4.0.2
     Imports: [
         %parsers/common-rules.r "We need the NAME rule"
         %mezz/load-html.r       "Used to load the HTML text and to form the result"
@@ -289,15 +289,15 @@ form it back to HTML text.
         fix-attrs node-properties
         !set-node-properties node node-properties
     ]
-    fix-attrs: func [attributes /local lang id] [
+    fix-attrs: func [attributes /local lang id val pos] [
         if lang: select attributes 'lang [
             insert insert/only tail attributes 'xml/lang lang
         ]
         if all [pos: find attributes 'id current-options/id-prefix] [
-            pos/2: join current-options/id-prefix pos/2
+            poke pos 2 join current-options/id-prefix pick pos 2
         ]
         forskip attributes 2 [
-            if all [string? attributes/2 empty? attributes/2] [attributes/2: none]
+            if all [string? val: pick attributes 2 empty? val] [poke attributes 2 #[none]]
         ]
         attributes
     ]
@@ -309,7 +309,7 @@ form it back to HTML text.
     sanitize-css: func [css-text [string! none!] /local mk1 mk2] [
         if string? css-text [
             ; safe but slow
-            css-text: copy css-text
+            ;css-text: copy css-text
             ; remove comments (IE sucks)
             parse/all css-text [
                 any [
@@ -330,8 +330,8 @@ form it back to HTML text.
         ]
     ]
     process-attr: func [value type defvalue /local opts] [
-        if defvalue = 'none [defvalue: none]
-        if none? value [return defvalue]
+        switch defvalue [none [defvalue: none]]
+        unless value [return defvalue]
         if block? type [opts: next type type: first type]
         type: get in attr-types type
         value: any [type value opts defvalue]
@@ -347,12 +347,12 @@ form it back to HTML text.
         bgcolor [style* color "background-color"]        none
         align   [enum "left" "center" "right" "justify"] none
     ]
-    sanitize-style: func [node] [
-        set-node node/prop/value: sanitize-css get-node node/prop/value
+    sanitize-style: func [node] expand-macros [
+        sanitize-css !get-node-property node 'value
     ]
-    unwrap-empty-fmt: func [node /local childs] [
-        if get-node node/parent [
-            childs: get-node node/childs
+    unwrap-empty-fmt: func [node /local childs] expand-macros [
+        if !get-node-parent node [
+            childs: !get-node-childs node
             if any [
                 empty? childs
                 br-only? childs
@@ -361,35 +361,35 @@ form it back to HTML text.
             ]
         ]
     ]
-    br-only?: func [childs /local node] [
+    br-only?: func [childs /local node] expand-macros [
         all [
             1 = length? childs
             node: first childs
-            'br = get-node node/type
+            'br = !get-node-type node
         ]
     ]
-    remove-empty-a: func [node] [
+    remove-empty-a: func [node] expand-macros [
         if all [
-            empty? get-node node/childs
-            not get-node node/prop/name
+            empty? !get-node-childs node
+            not !get-node-property node 'name
         ] [
-            set-node node/parent: none
+            !remove-node-quick node
         ]
     ]
-    unwrap-noattrs: func [node] [
-        if get-node node/parent [
-            unless foreach [name value] get-node node/properties [
+    unwrap-noattrs: func [node] expand-macros [
+        if !get-node-parent node [
+            unless foreach [name value] !get-node-properties node [
                 unless none? value [break/return true]
             ] [
                 unwrap-node node
             ]
         ]
     ]
-    merge-with-previous: func [node /local prev] [
+    merge-with-previous: func [node /local prev] expand-macros [
         if all [
-            prev: get-node node/previous
-            equal? get-node node/type get-node prev/type
-            equal? get-node node/properties get-node prev/properties
+            prev: !get-node-previous node
+            equal? !get-node-type node !get-node-type prev
+            equal? !get-node-properties node !get-node-properties prev
         ] [
             set-node node/parent: prev
             unwrap-node node
