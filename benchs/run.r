@@ -92,7 +92,12 @@ show-results: func [file /local lay results r max-speed max-time] [
 		foreach [name result] results [
 			append lay compose/deep [
 				Text 150 (form name)
-				Box red (as-pair 600 / (result * max-speed) 22) yellow (form round/to max-time / result 0.01) [
+				Box red (as-pair 600 / (result * max-speed) 22) 
+                Text font [size: 18 style: 'bold] (
+                    join form round/to max-time / result 0.01 [
+                        " (" round 1000 * to decimal! result "ms)"
+                    ]
+                ) [
                     if exists? r: join %benchs/results/ [(version) file %.profile] [
                         view/new layout [
                             area 600x400 font-name "Monospace" read r
