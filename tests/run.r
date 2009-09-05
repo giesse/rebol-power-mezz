@@ -46,7 +46,7 @@ list-dependencies: func [
     result
 ]
 
-run-test-file: func [file force /local results results-file result type human passed failed disp mod files-to-test err] [
+run-test-file: func [file force /local results results-file result type human passed failed disp mod files-to-test err origtxt] [
 	print file
 	file: clean-path join %tests/ file
 	passed: failed: 0
@@ -106,14 +106,15 @@ run-test-file: func [file force /local results results-file result type human pa
 	either force [
 		until [
 			file: next file
-			human: copy ""
+			origtxt: human: copy ""
 			; trick to determine if there was a throw: human is unique at this point and
 			; there is no way file/1 would accidentally throw it
 			either same? human catch [type: type?/word set/any 'result try file/1 human] [
 				result: switch/default type [
-					error! [human: form-error/all disarm :result]
+					error! [origtxt: human: form-error/all disarm :result]
 					unset! ['unset!]
 					string! binary! [
+                        origtxt: result
 						human: copy/part result 20 * 1024
 						if binary? human [human: mold human]
 						either 51200 < length? result [
@@ -139,7 +140,7 @@ run-test-file: func [file force /local results results-file result type human pa
 								show [face disp]
 							] return
 							button "Browse" [
-								write %test.html human
+								write %test.html origtxt
 								browse %test.html
 							]
 							button "Diff" [
