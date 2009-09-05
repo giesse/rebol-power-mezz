@@ -12,6 +12,9 @@ This directory contains a collection of useful dialects.
     %mezz/ "Mezzanine functions" {
 This directory contains a collection of useful mezzanine functions.
 }
+    %mezz/macros/ "Macros (for use with EXPAND-MACROS)" {
+This directory contains a collection of macros that can be used with the EXPAND-MACROS function.
+}
     %parsers/ "Parsers" {
 This directory contains a collection of parsers for common formats, such as HTML and XML and so on.
 }

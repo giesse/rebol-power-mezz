@@ -13,6 +13,7 @@ Parse HTML text into a tree
         %mezz/trees.r
         %mezz/expand-macros.r
         %mezz/text-encoding.r
+        %mezz/macros/trees.r
     ]
     Exports: [
         load-html
@@ -312,15 +313,6 @@ Flow means both block and inline.
             ]
         ]
     ]
-    !get-node-previous: macro [node] [
-        (:all) [_tmp: (:second) node 4 < (:index?) _tmp (:pick) _tmp -1]
-    ]
-    ; only if node is last child
-    !remove-node-quick: macro [node] [
-        (:remove) (:second) node
-        ;poke node 2 none
-    ]
-    !set-node-type: macro [node type] [(:poke) node 1 type]
     !set-node-value-quick: macro [node val] [(:poke) node 3 (:reduce) ['value val]]
     merge-text: func [node /local prev] expand-macros [
         if all [prev: !get-node-previous node 'text = !get-node-type prev] [
@@ -379,12 +371,8 @@ Flow means both block and inline.
         enter-child niwashi [type: type properties: prop]
         if attach? [attach-branch niwashi]
     ]
-    !get-node-childs: macro [node] [(:at) node 4]
     !emit: macro [value] [(:insert) (:tail) output value]
-    !get-node-type: macro [node] [(:first) node]
     !indent: macro [] [(:head) (:insert) (:tail) (:copy) indent "    "]
-    !get-node-property: macro [node property] [(:select) (:third) node property]
-    !get-node-properties: macro [node] [(:third) node]
     !emit-attributes: macro [attributes encoding] [
         (:foreach) [attrname attrvalue] attributes [
             (:if) :attrvalue [

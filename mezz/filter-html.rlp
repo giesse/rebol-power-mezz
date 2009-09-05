@@ -13,9 +13,10 @@ HTML Filter
         %parsers/common-rules.r "We need the NAME rule"
         %mezz/load-html.r       "Used to load the HTML text and to form the result"
         %parsers/uri-parser.r   "Used to check and normalize the URLs"
-        %mezz/trees.r           "Used to represent the HTML document and for tree rewriting"
-        %parsers/css-parser.r   "Used to parse the style attribute"
+        %mezz/trees.r           "Used to represent the HTML document"
+        ;%parsers/css-parser.r   "Used to parse the style attribute"
         %mezz/expand-macros.r   "Used for optimizations"
+        %mezz/macros/trees.r    "Used for optimizations"
     ]
     Globals: [
         filter-html             "Made global so that it's easy to use in non-modules"
@@ -225,8 +226,6 @@ form it back to HTML text.
     html4: {<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">}
     -filter-options-
     -attributes-map-
-    !get-node-type: macro [node] [(:first) node]
-    !get-node-properties: macro [node] [(:third) node]
     !set-assoc: macro [assoc word value] [
         (:either) _pos: (:find) assoc word [
             (:poke) _pos 2 value/only
@@ -234,7 +233,6 @@ form it back to HTML text.
             insert/only (:insert) (:tail) assoc word value/only
         ]
     ]
-    !set-node-properties: macro [node properties] [(:poke) node 3 properties]
     check-attributes: func [node /local attributes valid-attributes value uris name node-properties pos] expand-macros [
         name: !get-node-type node
         attributes: !get-node-properties node

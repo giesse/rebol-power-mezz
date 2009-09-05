@@ -1,0 +1,50 @@
+Macros for handling trees
+
+    Type: Module
+    Purpose: {
+        Provides a set of macros that create or modify trees - can be used
+        to manually optimize code that uses the mezz/trees.r module.
+    }
+    Author: "Gabriele Santilli"
+    File: %trees.r
+    Version: 1.0.0
+    Imports: [
+        %mezz/expand-macros.r
+    ]
+    Exports: [
+        !get-node-type !make-node !make-node-no-copy !get-node-properties
+        !get-node-parent !set-node-parent-quick !get-node-previous
+        !remove-node-quick !set-node-type !get-node-childs !get-node-property
+        !set-node-properties
+    ]
+
+===Introduction
+
+The trees module is very handy and user friendly, but it is a bit slow.
+The macros contained in this module provide targeted optimizations that can
+considerably speed up any code using trees.
+
+===Overview
+
+    -main-:
+    !get-node-type: macro [node] [(:first) node]
+    ; both assume a well formed properties block
+    !make-node: macro [type properties] [(:reduce) [type #[none] (:copy) properties]]
+    !make-node-no-copy: macro [type properties] [(:reduce) [type #[none] properties]]
+    !get-node-properties: macro [node] [(:third) node]
+    !get-node-parent: macro [node] [(:all) [_tmp: (:second) node (:head) _tmp]]
+    ; assumes node has NO parent
+    !set-node-parent-quick: macro [node parent] [insert/only (:poke) node 2 (:tail) parent/only node]
+    !get-node-previous: macro [node] [
+        (:all) [_tmp: (:second) node 4 < (:index?) _tmp (:pick) _tmp -1]
+    ]
+    ; only if node is last child
+    !remove-node-quick: macro [node] [
+        (:remove) (:second) node
+        (:poke) node 2 #[none]
+    ]
+    !set-node-type: macro [node type] [(:poke) node 1 type]
+    !get-node-childs: macro [node] [(:at) node 4]
+    !get-node-property: macro [node property] [(:select) (:third) node property]
+    ; assumes well formed properties block
+    !set-node-properties: macro [node properties] [(:poke) node 3 properties]

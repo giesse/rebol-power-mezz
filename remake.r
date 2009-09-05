@@ -37,12 +37,20 @@ unless conf/rebview [
 
 files: [ ]
 
+collect-rlps: func [dir] [
+    foreach file read dir [
+        file: dir/:file
+        either dir? file [
+            collect-rlps file
+        ] [
+            if %.rlp = suffix? file [append files copy/part file skip tail file -4]
+        ]
+    ]
+]
+
 foreach dir read %./ [
 	if dir? dir [
-		foreach file read dir [
-			file: dir/:file
-			if %.rlp = suffix? file [append files copy/part file skip tail file -4]
-		]
+		collect-rlps dir
 	]
 ]
 foreach file sort files [
@@ -66,13 +74,13 @@ append makefile {all:}
 foreach file files [append makefile reduce [#" " file %.r]]
 append makefile { index.html
 
-Makefile: */*.rlp remake.r
+Makefile: */*.rlp */*/*.rlp remake.r
 	${REBOL} -qws remake.r
 
 index.html: index.rlp
 	${WETAN} `pwd`/index.rlp
 
-index.rlp: */*.rlp mkindex.r index-template.rlp
+index.rlp: */*.rlp */*/*.rlp mkindex.r index-template.rlp
 	${REBOL} -qws mkindex.r
 
 tests: all

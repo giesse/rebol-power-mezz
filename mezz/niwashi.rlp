@@ -12,6 +12,7 @@ Grow trees using constraints
         %mezz/trees.r
         %mezz/expand-macros.r
         %mezz/collect.r
+        %mezz/macros/trees.r
     ]
     Exports: [
         make-niwashi
@@ -972,7 +973,7 @@ done building the tree to make sure you are back to the root node:
                 pos: skip (invalid-arg pos)
             ]
         ]
-        !make-node2 type prop
+        !make-node-no-copy type prop
     ]
     on-enter: func [niwashi node /local type force-node new-rules debug? new-alw] expand-macros [
         type: get-node node/type
@@ -1106,9 +1107,3 @@ done building the tree to make sure you are back to the root node:
                 (negate length? words)
         (:clear) (tmp)
     ]
-    !get-node-type: macro [node] [(:first) node]
-    !make-node: macro [type properties] [(:reduce) [type #[none] (:copy) properties]]
-    !make-node2: macro [type properties] [(:reduce) [type #[none] properties]]
-    !get-node-properties: macro [node] [(:third) node]
-    !get-node-parent: macro [node] [(:all) [_tmp: (:second) node (:head) _tmp]]
-    !set-node-parent-quick: macro [node parent] [insert/only (:poke) node 2 (:tail) parent/only node]
