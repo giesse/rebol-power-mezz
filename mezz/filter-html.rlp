@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 4.0.2
+    Version: 4.0.3
     Imports: [
         %parsers/common-rules.r "We need the NAME rule"
         %mezz/load-html.r       "Used to load the HTML text and to form the result"
@@ -207,7 +207,8 @@ form it back to HTML text.
     -filter-rules-:
     filter-rules: [
         always [
-            ignore [script object applet comment meta]
+            ignore [object param applet comment meta]
+            on script remove-script
             except [text whitespace xml-proc declaration] check-attributes
             inside style [
                 on text sanitize-style
@@ -340,12 +341,14 @@ form it back to HTML text.
         -attr-types-
     ]
     global-attrs: [
-        dir     [enum "LTR" "RTL"]                       none
-        id      name*                                    none
-        class   name-list                                none
-        title   cdata                                    none
-        bgcolor [style* color "background-color"]        none
-        align   [enum "left" "center" "right" "justify"] none
+        dir     [enum "LTR" "RTL"]                                none
+        id      name*                                             none
+        class   name-list                                         none
+        title   cdata                                             none
+        bgcolor [style* color "background-color"]                 none
+        ; "middle" is wrong, but should be treated like "center"
+        ; we'll need to convert it eventually...
+        align   [enum "left" "center" "middle" "right" "justify"] none
     ]
     sanitize-style: func [node] expand-macros [
         sanitize-css !get-node-property node 'value
@@ -394,6 +397,9 @@ form it back to HTML text.
             set-node node/parent: prev
             unwrap-node node
         ]
+    ]
+    remove-script: func [node] expand-macros [
+        !remove-node-quick node
     ]
 
 ---Allowed tag attributes
@@ -575,30 +581,34 @@ form it back to HTML text.
             valign [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
         ]
         td [
-            headers name-list                                none
-            scope   [enum "row" "col" "rowgroup" "colgroup"] none
-            abbr    cdata                                    none
-            axis    cdata                                    none
-            rowspan number                                   none
-            colspan number                                   none
-            nowrap  [style* [bool "nowrap"] "white-space"]   none
-            width   [style* lengthpx "width"]                  none
-            height  [style* lengthpx "height"]                 none
+            headers    name-list                                                           none
+            scope      [enum "row" "col" "rowgroup" "colgroup"]                            none
+            abbr       cdata                                                               none
+            axis       cdata                                                               none
+            rowspan    number                                                              none
+            colspan    number                                                              none
+            nowrap     [style* [bool "nowrap"] "white-space"]                              none
+            width      [style* lengthpx "width"]                                           none
+            height     [style* lengthpx "height"]                                          none
             ; char alignment not supported (browsers do not support it anyway)
-            valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            valign     [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            ; non-standard
+            background [style* uri "background-image"]                                     none
         ]
         th [
-            headers name-list                                none
-            scope   [enum "row" "col" "rowgroup" "colgroup"] none
-            abbr    cdata                                    none
-            axis    cdata                                    none
-            rowspan number                                   none
-            colspan number                                   none
-            nowrap  [style* [bool "nowrap"] "white-space"]   none
-            width   [style* lengthpx "width"]                  none
-            height  [style* lengthpx "height"]                 none
+            headers    name-list                                                           none
+            scope      [enum "row" "col" "rowgroup" "colgroup"]                            none
+            abbr       cdata                                                               none
+            axis       cdata                                                               none
+            rowspan    number                                                              none
+            colspan    number                                                              none
+            nowrap     [style* [bool "nowrap"] "white-space"]                              none
+            width      [style* lengthpx "width"]                                           none
+            height     [style* lengthpx "height"]                                          none
             ; char alignment not supported (browsers do not support it anyway)
-            valign  [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            valign     [style* [enum "baseline" "top" "bottom" "middle"] "vertical-align"] none
+            ; non-standard
+            background [style* uri "background-image"]                                     none
         ]
         option [
             selected [bool "selected"] none

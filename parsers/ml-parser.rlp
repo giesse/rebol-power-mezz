@@ -6,7 +6,7 @@
     }
     Author: "Gabriele Santilli"
     File: %ml-parser.r
-    Version: 1.1.1
+    Version: 1.1.2
     Imports: [
         %parsers/common-rules.r
         %mezz/text-encoding.r   "For decoding of HTML entities"
@@ -159,6 +159,7 @@ The following definitions are used in the rules for tags:
 
     -parsing-rules-:
     value-chars: union letter+ charset "/:@%#?,+&=;" ; very relaxed
+    broken-value-chars: union letter+ charset "/:@%#?,+&; "
     garbage: union value-chars charset {"'}
     text-char: complement charset "< ^/^-"
 
@@ -182,7 +183,14 @@ End tags are sent to the second stage as |</tagname>|.
         #"<" 
         copy nm [name opt [#":" name]] any space-char
         (attributes: make block! 16) any [attribute | some garbage] ; ignore any garbage
-        ["/>" (cb head insert insert make tag! 3 + length? nm nm #"/" attributes) | #">" (cb to tag! nm attributes)]
+        [
+            "/>" (cb head insert insert make tag! 3 + length? nm nm #"/" attributes)
+            |
+            #">" (cb to tag! nm attributes)
+            |
+            ; someone made a typo... and we have to make it work anyway!
+            pos: #"<" :pos (cb to tag! nm attributes)
+        ]
         |
         #"<" (cb 'text copy "<")
     ]
@@ -205,7 +213,16 @@ End tags are sent to the second stage as |</tagname>|.
             none (insert insert/only tail attributes attnm attnmtxt)
         ]
     ]
-    attr-value: [#"^"" copy attval to #"^"" skip | #"'" copy attval to #"'" skip | copy attval any value-chars]
+    attr-value: [
+        #"^"" copy attval to #"^"" skip
+        |
+        #"'" copy attval to #"'" skip
+        |
+        ; handle the fact that the world is full of idiots
+        copy attval some broken-value-chars pos: #">" :pos
+        |
+        copy attval any value-chars
+    ]
     end-tag: ["</" copy nm [name opt [#":" name]] any space-char #">" (cb append copy </> nm none)]
 
 Script and style elements need to be parsed separately, because they're special
