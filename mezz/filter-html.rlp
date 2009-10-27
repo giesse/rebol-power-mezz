@@ -8,7 +8,7 @@ HTML Filter
     }
     Author: "Gabriele Santilli"
     File: %filter-html.r
-    Version: 4.0.3
+    Version: 4.1.0
     Imports: [
         %parsers/common-rules.r "We need the NAME rule"
         %mezz/load-html.r       "Used to load the HTML text and to form the result"
@@ -695,7 +695,11 @@ These are the validation/handling functions for various attribute types.
             value
         ]
     ]
-    uri: func [value opts] [parse-uri/relative value]
+    uri: func [value opts] [
+        make parse-uri/relative value [
+            source-uri: value
+        ]
+    ]
     cdata: func [value opts] [if value [trim/lines value]]
     media-desc: func [value opts /local names nm] [
         names: clear [ ]

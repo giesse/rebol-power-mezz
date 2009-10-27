@@ -67,6 +67,15 @@ save-results: func [file results] [
 	save file results
 ]
 
+to-human: func [time /local units] [
+	units: ["s" "ms" "us" "ns"]
+	time: to decimal! time
+	while [time < 1] [
+		time: time * 1000
+		units: next units
+	]
+	join round time first units
+]
 show-results: func [file /local lay results r max-speed max-time] [
 	lay: compose [
 		Across
@@ -95,7 +104,7 @@ show-results: func [file /local lay results r max-speed max-time] [
 				Box red (as-pair 600 / (result * max-speed) 22) 
                 Text font [size: 18 style: 'bold] (
                     join form round/to max-time / result 0.01 [
-                        " (" round 1000 * to decimal! result "ms)"
+                        " (" to-human result ")"
                     ]
                 ) [
                     if exists? r: join %benchs/results/ [(version) file %.profile] [
