@@ -61,3 +61,6 @@ REBOL [
 [
     form-html load-html {<p align="center"><table><tr><td><p>Cell}
 ]
+[
+	form-html load-html {<pre>   some   text   <span style="color: red;">with   colors</span>   and   spaces</pre>}
+]

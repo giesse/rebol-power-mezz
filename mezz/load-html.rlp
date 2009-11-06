@@ -6,7 +6,7 @@ Parse HTML text into a tree
     }
     Author: "Gabriele Santilli"
     File: %load-html.r
-    Version: 1.1.2
+    Version: 1.1.3
     Imports: [
         %parsers/ml-parser.r
         %mezz/niwashi.r
@@ -270,8 +270,12 @@ Flow means both block and inline.
                     on style move-to-head
                     ;on [title base meta link style] move to head
                     inside [pre textarea] [
-                        on [text whitespace] preserve-whitespace
-                        on br add-newline
+                        always [
+                            ; need to add more here
+                            ignore [td th caption tr thead tbody tfoot col colgroup]
+                            on [text whitespace] preserve-whitespace
+                            on br add-newline
+                        ]
                     ]
                     inside all but [table thead tbody tfoot tr td th caption colgroup select] [
                         ignore [td th caption tr thead tbody tfoot col colgroup option optgroup]
@@ -304,7 +308,7 @@ Flow means both block and inline.
                         ul
                     ] outside-flow
                     inside [
-                        h1 h2 h3 h4 h5 h6 p address dt pre caption td th
+                        h1 h2 h3 h4 h5 h6 p address dt caption td th
                         tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
                         a applet object font map q sub sup span bdo iframe
                         option textarea label button

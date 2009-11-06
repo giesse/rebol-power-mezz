@@ -385,3 +385,6 @@ Continued.<br>} [
 [
     filter-html/all read %tests/data/apple.com.startpage.html
 ]
+[
+	filter-html {<pre>   some   text   <span style="color: red;">with   colors</span>   and   spaces</pre>}
+]
