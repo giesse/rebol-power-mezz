@@ -1,0 +1,29 @@
+binary! #{
+4861726462616C6C2031203434203000F66FB847B1D27939C010116A9E498E99
+58434A804E37A926EADA9A22C5F148AEB1C28D0429E6315DE0535FC1
+} binary! #{
+4861726462616C6C2031203434203000F66FB847B1D27939C010116A9E498E99
+58434A804E37A926EADA9A22C5F148AEB1C28D0429E6315DE0535FC148617264
+62616C6C2031203532203000EA81336EB4C898D908BA068EF9F7C4B7A7C69681
+CDFB99856AC6A7DE6D7ACBFD35045DFAB3893D3490DCE33A107A3345766C8758
+} block! [This is a message
+] block! [A second example message
+] none! #[none] binary! #{} error! 
+{** Hardball Error: Invalid message header: [Hardball burp
+]
+** Near: receive-message "" session
+} error! 
+{** Hardball Error: Message header too long ( 81 bytes)
+** Near: receive-message { 12345678901234567890123456789012345678901234567890123456789012345678901234567890} session
+} error! 
+{** Hardball Error: Message too short ( -1 bytes)
+** Near: receive-message "" session
+} error! 
+{** Hardball Error: Message too long ( 1000000 bytes)
+** Near: receive-message "" session
+} error! 
+{** Hardball Error: Unable to decrypt message
+** Near: receive-message "" session
+} block! [verify got-ver-number 256 decrypted-ver-number 20 all-good #[datatype! logic!] verify got-ver-number 256 decrypted-ver-number 20 all-good #[datatype! logic!]] block! [verify got-ver-number 256 decrypted-ver-number 20 all-good #[datatype! logic!] verify got-ver-number 256 decrypted-ver-number 20 all-good #[datatype! logic!]] block! [verify got-ver-number 256 decrypted-ver-number 20 all-good #[datatype! logic!] verify got-ver-number 256 decrypted-ver-number 20 all-good #[datatype! logic!]] block! [This is a test message
+] block! [This is another test message
+]

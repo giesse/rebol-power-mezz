@@ -1,0 +1,579 @@
+Functions to send and receive encrypted message packets
+
+    Type: Module
+    Purpose: {
+        Defines functions to send and receive encrypted message packets, as
+        well as establishing secure communication between peers (eg. via TCP).
+    }
+    Author: "Gabriele Santilli"
+    File: %messages.r
+    Version: 1.0.0
+    Imports: [
+        %mezz/sequences.r
+        %mezz/test-trace.r
+    ]
+    Exports: [
+        make-messages-session
+        send-message
+        receive-message
+        greet-messages-peer
+        handle-handshake-message
+    ]
+
+===Introduction
+
+This module defines a set of functions to send and receive encrypted message packets.
+They are used as the basis of the Hardball protocol, and are defined separately to ease
+testing and to allow reuse in other similar REBOL based protocols.
+
+===Overview
+
+All the functions here take a |session| object as argument; this object holds the state
+of the session between the two peers that are exchanging messages. You can use the
+|make-messages-session| function to create and initialize such an object when the session
+is established (eg. on TCP connection).
+
+    -main-:
+    -rng-init-
+    -constants-
+    -errors-
+    -support-functions-
+
+    make-messages-session: func [
+        "Create a messages session object"
+    ] [
+        context [
+            -session-variables-
+        ]
+    ]
+
+---|send-message| and |receive-message|
+
+|send-message| allows you to send a REBOL block to the other peer. The |output| can
+be a |binary!| (or any other string series) that you can then send to the other peer
+by other means, or (for example) a TCP port connected to your peer (needs to be in
+binary mode). This function takes care of serialization, encryption and encapsulation
+of the message.
+
+    -main-:
+    send-message: func [
+        "Send a message securely"
+        output [port! any-string!] "Message destination"
+        session [object!]
+        message [block!] "Contents"
+    ] [
+        -send-message-
+    ]
+
+The opposite function, |receive-message|, takes care of "decapsulation", decryption and
+recreation of the original message. |buffer| contains the data coming from the other
+peer, and may contain many messages or even a partial message. The buffer is modified
+(bytes that are "consumed" are removed from it; also any "garbage" that is not recognized
+as a message packet is removed), so you need to copy it if you want to preserve its contents.
+The function returns |none| if there are no messages in the buffer, or if the message in the
+buffer is not complete (that is, more data is needed and should be appended to the buffer);
+otherwise it returns the first message in the buffer (messages are always |block!| values),
+and remove it from the buffer. You should call it in a loop until it returns |none| in order
+to get all the messages in the buffer.
+
+    -main-:
+    receive-message: func [
+        "Receive a message sent by SEND-MESSAGE" [catch]
+        buffer [any-string!] "Input buffer (may contain many messages, is MODIFIED)"
+        session [object!]
+
+        /local -rm-locals-
+    ] [
+        -receive-message-
+    ]
+
+For example:
+
+    while [message: receive-message buffer session] [
+        probe message
+    ]
+    ; all messages in the buffer have been considered at this point
+
+Please note, that after that loop, |buffer| may not be empty, but contain a partial
+message that is still being received etc. If you were receiving data from a TCP port,
+you would do something like (assuming binary no-wait port):
+
+    forever [
+        wait port
+        unless data: copy port [break]
+        append buffer data
+        while [message: receive-message buffer session] [
+            probe message
+        ]
+    ]
+
+|receive-message| can throw errors if the message in the buffer is invalid. See |-error-list-|
+for more details.
+
+---Protocol handshake
+
+The message exchange protocol is based on an initial handshake between the two peer
+to establish secure communication. During handshake, peer authentication is performed,
+and a session key is established.
+
+;TODO: protocol documentation
+
+The handshake can be performed using the |greet-messages-peer| and |handle-handshake-message|
+functions:
+
+    -main-:
+    greet-messages-peer: func [
+        "Send the Hardball greeting to the other peer"
+        output [port! any-string!]
+        session [object!]
+        config [object!]
+    ] [
+        -greet-messages-peer-
+    ]
+    handle-handshake-message: func [
+        "Handle Hardball messages during the protocol handshake phase" [catch]
+        session [object!]
+        config [object!]
+        message [block!]
+
+        /local -hhm-locals-
+    ] [
+        -handle-handshake-message-
+    ]
+
+On connection, you use |greet-messages-peer| as the first thing to send the greeting. Then,
+you call |handle-handshake-message| with the messages you get, and send its result block
+to the peer, until you get |true| as a result, which means that the handshake phase is complete
+and you can start sending / receiving messages securely over the channel. 
+
+    #lit config: context [
+        public-key: my-rsa-public-key
+        private-key: my-rsa-private-key
+        allowed-peers: [ ... ] ; list of public keys
+    ]
+    port: open/binary/no-wait tcp://somehost:1025
+    session: make-messages-session
+    greet-messages-peer port session config
+    buffer: #{}
+    forever [
+        wait port
+        unless data: copy port [
+            make error! "Connection unexpectedly closed during handshake"
+        ]
+        append buffer data
+        while [message: receive-message buffer session] [
+            message: handle-handshake-message session config message
+            if message = true [break]
+            if block? message [
+                send-message port session message
+            ]
+        ]
+        if message = true [break]
+    ]
+    ; handshake phase complete
+    ; there may still be messages in buffer at this point
+
+See |-error-list-| for the kind of errors they can throw.
+
+===Session variables
+
+We'll introduce and explain the session variables as we encounter them below.
+
+    -session-variables-:
+    ; see below
+
+===Serialize, encrypt and encapsulate |message|
+
+The message is serialized using |mold/all/only| and encrypted using |encrypt-message| (see |-sm-support-|).
+Then, a message packet header is generated and prepended to it.
+
+    -send-message-:
+    ; TODO: compand and expand
+    message: encrypt-message session mold/all/only message
+    send-hdr/block-length: length? message
+    ;send-hdr/payload-length: 0
+    append-log 'debug ["Sending message header:" mold get send-hdr]
+    insert insert insert tail output
+        mold/only get send-hdr
+        #"^(00)"
+        message
+
+---|send-message|'s support functions and values
+
+    -sm-support-:
+    encrypt-message: func [session data /local port hmac-key hmac] [
+        append-log 'debug ["Encrypting" length? data "bytes message"]
+        ; encrypt the data
+        port: open [
+            scheme: 'crypt
+            algorithm: 'blowfish
+            direction: 'encrypt
+            strength: 160
+            key: (next-number session/output-sequence)
+            padding: true
+            init-vector: #{48E1041BB8D358D79B3D6D5B6C21A73C90D7B88E}
+        ]
+        append-log 'debug-secret ["Encrypting message using key:" mold port/key]
+        insert port data
+        update port
+        data: copy port
+        close port
+        append-log 'debug ["Encrypted message:" length? data "bytes"]
+        ; add HMAC
+        hmac-key: next-number session/output-sequence
+        append-log 'debug-secret ["HMAC key:" mold hmac-key]
+        hmac: checksum/secure/key data hmac-key
+        append-log 'debug ["HMAC:" mold hmac]
+        head insert data hmac
+    ]
+    header!: context [
+        hardball: 'Hardball
+        version: 1
+        block-length: 0
+        payload-length: 0
+    ]
+    send-hdr: make header! [ ]
+
+We're using a random number sequence for output messages ("output sequence"); by default
+it is initialized with |magic-number| as the seed (the actual encryption starts only after
+the handshake is done; before that, messages are obfuscated but can be decrypted by anyone).
+
+    -session-variables-:
+    output-sequence: make-sequence magic-number
+
+===Process the next message in |buffer|
+
+    -receive-message-:
+    append-log 'debug ["receive-message:" length? buffer "bytes in the buffer"]
+    unless session/header [
+        append-log 'debug ["Scanning for message header"]
+        ; skip any garbage before the header
+        remove/part buffer any [find buffer 'Hardball tail buffer]
+        either mark: find buffer #"^(00)" [
+            ; LOAD will stop at the null character!
+            session/header: load/all as-string buffer
+            append-log 'debug ["Received message header:" mold/all session/header]
+            remove/part buffer next mark
+            unless parse session/header header-rule [
+                mark: session/header
+                reset-session session
+                throw-error ['Invalid-Header mark]
+            ]
+        ] [
+            append-log 'debug ["Message header not found or not complete"]
+            if max-header-length < length? buffer [
+                reset-session session
+                ; see if we can find the next message
+                remove/part buffer 8
+                throw-error ['Header-Too-Long length? buffer]
+            ]
+        ]
+    ]
+    if all [session/header not session/block] [
+        append-log 'debug ["Receiving message block"]
+        set recv-hdr session/header
+        case [
+            recv-hdr/block-length < 3 [
+                reset-session session
+                throw-error ['Block-Too-Short recv-hdr/block-length]
+            ]
+            recv-hdr/block-length > session/max-block-length [
+                reset-session session
+                remove/part buffer recv-hdr/block-length
+                remove/part buffer recv-hdr/payload-length
+                throw-error ['Block-Too-Long recv-hdr/block-length]
+            ]
+            'else [
+                append-log 'debug ["Block length:" recv-hdr/block-length "bytes. Received:" length? buffer "bytes."]
+                either recv-hdr/block-length <= length? buffer [
+                    session/block: copy/part buffer recv-hdr/block-length
+                    if session/block: decrypt-message session session/block [
+                        session/block: attempt [load as-string session/block]
+                    ]
+                    append-log 'debug ["Received message:" mold/all session/block]
+                    remove/part buffer recv-hdr/block-length
+                    unless session/block [
+                        reset-session session
+                        throw-error 'Can't-Decrypt
+                    ]
+                ] [
+                    append-log 'debug ["Message block not complete"]
+                ]
+            ]
+        ]
+        if recv-hdr/payload-length <> 0 [
+            throw make error! "Expand/compand not supported yet"
+        ]
+    ]
+    append-log 'debug [length? buffer "bytes still in the buffer"]
+    if session/block [
+        append-log 'debug ["We have the full message"]
+        also
+            session/block
+            reset-session session
+    ]
+
+We need to keep these three variables in the session to be able to reconstruct
+messages incrementally (ie. across multiple calls to |receive-message|):
+
+    -session-variables-:
+    header: block: payload: none
+
+The maximum block and payload lengths are also kept in the session object since
+they can be changed per-session.
+
+    -session-variables-:
+    max-block-length: 64 * 1024
+    max-payload-length: 0 ; not implemented yet
+
+---|recieve-message|'s locals
+
+    -rm-locals-:
+    mark
+
+---|receive-message|'s support functions and values
+
+    -rm-support-:
+    header-rule: ['Hardball 1 1 1 integer! integer!]
+    recv-hdr: make header! [ ]
+    reset-session: func [session] [
+        session/header: session/block: session/payload: none
+    ]
+    decrypt-message: func [session data /local port hmac d-key hmac-key comp-hmac] [
+        hmac: copy/part data 20
+        data: skip data 20
+        d-key: next-number session/input-sequence
+        hmac-key: next-number session/input-sequence
+        append-log 'debug ["Received HMAC:" mold hmac]
+        append-log 'debug-secret ["HMAC key:" mold hmac-key]
+        comp-hmac: checksum/secure/key data hmac-key
+        append-log 'debug ["Computed HMAC:" mold comp-hmac]
+        if hmac <> comp-hmac [
+            append-log 'error ["Message HMAC mismatch"]
+            return none
+        ]
+        append-log 'debug-secret ["Decrypting using key:" mold d-key]
+        port: open [
+            scheme: 'crypt
+            algorithm: 'blowfish
+            direction: 'decrypt
+            strength: 160
+            key: d-key
+            padding: true
+            init-vector: #{48E1041BB8D358D79B3D6D5B6C21A73C90D7B88E}
+        ]
+        insert port data
+        update port
+        also
+            copy port
+            close port
+    ]
+
+The input sequence works in the same way as the output sequence. (See |sm-support|.)
+
+    -session-variables-:
+    input-sequence: make-sequence magic-number
+
+===Send the greeting message to the peer
+
+    -greet-messages-peer-:
+    send-message output session reduce ['Hello config/public-key]
+
+===Handle |message| and return response message
+
+    -handle-handshake-message-:
+    append-test-trace session/state
+    switch session/state [
+        hello [
+            either parse message ['Hello set key binary!] [
+                either find config/allowed-peers key [
+                    append-test-trace 'allowed
+                    append-log 'debug ["Accepted peer:" mold key]
+                    session/peer-public-key: key
+                    session/session-key: next-number master-sequence
+                    append-log 'debug-secret ["Generated random number:" mold session/session-key]
+                    message: encrypt-rsa key session/session-key
+                    append-log 'debug ["Sending encrypted random number:" mold message]
+                    session/state: 'key
+                    reduce ['Key message]
+                ] [
+                    append-log 'error ["Peer is not welcome:" mold key]
+                    throw-error ['Not-Welcome key]
+                ]
+            ] [
+                append-log 'error ["Peer is being rude:^/" copy/part mold/only/all message 30]
+                throw-error 'Rude
+            ]
+        ]
+        key [
+            either parse message ['Key set key binary!] [
+                append-test-trace ['got-key length? key]
+                append-log 'debug ["Got peer's random number:" length? key "bytes"]
+                append-log 'debug-secret ["Peer's random number:" mold key]
+                append-log 'debug-secret ["My random number:" mold session/session-key]
+                key: decrypt-rsa config/private-key key
+                append-test-trace ['decrypted length? key]
+                either 20 = length? key [
+                    append-test-trace 'key-ok
+                    key: key xor session/session-key
+                    append-log 'debug-secret ["Session secret:" mold key]
+                    key: make-sequence key
+                    append-test-trace ['role session/role]
+                    either session/role = 'server [
+                        session/input-sequence: make-sequence next-number key
+                        session/output-sequence: make-sequence next-number key
+                    ] [
+                        session/output-sequence: make-sequence next-number key
+                        session/input-sequence: make-sequence next-number key
+                    ]
+                    append-log 'debug-secret ["Input sequence:^/" mold/all session/input-sequence]
+                    append-log 'debug-secret ["Output sequence:^/" mold/all session/output-sequence]
+                    session/verification: next-number key
+                    append-log 'debug ["Verification number:" mold session/verification]
+                    key: encrypt-rsa config/private-key session/verification
+                    session/state: 'verify
+                    append-test-trace ['encrypted-ver-number length? key]
+                    reduce ['Verify key]
+                ] [
+                    append-log 'error ["Peer's random number is not 20 bytes long"]
+                    throw-error ['Key-Length length? key]
+                ]
+            ] [
+                append-log 'error [
+                    "Unexpected message (expecting peer's random number):^/" copy/part mold/only/all message 30
+                ]
+                throw-error 'Key-Expected
+            ]
+        ]
+        verify [
+            either parse message ['Verify set key binary!] [
+                append-test-trace ['got-ver-number length? key]
+                append-log 'debug ["Got verification number:" length? key "bytes"]
+                key: decrypt-rsa session/peer-public-key key
+                append-test-trace ['decrypted-ver-number length? key]
+                append-log 'debug [
+                    "My verification number:" mold session/verification
+                    "Peer's verification number:" mold key
+                ]
+                either key = session/verification [
+                    append-test-trace 'all-good
+                    append-log 'debug ["All is good! Session established"]
+                    session/state: 'data
+                    true
+                ] [
+                    append-log 'error ["Verification number does not match"]
+                    throw-error ['Liar key session/verification]
+                ]
+            ] [
+                append-log 'error [
+                    "Unexpected message (expecting verification number):^/" copy/part mold/only/all message 30
+                ]
+                throw-error 'Verification-Expected
+            ]
+        ]
+        data [
+            throw-error 'Handshake-Complete
+        ]
+    ]
+
+The handshake phase uses the following session variables:
+
+    -session-variables-:
+    state: 'hello
+    peer-public-key: session-key: none
+    role: 'server
+    verification: none
+
+---|handle-handshake-message|'s locals
+
+    -hhm-locals-:
+    key
+
+---RSA encryption and decryption functions
+
+    -rsa-functions-:
+    encrypt-rsa: func [key value /local key'] [
+        either object? key [
+            ; private key
+            rsa-encrypt/private key value
+        ] [
+            ; public key
+            key': rsa-make-key
+            key'/e: 3
+            key'/n: key
+            rsa-encrypt key' value
+        ]
+    ]
+    decrypt-rsa: func [key value /local key'] [
+        either object? key [
+            ; private key
+            rsa-encrypt/decrypt/private key value
+        ] [
+            ; public key
+            key': rsa-make-key
+            key'/e: 3
+            key'/n: key
+            rsa-encrypt/decrypt key' value
+        ]
+    ]
+    
+===Support functions
+
+    -support-functions-:
+    -sm-support-
+    -rm-support-
+    -rsa-functions-
+    ; tmp
+    append-log: func [kind msg] [print msg]
+
+===Hardball errors
+
+In this section we list and define all the message-level errors.
+
+    -errors-:
+    system/error: make system/error [
+        Hardball: context [
+            code: 1000
+            type: "Hardball Error"
+            -error-list-
+        ]
+    ]
+    throw-error: func [args [block! word!]] [
+        throw make error! join [Hardball] args
+    ]
+
+---List of error values
+
+    -error-list-:
+    Invalid-Header: ["Invalid message header:" mold :arg1]
+    Header-Too-Long: ["Message header too long (" :arg1 "bytes)"]
+    Block-Too-Short: ["Message too short (" :arg1 "bytes)"]
+    Block-Too-Long: ["Message too long (" :arg1 "bytes)"]
+    Can't-Decrypt: "Unable to decrypt message"
+    Not-Welcome: ["Peer" mold :arg1 "is not welcome"]
+    Rude: "Peer is being rude (expected Hello message)"
+    Key-Length: ["Invalid random number length" :arg1 "(expected 20)"]
+    Key-Expected: "Unexpected message (expected 160 bit random number)"
+    Liar: ["Peer attempted to deceive us (received" mold :arg1 ", expected" mold :arg2 ")"]
+    Verification-Expected: "Unexpected message (expected verification number)"
+    Handshake-Complete: "Handshake phase already complete, please don't call handle-handshake-message"
+
+===Random number generator initialization
+
+    -rng-init-:
+    random-seed: either exists? %/dev/urandom [
+        p: open/direct/binary/read %/dev/urandom
+        also
+            copy/part p 20
+            (close p unset 'p)
+    ] [
+        random/seed now
+        checksum/secure form random/secure 2 ** 48
+    ]
+    master-sequence: make-sequence random-seed
+
+===Definition of constants used by the code
+
+    -constants-:
+    magic-number: #{FD6BF3E23DB9A5317FAF36B2A5779B63D2225D22}
+    max-header-length: 64

@@ -26,6 +26,8 @@
 ^mezz/load-html.r$
 ^mezz/macros/trees.html$
 ^mezz/macros/trees.r$
+^mezz/messages.html$
+^mezz/messages.r$
 ^mezz/module.html$
 ^mezz/module.r$
 ^mezz/niwashi.html$

@@ -1,0 +1,124 @@
+REBOL [
+    Type: Module
+    Title: "Tests for Hardball's message exchange protocol"
+    Author: "Gabriele Santilli"
+    Imports: [%mezz/messages.r %mezz/test-trace.r]
+]
+
+[
+    session: make-messages-session
+    msg: #{}
+    send-message msg session [This is a message]
+    copy msg
+]
+[
+    send-message msg session [A second example message]
+    copy msg
+]
+[
+    receive-message msg session
+]
+[
+    receive-message msg session
+]
+[
+    receive-message msg session
+]
+[
+    copy msg
+]
+[
+    {Should cause Invalid-Header error}
+    receive-message "Hardball burp^(00)" session
+]
+[
+    {Should cause Header-Too-Long error}
+    receive-message "Hardball 12345678901234567890123456789012345678901234567890123456789012345678901234567890" session
+]
+[
+    {Should cause Block-Too-Short error}
+    receive-message "Hardball 1 -1 0^(00)" session
+]
+[
+    {Should cause Block-Too-Long error}
+    receive-message "Hardball 1 1'000'000 0^(00)" session
+]
+[
+    {Should cause a Can't-Decrypt error}
+    receive-message "Hardball 1 30 0^(00)123456789012345678901234567890" session
+]
+[
+    server-session: make-messages-session
+    client-session: make-messages-session
+    client-session/role: 'client
+    server-rsa-key: rsa-make-key
+    rsa-generate-key server-rsa-key 2048 3
+    client-rsa-key: rsa-make-key
+    rsa-generate-key client-rsa-key 2048 3
+    server-config: context [
+        public-key: server-rsa-key/n
+        private-key: server-rsa-key
+        allowed-peers: reduce [client-rsa-key/n]
+    ]
+    client-config: context [
+        public-key: client-rsa-key/n
+        private-key: client-rsa-key
+        allowed-peers: reduce [server-rsa-key/n]
+    ]
+    server-buffer: #{}
+    client-buffer: #{}
+    {Test Hello exchange}
+    start-test
+    ; client
+    greet-messages-peer server-buffer client-session client-config
+    ; server
+    greet-messages-peer client-buffer server-session server-config
+    ; client
+    message: receive-message client-buffer client-session
+    message: handle-handshake-message client-session client-config message
+    send-message server-buffer client-session message
+    ; server
+    message: receive-message server-buffer server-session
+    message: handle-handshake-message server-session server-config message
+    send-message client-buffer server-session message
+    ; -
+    end-test
+]
+[
+    {Test key exchange}
+    start-test
+    ; client
+    message: receive-message client-buffer client-session
+    message: handle-handshake-message client-session client-config message
+    send-message server-buffer client-session message
+    ; server
+    message: receive-message server-buffer server-session
+    message: handle-handshake-message server-session server-config message
+    send-message client-buffer server-session message
+    ; -
+    end-test
+]
+[
+    {Test verification}
+    start-test
+    ; client
+    message: receive-message client-buffer client-session
+    message: handle-handshake-message client-session client-config message
+    append-test-trace type? message
+    ; server
+    message: receive-message server-buffer server-session
+    message: handle-handshake-message server-session server-config message
+    append-test-trace type? message
+    ; -
+    end-test
+]
+[
+    {Attempt sending message client -> server}
+    send-message server-buffer client-session [This is a test message]
+    receive-message server-buffer server-session
+]
+[
+    {Attempt sending message server -> client}
+    send-message client-buffer server-session [This is another test message]
+    receive-message client-buffer client-session
+]
