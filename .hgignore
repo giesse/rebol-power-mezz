@@ -38,6 +38,8 @@
 ^mezz/profiling.r$
 ^mezz/sequences.html$
 ^mezz/sequences.r$
+^mezz/test-trace.html$
+^mezz/test-trace.r$
 ^mezz/text-encoding.html$
 ^mezz/text-encoding.r$
 ^mezz/text-to-html.html$

@@ -1,0 +1,30 @@
+REBOL [
+    Type: Module
+    Title: "Tests for the test trace module"
+    Author: "Gabriele Santilli"
+    Imports: [%mezz/test-trace.r]
+]
+
+[
+    {Should be the fake version at this point}
+    :append-test-trace
+]
+[
+    start-test
+    {Should be the actual version at this point}
+    :append-test-trace
+]
+[
+    append-test-trace 1
+    append-test-trace 2
+    end-test
+]
+[
+    {Back to fake}
+    :append-test-trace
+]
+[
+    start-test
+    append-test-trace [1 + 1 2 + 2]
+    end-test
+]

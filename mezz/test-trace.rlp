@@ -1,0 +1,118 @@
+Test trace
+
+    Type: Module
+    Purpose: {
+        Allows creating test traces to simplify automated testing of systems
+        (like network servers / protocols etc.) which are not "functional" in
+        nature and thus not easy to "unit test".
+    }
+    Author: "Gabriele Santilli"
+    File: %test-trace.r
+    Version: 1.0.0
+    Exports: [
+        start-test
+        append-test-trace
+        end-test
+    ]
+
+===Introduction
+
+Automated testing is very simple when you have simple functions, and
+you can just call them in your tests and check the result. If the result
+is not the one expected, you know you have a problem.
+
+However, how do you do something like this for a network server (for example)?
+It's not like the server will "return a result" that you can check, most of the times.
+
+Here I'm proposing a simple solution to this kind of problems. You "instrument" the server
+to produce, while testing, a "test trace". Then, you can treat the test trace as the "result"
+of running the server in that specific test.
+
+===Overview
+
+In the software you want to test, you add calls to |append-test-trace| in order to build
+a "trace" of what is happening during the test. The trace should be so that it is a function
+of the test case, that is, the same test case will always produce the same trace, unless there
+is a bug somewhere.
+
+The challenge here is to make sure that your trace does not change if you refactor your code
+or change it to a different implementation. (Although, you can always change your tests if
+necessary, when you do it's much harder to "trust" your changes to the code.)
+
+|value| can be anything, and it is just appended to the "trace" (after |reduce|'ing it if 
+it's a block).
+
+    -main-:
+    append-test-trace: func [
+        "Add a value to the current test trace"
+        value
+    ] [
+        -append-test-trace-
+    ]
+
+Normally, when you're not running a test, |append-test-trace| does nothing, in order to
+keep the overhead of the instrumentation to the minimum. You can switch to "test mode"
+by calling |start-test|:
+
+    -main-:
+    start-test: func [
+        "Start a test session (create test trace)"
+    ] [
+        -start-test-
+    ]
+
+So, in your tests you would do something like:
+
+    start-test
+    call-code-to-be-tested
+    result: end-test
+
+where |end-test| returns the "test trace" (as a |block!|).
+
+    -main-:
+    end-test: func [
+        "End a test session and return test trace"
+    ] [
+        -end-test-
+    ]
+
+Please note that calls to |start-test| and |end-test| cannot be nested.
+
+===Start a test session
+
+We just clear the |test-trace| block and replace |append-test-trace| with the "real"
+version (otherwise normally that function is a no-op).
+
+    -start-test-:
+    test-trace: clear [ ]
+    append-test-trace: :actual-append-test-trace
+
+===End a test session and return the test trace
+
+We reset |append-test-trace| to the "fake" version, and return the |test-trace| block.
+
+    -end-test-:
+    append-test-trace: :fake-append-test-trace
+    test-trace
+
+===Append |value| (reduced if needed) to the |test-trace| block
+
+By default, |append-test-trace| does nothing.
+
+    -append-test-trace-:
+    ; do nothing
+
+So, this is actually the |fake-append-test-trace| that is used outside of testing.
+
+    -main-:
+    fake-append-test-trace: :append-test-trace
+
+The "real" one is the following and it is only used while testing:
+
+    -main-:
+    actual-append-test-trace: func [
+        "Add a value to the current test trace"
+        value
+    ] [
+        repend test-trace :value
+    ]

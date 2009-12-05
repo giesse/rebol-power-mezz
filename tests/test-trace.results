@@ -1,0 +1,12 @@
+function! #[function! [
+    "Add a value to the current test trace" 
+    value
+][]] function! #[function! [
+    "Add a value to the current test trace" 
+    value
+][
+    repend test-trace :value
+]] block! [2 4] function! #[function! [
+    "Add a value to the current test trace" 
+    value
+][]] block! [2 4]
