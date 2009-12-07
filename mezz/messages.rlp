@@ -11,6 +11,7 @@ Functions to send and receive encrypted message packets
     Imports: [
         %mezz/sequences.r
         %mezz/test-trace.r
+        %mezz/logging.r
     ]
     Exports: [
         make-messages-session
@@ -523,8 +524,6 @@ The handshake phase uses the following session variables:
     -sm-support-
     -rm-support-
     -rsa-functions-
-    ; tmp
-    append-log: func [kind msg] [print msg]
 
 ===Hardball errors
 

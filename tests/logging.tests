@@ -1,0 +1,84 @@
+REBOL [
+    Type: Module
+    Title: "Tests for the logging module"
+    Author: "Gabriele Santilli"
+    Imports: [%mezz/logging.r]
+]
+
+[
+    {By default, log to standard output}
+    append-log 'debug ["This is a test" 1 2 3]
+    confirm "Was the message printed correctly?"
+]
+[
+    setup-logging [all to %tests/data/test.log]
+    attempt [delete %tests/data/test.log]
+    append-log 'info ["This is an info message" 1 2 3]
+    append-log 'debug ["This is a debug message" 1 2 3]
+    parse/all read %tests/data/test.log [
+        thru "info: This is an info message 1 2 3" newline
+        thru "debug: This is a debug message 1 2 3" newline
+    ]
+]
+[
+    setup-logging [only [info] to %tests/data/test.log]
+    append-log 'info ["This is an info message" 4 5 6]
+    append-log 'debug ["This is a debug message" 4 5 6]
+    parse/all read %tests/data/test.log [
+        thru "info: This is an info message 1 2 3" newline
+        thru "debug: This is a debug message 1 2 3" newline
+        thru "info: This is an info message 4 5 6" newline
+    ]
+]
+[
+    attempt [delete %tests/data/test.log]
+    {The following tests will only work on Unix, and are very hard to automate}
+    {You may need to change this}
+    logfile-daemon: %/var/log/daemon.log
+    log: read logfile-daemon
+    setup-logging [all to syslog]
+    append-log 'info ["This is an info message" 1 2 3]
+    append-log 'debug ["This is a debug message" 1 2 3]
+    wait 2
+    parse/all read logfile-daemon [
+        log
+        thru "REBOL" thru "info: This is an info message 1 2 3" newline
+        thru "REBOL" thru "debug: This is a debug message 1 2 3" newline
+        to end
+    ]
+]
+[
+    {You may need to change this}
+    logfile-user: %/var/log/user.log
+    log: read logfile-user
+    setup-logging [all to syslog as "logging-test" default user map [info: info debug: debug]]
+    append-log 'info ["This is an info message" 1 2 3]
+    append-log 'debug ["This is a debug message" 1 2 3]
+    wait 2
+    parse/all read logfile-user [
+        log
+        thru "logging-test" thru "info: This is an info message 1 2 3" newline
+        thru "logging-test" thru "debug: This is a debug message 1 2 3" newline
+        to end
+    ]
+]
+[
+    log-user: read logfile-user
+    log-daemon: read logfile-daemon
+    setup-logging [all to syslog as "logging-test" map [user: [user info] daemon: [daemon info]]]
+    append-log 'user ["This is a user message" 1 2 3]
+    append-log 'daemon ["This is a daemon message" 1 2 3]
+    wait 2
+    all [
+        parse/all read logfile-user [
+            log-user
+            thru "logging-test" thru "user: This is a user message 1 2 3" newline
+            to end
+        ]
+        parse/all read logfile-daemon [
+            log-daemon
+            thru "logging-test" thru "daemon: This is a daemon message 1 2 3" newline
+            to end
+        ]
+    ]
+]

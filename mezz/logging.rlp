@@ -1,0 +1,183 @@
+Logging functions
+
+    Type: Module
+    Purpose: {
+        Handles logging messages to standard output, a file, or the system
+        log (on Unix).
+    }
+    Author: "Gabriele Santilli"
+    File: %logging.r
+    Version: 1.0.0
+    Imports: [
+        %mezz/collect.r
+    ]
+    Exports: [
+        setup-logging
+        append-log
+    ]
+
+===Introduction
+
+Logging text messages to standard output, a file, or the system log (on Unix).
+
+===Overview
+
+    -main-:
+    -support-functions-
+
+    setup-logging: func [
+        "Change logging configuration"
+        config [block!]
+
+        /local -sl-locals-
+    ] [
+        -setup-logging-
+    ]
+    append-log: func [
+        "Append a text message to the log"
+        class [word!] "Message class (eg. info, error, debug...)"
+        message [block!] "Message (will be REFORMed)"
+    ] [
+        -append-log-
+    ]
+
+===Check class filters, unless filtered append |message| to the log
+
+    -append-log-:
+    if any [
+        not filters
+        in filters class
+    ] [
+        append-log* class message
+    ]
+
+===Change logging configuration
+
+    -setup-logging-:
+    parse config [
+        [
+            'all (filters: none)
+            |
+            'only set filters into [some word!] (filters: mk-ctx filters)
+        ]
+        'to [
+            'output (append-log*: :append-stdout)
+            |
+            set log-file file! (append-log*: :append-file)
+            |
+            'syslog any [
+                'as set identity string!
+                |
+                'default set default-facility syslog-facility
+                |
+                'map into [
+                    (class-map: copy [ ])
+                    some [
+                        set class set-word! [
+                            set priority syslog-priority (repend class-map [class get in syslog-priorities priority])
+                            |
+                            into [set facility syslog-facility set priority syslog-priority] (
+                                repend class-map [
+                                    class (get in syslog-facilities facility) +
+                                        get in syslog-priorities priority
+                                ]
+                            )
+                        ]
+                    ]
+                    (class-map: context class-map)
+                ]
+            ] (
+                unless value? 'libc [load-syslog]
+                ; 1 = LOG_PID
+                openlog identity 1 get in syslog-facilities default-facility
+                append-log*: :append-syslog
+            )
+        ]
+    ]
+
+---|setup-logging|'s locals
+
+    -sl-locals-:
+    class facility priority
+
+===Support functions
+
+    -support-functions-:
+    filters: none
+    log-file: none
+    default-facility: 'daemon
+    class-map: context [ ]
+    identity: "REBOL"
+    append-log*: append-stdout: func [class message] [
+        prin [now class] prin ": "
+        print message
+    ]
+    append-file: func [class message] [
+        write/append/lines log-file rejoin [
+            now #" " class ": " reform message
+        ]
+    ]
+    obj2rule: func [obj] [
+        obj: next first obj
+        collect [
+            keep to lit-word! first obj
+            foreach w next obj [
+                keep '| keep to lit-word! w
+            ]
+        ]
+    ]
+    syslog-priorities: context [
+        emergency: 0
+        alert:     1
+        critical:  2
+        error:     3
+        warning:   4
+        notice:    5
+        info:      6
+        debug:     7
+    ]
+    syslog-priority: probe obj2rule syslog-priorities
+    syslog-facilities: context [
+        kernel:    0
+        user:      8
+        mail:     16
+        daemon:   24
+        auth:     32
+        printer:  48
+        news:     56
+        uucp:     64
+        cron:     72
+        authpriv: 80
+        ftp:      88
+    ]
+    syslog-facility: probe obj2rule syslog-facilities
+    load-syslog: does [
+        libc: any [attempt [load/library %libc.so] attempt [load/library %libc.so.6]]
+        unless libc [make error! "Unable to load libc.so"]
+
+        openlog: make routine! [
+            ident    [string!]
+            option   [integer!]
+            facility [integer!]
+        ] libc "openlog"
+
+        syslog: make routine! [
+            priority [integer!]
+            ; we will always call it as "%s: %s", string, string
+            format   [string!]
+            class    [string!]
+            message  [string!]
+        ] libc "syslog"
+    ]
+    mk-ctx: func [block] [
+        use block reduce ['bind? 'first block]
+    ]
+    append-syslog: func [class message /local priority] [
+        priority: any [
+            get in class-map class
+            syslog-priorities/info
+        ]
+        class: form class
+        message: reform message
+        syslog priority "%s: %s" class message
+    ]
