@@ -1,12 +1,12 @@
-function! #[function! [
+string! {func [
     "Add a value to the current test trace" 
     value
-][]] function! #[function! [
+][]} string! {func [
     "Add a value to the current test trace" 
     value
 ][
     repend test-trace :value
-]] block! [2 4] function! #[function! [
+]} block! [1 2] string! {func [
     "Add a value to the current test trace" 
     value
-][]] block! [2 4]
+][]} block! [2 4]

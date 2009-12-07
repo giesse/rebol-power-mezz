@@ -7,12 +7,12 @@ REBOL [
 
 [
     {Should be the fake version at this point}
-    :append-test-trace
+    mold :append-test-trace
 ]
 [
     start-test
     {Should be the actual version at this point}
-    :append-test-trace
+    mold :append-test-trace
 ]
 [
     append-test-trace 1
@@ -21,7 +21,7 @@ REBOL [
 ]
 [
     {Back to fake}
-    :append-test-trace
+    mold :append-test-trace
 ]
 [
     start-test

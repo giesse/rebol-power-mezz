@@ -8,7 +8,7 @@ Test trace
     }
     Author: "Gabriele Santilli"
     File: %test-trace.r
-    Version: 1.0.0
+    Version: 1.0.1
     Exports: [
         start-test
         append-test-trace
@@ -93,7 +93,7 @@ We reset |append-test-trace| to the "fake" version, and return the |test-trace| 
 
     -end-test-:
     append-test-trace: :fake-append-test-trace
-    test-trace
+    copy test-trace
 
 ===Append |value| (reduced if needed) to the |test-trace| block
 
