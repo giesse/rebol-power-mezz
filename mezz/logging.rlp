@@ -7,7 +7,7 @@ Logging functions
     }
     Author: "Gabriele Santilli"
     File: %logging.r
-    Version: 1.0.0
+    Version: 1.0.1
     Imports: [
         %mezz/collect.r
     ]
@@ -136,7 +136,7 @@ Logging text messages to standard output, a file, or the system log (on Unix).
         info:      6
         debug:     7
     ]
-    syslog-priority: probe obj2rule syslog-priorities
+    syslog-priority: obj2rule syslog-priorities
     syslog-facilities: context [
         kernel:    0
         user:      8
@@ -150,7 +150,7 @@ Logging text messages to standard output, a file, or the system log (on Unix).
         authpriv: 80
         ftp:      88
     ]
-    syslog-facility: probe obj2rule syslog-facilities
+    syslog-facility: obj2rule syslog-facilities
     load-syslog: does [
         libc: any [attempt [load/library %libc.so] attempt [load/library %libc.so.6]]
         unless libc [make error! "Unable to load libc.so"]
