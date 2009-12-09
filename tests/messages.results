@@ -26,4 +26,5 @@ CDFB99856AC6A7DE6D7ACBFD35045DFAB3893D3490DCE33A107A3345766C8758
 ** Near: receive-message "" session
 } block! [hello allowed hello allowed] block! [key got-key 256 decrypted 20 key-ok role client encrypted-ver-number 256 key got-key 256 decrypted 20 key-ok role server encrypted-ver-number 256] block! [verify got-ver-number 256 decrypted-ver-number 20 all-good #[datatype! logic!] verify got-ver-number 256 decrypted-ver-number 20 all-good #[datatype! logic!]] block! [This is a test message
 ] block! [This is another test message
+] block! [One
 ]

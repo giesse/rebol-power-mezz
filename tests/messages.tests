@@ -122,3 +122,8 @@ REBOL [
     send-message client-buffer server-session [This is another test message]
     receive-message client-buffer client-session
 ]
+[
+    {Bug with one-value messages}
+    send-message server-buffer client-session [One]
+    receive-message server-buffer server-session
+]

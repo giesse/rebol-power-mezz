@@ -7,7 +7,7 @@ Functions to send and receive encrypted message packets
     }
     Author: "Gabriele Santilli"
     File: %messages.r
-    Version: 1.0.0
+    Version: 1.0.1
     Imports: [
         %mezz/sequences.r
         %mezz/test-trace.r
@@ -190,6 +190,7 @@ Then, a message packet header is generated and prepended to it.
 
     -send-message-:
     ; TODO: compand and expand
+    append-log 'debug ["Sending message:" mold/all/only message]
     message: encrypt-message session mold/all/only message
     send-hdr/block-length: length? message
     ;send-hdr/payload-length: 0
@@ -289,7 +290,7 @@ the handshake is done; before that, messages are obfuscated but can be decrypted
                 either recv-hdr/block-length <= length? buffer [
                     session/block: copy/part buffer recv-hdr/block-length
                     if session/block: decrypt-message session session/block [
-                        session/block: attempt [load as-string session/block]
+                        session/block: attempt [load/all as-string session/block]
                     ]
                     append-log 'debug ["Received message:" mold/all session/block]
                     remove/part buffer recv-hdr/block-length
@@ -410,9 +411,9 @@ The input sequence works in the same way as the output sequence. (See |sm-suppor
             either parse message ['Key set key binary!] [
                 append-test-trace ['got-key length? key]
                 append-log 'debug ["Got peer's random number:" length? key "bytes"]
+                key: decrypt-rsa config/private-key key
                 append-log 'debug-secret ["Peer's random number:" mold key]
                 append-log 'debug-secret ["My random number:" mold session/session-key]
-                key: decrypt-rsa config/private-key key
                 append-test-trace ['decrypted length? key]
                 either 20 = length? key [
                     append-test-trace 'key-ok
