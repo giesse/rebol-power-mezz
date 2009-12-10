@@ -7,7 +7,7 @@ Functions to send and receive encrypted message packets
     }
     Author: "Gabriele Santilli"
     File: %messages.r
-    Version: 1.0.1
+    Version: 1.0.2
     Imports: [
         %mezz/sequences.r
         %mezz/test-trace.r
@@ -253,7 +253,7 @@ the handshake is done; before that, messages are obfuscated but can be decrypted
         remove/part buffer any [find buffer 'Hardball tail buffer]
         either mark: find buffer #"^(00)" [
             ; LOAD will stop at the null character!
-            session/header: load/all as-string buffer
+            session/header: to block! as-string buffer
             append-log 'debug ["Received message header:" mold/all session/header]
             remove/part buffer next mark
             unless parse session/header header-rule [
@@ -290,7 +290,7 @@ the handshake is done; before that, messages are obfuscated but can be decrypted
                 either recv-hdr/block-length <= length? buffer [
                     session/block: copy/part buffer recv-hdr/block-length
                     if session/block: decrypt-message session session/block [
-                        session/block: attempt [load/all as-string session/block]
+                        session/block: attempt [to block! as-string session/block]
                     ]
                     append-log 'debug ["Received message:" mold/all session/block]
                     remove/part buffer recv-hdr/block-length

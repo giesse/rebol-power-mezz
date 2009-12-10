@@ -9,8 +9,7 @@ CDFB99856AC6A7DE6D7ACBFD35045DFAB3893D3490DCE33A107A3345766C8758
 } block! [This is a message
 ] block! [A second example message
 ] none! #[none] binary! #{} error! 
-{** Hardball Error: Invalid message header: [Hardball burp
-]
+{** Hardball Error: Invalid message header: [Hardball burp]
 ** Near: receive-message "" session
 } error! 
 {** Hardball Error: Message header too long ( 81 bytes)
