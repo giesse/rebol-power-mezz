@@ -20,6 +20,8 @@
 ^mezz/expand-macros.r$
 ^mezz/filter-html.html$
 ^mezz/filter-html.r$
+^mezz/form-error.html$
+^mezz/form-error.r$
 ^mezz/html-to-text.html$
 ^mezz/html-to-text.r$
 ^mezz/load-html.html$

@@ -3,197 +3,175 @@ REBOL [
 	Author: "Gabriele Santilli"
 ]
 
-test-file?: func [file] [
-	%.tests = skip tail file -6
-]
-
-form-error:
-    func [
-        "Forms an error message"
-        errobj [object!] "Disarmed error"
-        /all "Use the same format as the REBOL console"
-        
-        /local errtype text
-    ] [
-        errtype: get in system/error get in errobj 'type
-        text: get in errtype get in errobj 'id
-        if block? text [text: reform bind/copy text in errobj 'self]
-        either all [
-            rejoin [
-                "** " get in errtype 'type ": " text newline
-                either get in errobj 'where [join "** Where: " [mold get in errobj 'where newline]] [""]
-                either get in errobj 'near [join "** Near: " [mold/only get in errobj 'near newline]] [""]
-            ]
-        ] [
-            text
-        ]
-    ]
-
-list-dependencies: func [
-    module [object! file!]
-    /to result
-] [
-    unless result [result: make block! 16]
-    unless object? module [module: load-module module]
-    if module/imports [
-        foreach file module/imports [
-            if file? file [
-                append result file
-                list-dependencies/to file result
-            ]
-        ]
-    ]
-    result
-]
-
-run-test-file: func [file force /local results results-file result type human passed failed disp mod files-to-test err origtxt] [
-	print file
-	file: clean-path join %tests/ file
-	passed: failed: 0
-	results-file: append copy/part file skip tail file -6 %.results
-	if all [exists? results-file (modified? file) > modified? results-file] [force: true]
-	file: load/header file
-    either all [in file/1 'Type file/1/Type = 'Module] [
-        unless value? 'module [
-            do %mezz/module.r
-            load-module/from what-dir
-        ]
-        if error? set/any 'err try [
-            mod: module [
-                Imports: get in file/1 'Imports
-            ] reduce [file]
-        ] [
-            print "^-UNABLE TO MAKE MODULE!"
-            print form-error/all disarm :err
-            return [0 1]
-        ]
-        files-to-test: unique list-dependencies mod
-    ] [
-        if files-to-test: get in file/1 'Tests [
-            foreach file files-to-test [
-				switch/default file [
-					%tests/run.r [ ]
-					%mezz/module.r [
-						unless value? 'module [
-							do %mezz/module.r
-							load-module/from what-dir
-						]
-					]
-				] [
-					if error? set/any 'err try [do file] [
-						print ["^-UNABLE TO DO" file]
-						print form-error/all disarm :err
-						return [0 1]
-					]
-				]
-            ]
-        ]
-    ]
-    print ["^-TESTS:" files-to-test]
-	results: either exists? results-file [
-		if files-to-test [
-			foreach source files-to-test [
-				if (modified? source) > modified? results-file [
-					force: true
-				]
-			]
-		]
-		load results-file
-	] [
-		force: true
-		copy [ ]
-	]
-	either force [
-		until [
-			file: next file
-			origtxt: human: copy ""
-			; trick to determine if there was a throw: human is unique at this point and
-			; there is no way file/1 would accidentally throw it
-			either same? human catch [type: type?/word set/any 'result try file/1 human] [
-				result: switch/default type [
-					error! [origtxt: human: form-error/all disarm :result]
-					unset! ['unset!]
-					string! binary! [
-                        origtxt: result
-						human: copy/part result 20 * 1024
-						if binary? human [human: mold human]
-						either 51200 < length? result [
-							checksum/secure result
-						] [
-							result
-						]
-					]
-				] [
-					human: mold/all :result
-					:result
-				]
-				case [
-					any [tail? results :result <> pick results 2] [
-						view layout [
-							area 600x200 (mold/only file/1)
-							text "For string results, only the first 20k are shown."
-							disp: area 600x400 human
-							across
-							text "Do:" field 500 [
-								disp/text: mold/all do value
-								clear face/text
-								show [face disp]
-							] return
-							button "Browse" [
-								write %test.html origtxt
-								browse %test.html
-							]
-							button "Diff" [
-								save %tests/data/a pick results 2
-								save %tests/data/b :result
-								call/console "diff tests/data/a tests/data/b"
-							]
-							button green "PASS" [
-								passed: passed + 1
-								change results reduce [type :result]
-								unview/all
-							]
-							button red "FAIL" [
-								failed: failed + 1
-								change results reduce ['fail :result]
-								unview/all
-							] return
-						]
-					]
-					type <> results/1 [
-						print "^-FAILURE:"
-						print mold/only file/1
-						failed: failed + 1
-					]
-					'else [passed: passed + 1]
-				]
-			] [
-				; there has been a throw
-				print "^-UNCATCHED THROW!"
-				print mold/only file/1
-				failed: failed + 1
-				change results [throw throw]
-			]
-			results: skip results 2
-			tail? next file
-		]
-		save/all results-file head results
-		print [tab "PASSED:" passed newline tab "FAILED:" failed]
-	] [
-		print "^-Nothing new to test."
-	]
-	reduce [passed failed]
-]
-
 change-dir base-dir: clean-path %../
-total-passed: total-failed: 0
-foreach file read %tests/ [
-	if test-file? file [
-        change-dir base-dir
-		set [passed failed] run-test-file file all [string? system/script/args find system/script/args "force"]
-		total-passed: total-passed + passed
-		total-failed: total-failed + failed
-	]
+do %mezz/module.r
+load-module/from what-dir
+
+module [
+    Imports: [%mezz/form-error.r]
+] [
+    test-file?: func [file] [
+        %.tests = skip tail file -6
+    ]
+
+    list-dependencies: func [
+        module [object! file!]
+        /to result
+    ] [
+        unless result [result: make block! 16]
+        unless object? module [module: load-module module]
+        if module/imports [
+            foreach file module/imports [
+                if file? file [
+                    append result file
+                    list-dependencies/to file result
+                ]
+            ]
+        ]
+        result
+    ]
+
+    run-test-file: func [
+        file force
+        /local results results-file result type human passed failed disp mod files-to-test err origtxt
+    ] [
+        print file
+        file: clean-path join %tests/ file
+        passed: failed: 0
+        results-file: append copy/part file skip tail file -6 %.results
+        if all [exists? results-file (modified? file) > modified? results-file] [force: true]
+        file: load/header file
+        either all [in file/1 'Type file/1/Type = 'Module] [
+            if error? set/any 'err try [
+                mod: module [
+                    Imports: get in file/1 'Imports
+                ] reduce [file]
+            ] [
+                print "^-UNABLE TO MAKE MODULE!"
+                print form-error/all disarm :err
+                return [0 1]
+            ]
+            files-to-test: unique list-dependencies mod
+        ] [
+            if files-to-test: get in file/1 'Tests [
+                foreach file files-to-test [
+                    switch/default file [
+                        %tests/run.r %mezz/module.r [ ]
+                    ] [
+                        if error? set/any 'err try [do file] [
+                            print ["^-UNABLE TO DO" file]
+                            print form-error/all disarm :err
+                            return [0 1]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+        print ["^-TESTS:" files-to-test]
+        results: either exists? results-file [
+            if files-to-test [
+                foreach source files-to-test [
+                    if (modified? source) > modified? results-file [
+                        force: true
+                    ]
+                ]
+            ]
+            load results-file
+        ] [
+            force: true
+            copy [ ]
+        ]
+        either force [
+            until [
+                file: next file
+                origtxt: human: copy ""
+                ; trick to determine if there was a throw: human is unique at this point and
+                ; there is no way file/1 would accidentally throw it
+                either same? human catch [type: type?/word set/any 'result try file/1 human] [
+                    result: switch/default type [
+                        error! [origtxt: human: form-error/all disarm :result]
+                        unset! ['unset!]
+                        string! binary! [
+                            origtxt: result
+                            human: copy/part result 20 * 1024
+                            if binary? human [human: mold human]
+                            either 51200 < length? result [
+                                checksum/secure result
+                            ] [
+                                result
+                            ]
+                        ]
+                    ] [
+                        human: mold/all :result
+                        :result
+                    ]
+                    case [
+                        any [tail? results :result <> pick results 2] [
+                            view layout [
+                                area 600x200 (mold/only file/1)
+                                text "For string results, only the first 20k are shown."
+                                disp: area 600x400 human
+                                across
+                                text "Do:" field 500 [
+                                    disp/text: mold/all do value
+                                    clear face/text
+                                    show [face disp]
+                                ] return
+                                button "Browse" [
+                                    write %test.html origtxt
+                                    browse %test.html
+                                ]
+                                button "Diff" [
+                                    save %tests/data/a pick results 2
+                                    save %tests/data/b :result
+                                    call/console "diff tests/data/a tests/data/b"
+                                ]
+                                button green "PASS" [
+                                    passed: passed + 1
+                                    change results reduce [type :result]
+                                    unview/all
+                                ]
+                                button red "FAIL" [
+                                    failed: failed + 1
+                                    change results reduce ['fail :result]
+                                    unview/all
+                                ] return
+                            ]
+                        ]
+                        type <> results/1 [
+                            print "^-FAILURE:"
+                            print mold/only file/1
+                            failed: failed + 1
+                        ]
+                        'else [passed: passed + 1]
+                    ]
+                ] [
+                    ; there has been a throw
+                    print "^-UNCATCHED THROW!"
+                    print mold/only file/1
+                    failed: failed + 1
+                    change results [throw throw]
+                ]
+                results: skip results 2
+                tail? next file
+            ]
+            save/all results-file head results
+            print [tab "PASSED:" passed newline tab "FAILED:" failed]
+        ] [
+            print "^-Nothing new to test."
+        ]
+        reduce [passed failed]
+    ]
+
+    total-passed: total-failed: 0
+    foreach file read %tests/ [
+        if test-file? file [
+            change-dir base-dir
+            set [passed failed] run-test-file file all [string? system/script/args find system/script/args "force"]
+            total-passed: total-passed + passed
+            total-failed: total-failed + failed
+        ]
+    ]
+    print ["TOTAL PASSED:" total-passed]
+    print ["TOTAL FAILED:" total-failed]
 ]
-print ["TOTAL PASSED:" total-passed]
-print ["TOTAL FAILED:" total-failed]

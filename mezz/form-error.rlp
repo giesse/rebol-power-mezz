@@ -1,0 +1,44 @@
+FORM-ERROR function
+
+    Type: Module
+    Purpose: {
+        Defines the FORM-ERROR function which can form a (disarmed) error into
+        a string.
+    }
+    Author: "Gabriele Santilli"
+    File: %form-error.r
+    Version: 1.0.0
+    Exports: [
+        form-error
+    ]
+
+===Introduction
+
+Introduction to be written.
+
+===Overview
+
+We just have the |form-error| function.
+
+    -main-:
+    form-error: func [
+        "Forms an error message"
+        errobj [object!] "Disarmed error"
+        /all "Use the same format as the REBOL console"
+        
+        /local errtype text where
+    ] [
+        errtype: system/error/(errobj/type)
+        text: errtype/(errobj/id)
+        if block? text [text: reform bind text errobj]
+        either all [
+            where: get in errobj 'where
+            rejoin [
+                "** " errtype/type ": " text newline
+                either :where [join "** Where: " [mold :where newline]] [""]
+                either errobj/near [join "** Near: " [mold/only errobj/near newline]] [""]
+            ]
+        ] [
+            text
+        ]
+    ]
