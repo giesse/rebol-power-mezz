@@ -62,7 +62,31 @@ export-ctx: make object! [
 {** Script Error: h has no value
 ** Where: test3
 ** Near: h
-} logic! #[false] logic! #[false] logic! #[false] logic! #[false] logic! #[true] logic! #[true] string! #{7A38671ECE2822CAF66EF948EAD677A508A7B257} logic! #[false] error! 
+} logic! #[false] logic! #[false] logic! #[false] logic! #[false] logic! #[true] logic! #[true] string! {Type: module
+Title: "Test module 2"
+Purpose: none
+Imports: none
+Exports: [g]
+Globals: [module2?]
+local-ctx: none
+export-ctx: make object! [
+]
+Date: none
+Name: none
+Version: none
+File: none
+Home: none
+Author: none
+Owner: none
+Rights: none
+Needs: none
+Tabs: none
+Usage: none
+Comment: none
+History: none
+Language: none
+Content: none
+} logic! #[false] error! 
 {** User Error: Loading loop detected: aborted at %/home/giesse/Qtask/power-mezz/tests/data/module3.r
 ** Near: load-module module-name
 } error! 

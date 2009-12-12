@@ -7,7 +7,7 @@ Modules for REBOL 2
     Author: "Gabriele Santilli"
     File: %module.r
     License: "(C) 2008 Qtask, Inc. All rights reserved."
-    Version: 1.1.1
+    Version: 1.1.2
 
 ===Introduction
 
@@ -332,7 +332,12 @@ Finally, we |do| the |body|, and return |result|.
     if from [return append search-path script]
     either any [url? script #"/" = first script] [
         if loaded: select modules script [return loaded]
-        loaded: load/header script
+        parse loaded: load/header script [
+            'REBOL block! (
+                loaded: next loaded
+                loaded/1: construct loaded/1
+            )
+        ]
         unless module? loaded/1 [
             throw make error! rejoin ["Not a module: " mold script]
         ]
