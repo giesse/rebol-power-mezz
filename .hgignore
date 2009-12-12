@@ -66,5 +66,7 @@
 ^schemes/chain.r$
 ^schemes/filter.html$
 ^schemes/filter.r$
+^schemes/hardball.html$
+^schemes/hardball.r$
 ^schemes/tee.html$
 ^schemes/tee.r$

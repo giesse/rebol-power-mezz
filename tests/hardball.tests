@@ -1,0 +1,84 @@
+REBOL [
+    Type: Module
+    Title: "Tests for Hardball"
+    Author: "Gabriele Santilli"
+    Imports: [%schemes/hardball.r %mezz/test-trace.r %mezz/messages.r]
+]
+
+[
+    {Set up defaults}
+    server-rsa-key: load %tests/data/hardball-test-server-key.r
+    client-rsa-key: load %tests/data/hardball-test-client-key.r
+    client-public-key: client-rsa-key/n
+    server-public-key: server-rsa-key/n
+    configure-hardball [
+        public-key: server-public-key
+        private-key: server-rsa-key
+        allowed-peers: reduce [client-public-key]
+    ]
+    {Simplest server test}
+    call reduce [system/options/boot "-qws" %tests/data/hardball-test-client.r]
+    start-test
+    serve-modules %mezz/text-encoding.r
+    end-test
+]
+[
+    form client-config: make-hardball-configuration [
+        public-key: client-public-key
+        private-key: client-rsa-key
+        allowed-peers: reduce [server-public-key]
+    ]
+]
+[
+    call reduce [system/options/boot "-qws" %tests/data/hardball-test-server.r]
+    wait 2
+    start-test
+    port: open-hardball-connection client-config tcp://localhost:1025
+    end-test
+]
+[
+    mold/only list-exported-modules port
+]
+[
+    mold/only list-exported-functions port %mezz/text-encoding.r
+]
+[
+    call-remote-function port %mezz/text-encoding.r [encode-text "Is a < b?" 'html none none]
+]
+[
+    call-remote-function port %mezz/text-encoding.r [decode-text "Is a &lt; b?" 'html none none]
+]
+[
+    call-remote-function port %mezz/text-encoding.r [encode-text none none none none]
+]
+[
+    call-remote-function port %mezz/text-encoding.r [encode-text]
+]
+[
+    call-remote-function port %mezz/text-encoding.r [a-function]
+]
+[
+    configure-hardball [
+        public-key: client-public-key
+        private-key: client-rsa-key
+        allowed-peers: reduce [server-public-key]
+    ]
+    read hardball://localhost/mezz/text-encoding.r
+]
+[
+    module [
+        Imports: [hardball://localhost/mezz/text-encoding.r]
+        Globals: [remote-encode-text remote-decode-text]
+    ] [
+        remote-encode-text: :encode-text
+        remote-decode-text: :decode-text
+    ]
+    text: remote-encode-text "私は日本語を勉強しています。" 'html
+]
+[
+    remote-decode-text text 'html
+]
+[
+    send-message port port/locals/session [Quit]
+    true
+]

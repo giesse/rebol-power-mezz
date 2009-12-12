@@ -1,0 +1,55 @@
+REBOL [
+    Title: "RPC function call methods benchmarks"
+    Author: "Gabriele Santilli"
+]
+
+Init [
+    f: func [a [integer!] b [integer!] /c d [integer!] /e /f g [integer!] h [integer!]] [
+        reduce [a b c d e f g h]
+    ]
+
+    f2: func [:a [integer!] :b [integer!] :c [logic! none!] :d [integer! none!] :e [logic! none!] :f [logic! none!] :g [integer! none!] :h [integer! none!]] [
+        reduce [a b c d e f g h]
+    ]
+
+    args: next [f2 1 2 #[none] #[none] #[none] #[true] 3 4]
+    ;args2: next [f2 1 2 #[none] #[none] #[none] #[true] #[function! [] [print "Hello!"]] 4]
+]
+
+Direct [
+    f/f 1 2 3 4
+]
+Eithers [
+    either pick args 3 [
+        either pick args 5 [
+            either pick args 6 [
+                f/c/e/f pick args 1 pick args 2 pick args 4 pick args 7 pick args 8
+            ] [
+                f/c/e pick args 1 pick args 2 pick args 4
+            ]
+        ] [
+            either pick args 6 [
+                f/c/f pick args 1 pick args 2 pick args 4 pick args 7 pick args 8
+            ] [
+                f/c pick args 1 pick args 2 pick args 4
+            ]
+        ]
+    ] [
+        either pick args 5 [
+            either pick args 6 [
+                f/e/f pick args 1 pick args 2 pick args 7 pick args 8
+            ] [
+                f/e pick args 1 pick args 2
+            ]
+        ] [
+            either pick args 6 [
+                f/f pick args 1 pick args 2 pick args 7 pick args 8
+            ] [
+                f pick args 1 pick args 2
+            ]
+        ]
+    ]
+]
+Clone [
+    do back args
+]
