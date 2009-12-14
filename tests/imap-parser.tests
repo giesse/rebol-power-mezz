@@ -1,0 +1,78 @@
+REBOL [
+    Type: Module
+    Title: "Tests for the IMAP parser"
+    Author: "Gabriele Santilli"
+    Imports: [%parsers/imap-parser.r]
+]
+
+[
+    parse-imap-line "* CAPABILITY IMAP4rev1 STARTTLS AUTH=GSSAPI LOGINDISABLED" none
+]
+[
+    parse-imap-line "abcd OK CAPABILITY completed" none
+]
+[
+    parse-imap-line "* 22 EXPUNGE" none
+]
+[
+    parse-imap-line "* 23 EXISTS" none
+]
+[
+    parse-imap-line "* 3 RECENT" none
+]
+[
+    parse-imap-line "* 14 FETCH (FLAGS (\Seen \Deleted))" none
+]
+[
+    parse-imap-line "a047 OK NOOP completed" none
+]
+[
+    parse-imap-line "* BYE IMAP4rev1 Server logging out" none
+]
+[
+    parse-imap-line "A023 OK LOGOUT completed" none
+]
+[
+    parse-imap-line "+ YGgGCSqGSIb3EgECAgIAb1kwV6ADAgEFoQMCAQ+iSzBJoAMCAQGiQgRAtHTEuOP2BXb9sBYFR4SJlDZxmg39IxmRBOhXRKdDA0uHTCOT9Bq3OsUTXUlk0CsFLoa8j+gvGDlgHuqzWHPSQg==" none
+]
+[
+    parse-imap-line "A001 OK GSSAPI authentication successful" none
+]
+[
+    parse-imap-line "* OK [UNSEEN 12] Message 12 is first unseen" none
+]
+[
+    parse-imap-line "* OK [UIDVALIDITY 1857529045] UIDs valid" none
+]
+[
+    parse-imap-line "* OK [UIDNEXT 4392] Predicted next UID" none
+]
+[
+    parse-imap-line "* FLAGS (\Answered \Flagged \Deleted \Seen \Draft)" none
+]
+[
+    parse-imap-line "* OK [PERMANENTFLAGS (\Deleted \Seen \*)] Limited" none
+]
+[
+    form-imap [ ] [LIST "" "*"]
+]
+[
+    form-imap [ ] [NOOP]
+]
+[
+    form-imap [ ] [SEARCH UNDELETED]
+]
+[
+    form-imap [ ] [UID FETCH #1,2:5 (UID ENVELOPE FLAGS)]
+]
+[
+    form-imap [ ] [APPEND "Sent" (/Seen) {From: me
+To: you
+Subject: test
+
+This is a test.
+}]
+]
+[
+    form-imap [ ] [UID STORE 1234 +FLAGS.SILENT (/Seen /Answered)]
+]

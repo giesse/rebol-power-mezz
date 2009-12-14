@@ -56,6 +56,8 @@
 ^parsers/common-rules.r$
 ^parsers/css-parser.html$
 ^parsers/css-parser.r$
+^parsers/imap-parser.html$
+^parsers/imap-parser.r$
 ^parsers/ml-parser.html$
 ^parsers/ml-parser.r$
 ^parsers/rule-arguments.html$
