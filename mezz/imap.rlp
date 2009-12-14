@@ -1,0 +1,1302 @@
+IMAP access functions
+
+    Type: Module
+    Purpose: {
+        This module exports a number of functions to access mail on a IMAP server.
+    }
+    Author: "Gabriele Santilli"
+    File: %imap.r
+    Version: 1.0.0
+    License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
+    Imports: [
+        %mezz/mail.r "We need decode-email-field"
+    ]
+    Exports: [
+        open-mail-db
+        valid-mail-db?
+        refresh-mail-db
+        close-mail-db
+        list-mail-folders
+        get-unread-count
+        list-mail-messages
+        move-mail-message
+        copy-mail-message
+        compact-mail-folder
+        create-mail-folder
+        empty-mail-folder
+        delete-mail-folder
+        move-mail-folder
+        rename-mail-folder
+        create-mail-message
+        get-mail-message
+        change-message-flags
+        search-mail-messages
+    ]
+
+===Introduction
+
+This module defines a number of functions that can be used to access mail on
+a IMAP server.
+
+===Overview
+
+The documentation is slightly out of date.
+
+All the functions take a |db| argument,
+which contains the information needed to access the mail (eg. IMAP
+server access info, and so on). 
+You should always call the |open-mail-db| and |close-mail-db| functions; the former returns
+the value you should pass to all the other functions as the |db| argument (eg. it connects
+to the IMAP server, and so on).
+
+Please note that most functions may fail by throwing an error.
+
+    -main-:
+    ; we just need it loaded (so that it defines the scheme)
+    load-module %schemes/imapcommands.r
+
+    -support-functions-
+    -open-and-close-
+    -mail-folders-
+    -mail-messages-
+    -search-
+
+---Open and close functions
+
+    -open-and-close-:
+    open-mail-db: func [
+        "Open/initialize a mail database"
+        db "Block with [host: user: pass: secure: port:]"
+    ] [
+        -open-mail-db-
+    ]
+    valid-mail-db?: func [
+        "Validate IMAP settings"
+        db "Block with [host: user: pass: secure: port:]"
+    ] [
+        -validate-mail-db-
+    ]
+    refresh-mail-db: func [
+        "Make sure the mail database is still available, otherwise reopen it"
+        db "Result of open-mail-db"
+    ] [
+        -refresh-mail-db-
+    ]
+
+    close-mail-db: func [
+        "Close a mail database"
+        db "Result of open-mail-db"
+    ] [
+        -close-mail-db-
+    ]
+
++++Example usage
+
+    #lit db: open-mail-db [host: "imap.server.com" user: "joe" pass: "user" secure: no]
+    ; ...
+    close-mail-db db
+
+---Mail folders functions
+
+The |list-mail-folders| function returns the list of mail folders as a tree. The result is
+a block in the format |[any [name id flags sub-folders]]|, where |name| is a |string!| containing
+the folder name, |id| is the folder ID, |flags| is a block of folder flags (|children| means that it
+can have sub folders - if this flag is not present, an attempt to create a sub folder will fail -,
+|messages| means that it can contain messages - otherwise, it's not a real mail folder -, |new| means
+that there may be new messages since last check), and |sub-folders| is a block of sub folders in the
+same format.
+
+If the |/all| refinement is given, the result contains all available folders, including hidden folders
+(for IMAP, that means folders you are not subscribed to). Those folders will have the |hidden| flag.
+Note, that a hidden folder may still show in the result even without |/all| if any sub folder is not
+hidden.
+
+If the |/only| refinement is given, only the childs of the specified folder will be returned. |parent-id|
+is the folder ID of the parent; you can use |none| to get only the root folders. The |sub-folders| blocks
+are always empty in this case.
+
+    -mail-folders-:
+    list-mail-folders: func [
+        "List the existing mail folders"
+        db "Result of open-mail-db"
+        /all "Return all folders (including hidden folders)"
+        /only parent-id "Return only the childs of the specified folder (none for root)"
+
+        /local -lmf-locals-
+    ] [
+        -list-mail-folders-
+    ]
+
+|get-unread-count| returns the number of (not deleted) unread messages in the folder identified
+by |folder-id|.
+
+    -mail-folders-:
+    get-unread-count: func [
+        "Return the number of unread messages in a folder"
+        db "Result of open-mail-db"
+        folder-id
+
+        /local -gmc-locals-
+    ] [
+        -get-message-counts-
+    ]
+
+The |list-mail-messages| function returns a block of blocks; each block represents a mail
+message.
+
+The |columns| block is a block of words, and specifies the columns that should be returned.
+The list of recognized words are:
+
+:id - the message ID.
+
+:from - the message sender(s).
+
+:to - the message recipient(s).
+
+:subject - the message subject.
+
+:size - the RFC822 message size (in bytes).
+
+:flags - the message flags.
+
+:date - the date when the message was sent (according to message header).
+
+:received - the date when the message was received (according to the IMAP server).
+
+:sender - the actual message sender according to the IMAP server.
+
+:reply-to - the address to send replys to.
+
+:cc - the message carbon copy recipient(s).
+
+:bcc - the message blind carbon copy recipient(s); note that this only makes sense on
+something like a "Sent" folder; in principle you should never see this in a message
+you receive.
+
+:in-reply-to - the message's "In-Reply-To:" header (|string!|).
+
+:message-id - the sender's message id (|string!|) - do not confuse this with the ID column.
+
+:has-attachments - flag (|logic!|) that indicates whether the message has attachments; note that
+it is separate from |flags| because it is relatively expensive to compute.
+
+For any other word, |none| is returned as the value.
+
+    -mail-folders-:
+    list-mail-messages: func [
+        "List the messages contained in a folder"
+        db "Result of open-mail-db"
+        folder-id
+        columns [block!] "List of columns to return (must be non-empty)"
+        /only only-uids "Only list specified messages"
+        
+        /local -lmm-locals-
+    ] [
+        -list-mail-messages-
+    ]
+
+The |move-mail-message| and |copy-mail-message| functions respectively move or copy a message
+from a folder to another. The former function is a no-op if the destination folder is the same
+as the current message folder; the latter creates a copy of the message in that case (that is,
+after the copy the message will appear twice in the folder). |copy-mail-message| returns the
+message id of the copy.
+
+    -mail-folders-:
+    move-mail-message: func [
+        "Move a message from its current folder to another one"
+        db "Result of open-mail-db"
+        message-id
+        dest-folder-id
+
+        /local -mmm-locals-
+    ] [
+        -move-mail-message-
+    ]
+
+    copy-mail-message: func [
+        "Copy a message to another folder"
+        db "Result of open-mail-db"
+        message-id
+        dest-folder-id
+
+        /local -cmm-locals-
+    ] [
+        -copy-mail-message-
+    ]
+
+|compact-mail-folder| deletes the messages that have been marked for deletion;
+only the messages contained in the folder |folder-id| are affected.
+
+    -mail-folders-:
+    compact-mail-folder: func [
+        "Physically remove all the messages marked as deleted from a folder"
+        db "Result of open-mail-db"
+        folder-id "Folder to compact"
+    ] [
+        -compact-mail-folder-
+    ]
+
+The |create-mail-folder| function creates a new folder and returns its ID. Support
+of nested folders may differ across IMAP server implementations; the function will throw
+an error if the server does not allow creating the folder in the specified way.
+
+The |folder-name| should be UTF-8 encoded text.
+
+|flags| is modified with the actual folder flags after creation (according to the IMAP server).
+
+    -mail-folders-:
+    create-mail-folder: func [
+        "Create a new mail folder"
+        db "Result of open-mail-db"
+        parent-id "ID of parent folder, none for root folder"
+        folder-name [string!]
+        /with flags [block! none!] "Set desired flags for the new folder (only CHILDREN really matters)"
+
+        /local -cremf-locals-
+    ] [
+        -create-mail-folder-
+    ]
+
+The |empty-mail-folder| function destroys everything contained in a folder (including
+subfolders). All messages and subfolders are lost and cannot be recovered; this function
+should be used with great care, probably the UI should allow it only on a "Trashcan" folder.
+
+    -mail-folders-:
+    empty-mail-folder: func [
+        "Destroy the contents of a folder"
+        db "Result of open-mail-db"
+        folder-id
+    ] [
+        -empty-mail-folder-
+    ]
+
+The |delete-mail-folder| function deletes a folder and destroys its contents (including
+subfolders). It is similar to |empty-mail-folder|, but it removes the folder too. This
+function should be used with great care; the UI should rather move folders inside a "Trashcan"
+folder and then allow users to empty the trashcan.
+
+    -mail-folders-:
+    delete-mail-folder: func [
+        "Delete a mail folder"
+        db "Result of open-mail-db"
+        folder-id
+    ] [
+        -delete-mail-folder-
+    ]
+
+|move-mail-folder| moves a folder inside another folder. The function is a no-op if the
+folder is already a subfolder of the destination folder. Not all IMAP servers allow
+moving a folder inside another folder.
+
+    -mail-folders-:
+    move-mail-folder: func [
+        "Move a mail folder"
+        db "Result of open-mail-db"
+        folder-id
+        dest-folder-id
+
+        /local -mmf-locals-
+    ] [
+        -move-mail-folder-
+    ]
+
+|rename-mail-folder| changes the name of a folder. |new-folder-name| is UTF-8 encoded
+text.
+
+    -mail-folders-:
+    rename-mail-folder: func [
+        "Rename a mail folder"
+        db "Result of open-mail-db"
+        folder-id
+        new-folder-name [string!]
+
+        /local -rmf-locals-
+    ] [
+        -rename-mail-folder-
+    ]
+
++++Example usage
+
+An example of getting the list of messages in a folder, with each message
+block containing the message sender, the subject and the size.
+
+    #lit messages: list-mail-messages db folder-id [from subject size]
+
+---Mail messages functions
+
+The |create-mail-message| function stores |message| into the folder identified by |folder-id|.
+|message| is should be a standard REBOL email object, although we may want to handle attachments
+and other message parts separately (eg. |message/content| could be a block rather than a string,
+or we could have additional fields in the object). The details of the message format are yet to
+be decided. (Docs out of date - to be corrected.)
+
+The function returns the ID that has been assigned to the newly created message.
+
+    -mail-messages-:
+    create-mail-message: func [
+        "Create a new mail message in a folder"
+        db "Result of open-mail-db"
+        folder-id
+        message [object!] "Message object"
+
+        /local -cmm-locals-
+    ] [
+        -create-mail-message-
+    ]
+
+|get-mail-message| returns a standard REBOL email object (see notes above) given the |message-id|.
+When the |/part| refinement is used, the value (or, if a block is passed, a block of values) specified
+by |part-name| is returned.
+The |part-name| argument can be one of (or a list of words from):
+
+:flags - the result is a block with the message's flags; see |change-message-flags| below
+for more details;
+
+:source - the complete message source is returned (|string!|);
+
+:header - the message's header source is returned (|string!|);
+
+:text - the first message's displayable part is returned; if there are plain text and
+HTML parts, HTML is given precedence; if the message is not multipart, the message's body
+text is returned (|string!|);
+
+:text-plain - the first message's plain text part is returned; if the message is not multipart,
+and the message's body is plain text, that is returned; if there are no plain text parts, |none|
+is returned (|string!| or |none!|);
+
+:text-html - the first message's HTML part is returned; if the message is not multipart,
+and the message's body is HTML, that is returned; if there are no HTML parts, |none|
+is returned (|string!| or |none!|);
+
+:structure - the result is a block; the first value in the block is a |word!| specifying
+the multipart type if the message is multipart, otherwise it is |none|; in the latter case,
+|none| is followed by the content type, the paramenters (eg. charset,
+file name, etc.), the content id, the content description, the transfer encoding, and the size (encoded); in the former case, the |word!|
+is followed by one or more blocks, each one representing the structure of one part of the message;
+each one of these blocks has the same structure as the main block, since messages can be nested;
+
+:part/n - (this must be specified as a path because of the |n| arugment) returns the
+message's |n|-th part; |n| can be an |integer!| or a |tuple!| for nested parts;
+
+    -mail-messages-:
+    get-mail-message: func [
+        "Get the contents of a mail message"
+        db "Result of open-mail-db"
+        message-id
+        /part "Return a specific part of the message"
+            part-name [word! path! block!] "Message part to return"
+
+        /local -gmm-locals-
+    ] [
+        -get-mail-message-
+    ]
+
+|change-message-flags| sets the flags for a message. |flags| is a block of words.
+
+:read - message has been read.
+
+;:has-attachments - message has attachments.
+
+:replied - message has been replied to.
+
+:forwarded - message has been forwarded.
+
+:deleted - message has been marked for deletion.
+
+:flagged - message has been marked as special.
+
+    -mail-messages-:
+    change-message-flags: func [
+        "Change the flags for a message"
+        db "Result of open-mail-db"
+        message-id
+        flags [block!]
+
+        /local -cmf-locals-
+    ] [
+        -change-message-flags-
+    ]
+
+---Search function
+
+The |search-mail-messages| function lists all the messages in the mail base that match the
+search criteria specified in the |criteria| argument. This is a tree where each leaf specifies
+a "search key" to apply. The nodes containing the leafs specify the usual boolean operations
+AND, OR and NOT.
+
+Each node in the three is a block whose first value is a |word!|. The word specifies the kind of
+node; the following kinds are available (only a few are currently implemented - docs are out of date):
+
+:and - the content of the node is a list of sub-trees; the result of the search is the intersection
+of the results of each subtree;
+
+:or - the content of the node is a list of sub-trees; the result of the search is the union of the
+results of each subtree;
+
+:not - the content of the node is a sub-tree; the result of the search is the complement of the result
+of the subtree;
+
+:flag - the content of the node is a list of flags; the result of the search is the list of messages
+that have all the specified flags set;
+
+:bcc - the content of the node is a string; the result of the search is the list of messages where
+this string is a substring of the message's BCC field;
+
+:sent-before - the content of the node is a date; the result of the search is the list of messages that
+were sent (the RFC-822 Date: header is used) on or before the given date;
+
+:sent-after - the content of the node is a date; the result of the search is the list of messages that
+were sent (the RFC-822 Date: header is used) on or after the given date;
+
+:sent-on - the content of the node is a date; the result of the search is the list of messages that
+were sent (the RFC-822 Date: header is used) on the given date;
+
+:body - the content of the node is a string; the result of the search is the list of messages where
+this string is a substring of the message's body text;
+
+:cc - the content of the node is a string; the result of the search is the list of messages where
+this string is a substring of the message's CC field;
+
+:from - the content of the node is a string; the result of the search is the list of messages where
+this string is a substring of the message's FROM field;
+
+:header - the content of the node is two strings; the result of the search is the list of messages where
+the second string is a substring of the message's header field whose name is specified by the first string;
+
+:larger - the content of the node is an integer; the result of the search is the list of messages whose size
+is greater or equal to the specified value;
+
+:smaller - the content of the node is an integer; the result of the search is the list of messages whose size
+is lesser or equal to the specified value;
+
+:subject - the content of the node is a string; the result of the search is the list of messages where
+this string is a substring of the message's SUBJECT field;
+
+:text - the content of the node is a string; the result of the search is the list of messages where
+this string is a substring of the message's source text (including header, body, and so on);
+
+:to - the content of the node is a string; the result of the search is the list of messages where
+this string is a substring of the message's TO field;
+
+This currently returns a list of message UIDs.
+
+    -search-:
+    search-mail-messages: func [
+        "List the messages matching the search criteria"
+        db "Result of open-mail-db"
+        folder-id
+        criteria [block!] "Search criteria (see documentation)"
+
+        /local -smm-locals-
+    ] [
+        -search-mail-messages-
+    ]
+
++++Example usage
+
+The following example returns all messages whose subject contains "Qtask" and that were sent
+on or before March 15th. Each message block will contain the sender, the subject and the size.
+
+    #lit messages: search-mail-messages db folder-id [and [subject "Qtask"] [sent-before 15-Mar-2007]]
+
+===Implementation
+
+This implementation of the above API uses an IMAP server as the storage engine.
+
+---Open/initialize the mail database
+
+    -open-mail-db-:
+    if not object? db [db: context db]
+    context [
+        imap-port: open compose [
+            scheme: (either db/secure [['imapscommands]] [['imapcommands]])
+            host: db/host
+            user: db/user
+            pass: db/pass
+            if all [in db 'port integer? db/port] [port-id: db/port]
+        ]
+        selected-mailbox: none
+        select-response: none
+    ]
+
+---Validate the given IMAP settings
+
+    -validate-mail-db-:
+    not error? try [
+        db: open-mail-db db
+        insert db/imap-port [LIST "" "*"]
+        copy db/imap-port
+        close-mail-db db
+    ]
+
+---Check the IMAP connection, reopen it if necessary
+
+    -refresh-mail-db-:
+    if error? try [
+        insert db/imap-port [NOOP]
+        copy db/imap-port
+    ] [
+        attempt [close db/imap-port]
+        db/selected-mailbox: db/select-response: none
+        db/imap-port: open compose [
+            scheme: (to lit-word! db/imap-port/scheme)
+            host: db/imap-port/host
+            user: db/imap-port/user
+            pass: db/imap-port/pass
+            port-id: db/imap-port/port-id
+        ]
+    ]
+    db
+
+---Close the mail database
+
+    -close-mail-db-:
+    close db/imap-port
+
+---Return the headers for the messages contained in the folder identified by |folder-id|
+
+    -list-mail-messages-:
+    select-mailbox db folder-id
+    message-count: 0
+    parse db/select-response [
+        any [
+            into ['* integer! 'EXISTS message-count: (message-count: message-count/-2) to end]
+            |
+            into [word! 'OK into ['UIDVALIDITY set uidvalidity integer!] string!]
+            |
+            skip
+        ]
+    ]
+    result: make block! 256
+    if message-count < 1 [return result]
+    either block? only-uids [
+        if empty? only-uids [return result]
+        non-deleted: copy only-uids
+        sort non-deleted
+    ] [
+        insert db/imap-port [SEARCH UNDELETED]
+        parse copy db/imap-port [
+            any [
+                into ['* 'SEARCH non-deleted: some integer!]
+                |
+                skip
+            ]
+        ]
+        if any [not block? non-deleted empty? non-deleted] [return result]
+    ]
+    list: make issue! 256
+    parse non-deleted [
+        some [
+            set start-index integer! (end-index: start-index) [
+                some [(end-index: end-index + 1) 1 1 end-index] (repend list [start-index #":" end-index - 1 #","])
+                |
+                (repend list [start-index #","])
+            ]
+        ]
+    ]
+    remove back tail list
+    message: context [
+        id: 'UID
+        from: 'ENVELOPE
+        to: 'ENVELOPE
+        cc: 'ENVELOPE
+        subject: 'ENVELOPE
+        size: 'RFC822.SIZE
+        flags: 'FLAGS
+        date: 'ENVELOPE
+        received: 'INTERNALDATE
+        sender: 'ENVELOPE
+        reply-to: 'ENVELOPE
+        bcc: 'ENVELOPE
+        in-reply-to: 'ENVELOPE
+        message-id: 'ENVELOPE
+        has-attachments: 'BODY
+        structure: 'BODY
+    ]
+    columns: use columns reduce [columns]
+    set columns none
+    bind columns message
+    fetch-columns: to paren! replace unique reduce columns none [ ]
+    while [not empty? list] [
+        list-end: at list 256
+        either empty? list-end [
+            list-part: list
+            list: list-end
+        ] [
+            list-end: any [find list-end #"," tail list-end]
+            list-part: copy/part list list-end
+            list: next list-end
+        ]
+        insert db/imap-port 
+            head insert compose/only [FETCH (list-part) (fetch-columns)] either block? only-uids ['UID] [[ ]]
+        parse copy db/imap-port bind [
+            any [
+                (
+                    set message none
+                    foreach w [from to cc sender reply-to bcc] [
+                        set w make block! 4
+                    ]
+                )
+                into [
+                    '* integer! 'FETCH into [
+                        any [
+                            'ENVELOPE into [
+                                [set date [string! | date! | binary! | none!]]
+                                [
+                                    set subject [string! | binary!]
+                                    (subject: decode-email-field as-string subject)
+                                    |
+                                    none! (subject: copy "")
+                                ]
+                                [into [any [set address paren! (append-email from address)]] | none!]
+                                [into [any [set address paren! (append-email sender address)]] | none!]
+                                [into [any [set address paren! (append-email reply-to address)]] | none!]
+                                [into [any [set address paren! (append-email to address)]] | none!]
+                                [into [any [set address paren! (append-email cc address)]] | none!]
+                                [into [any [set address paren! (append-email bcc address)]] | none!]
+                                [set in-reply-to string! (in-reply-to: decode-email-field in-reply-to) | none!]
+                                [set message-id string! (message-id: decode-email-field message-id) | none!]
+                                to end
+                            ]
+                            |
+                            'RFC822.SIZE set size integer!
+                            |
+                            'UID set id integer! (id: reduce [folder-id uidvalidity id])
+                            |
+                            'FLAGS set flags paren! (flags: from-imap-flags flags)
+                            |
+                            'INTERNALDATE set received date!
+                            |
+                            'BODY set structure paren! (
+                                has-attachments: has-attachments? structure: parse-bodystructure structure
+                            )
+                        ]
+                    ]
+                ]
+                (repend/only result columns)
+                |
+                into [
+                    '* 'OK into ['PARSE] string! ; parse error with the message... not sure how to report it?
+                ]
+            ]
+            into ok-response
+        ] message
+    ]
+    result
+
++++|list-mail-messages|' locals
+
+    -lmm-locals-:
+    result message address message-count uidvalidity non-deleted list
+    start-index end-index list-part fetch-columns list-end
+
+---Return the total number of messages and the number of unread messages in the folder
+
+    -get-message-counts-:
+    select-mailbox db folder-id
+    insert db/imap-port [SEARCH UNDELETED UNSEEN]
+    parse copy db/imap-port [
+        any [
+            into ['* 'SEARCH unseen: some integer!]
+            |
+            skip
+        ]
+    ]
+    unless block? unseen [make error! "Unable to get number of unread messages"]
+    length? unseen
+
++++|get-message-counts|' locals
+
+    -gmc-locals-:
+    unseen
+
+---Store the mail message |message| inside the folder identified by |folder-id|
+
+    -create-mail-message-:
+    if not find db/imap-port/locals/capabilities 'UIDPLUS [
+        select-mailbox db folder-id
+        parse db/select-response [
+            any [
+                into [
+                    '* 'OK into ['UIDVALIDITY set uidvalidity integer!] string!
+                ]
+                |
+                into [
+                    '* 'OK into ['UIDNEXT set uid integer!] string!
+                ]
+                |
+                skip
+            ]
+        ]
+    ]
+    insert db/imap-port compose/only [APPEND (folder-id) (to-imap-flags message/flags) (message/source)]
+    either all [uidvalidity uid] [
+        copy db/imap-port
+    ] [
+        parse copy db/imap-port [
+            some [
+                into [word! 'OK into ['APPENDUID set uidvalidity integer! set uid integer!] string!]
+                |
+                skip
+            ]
+        ] 
+    ]
+    reduce [folder-id uidvalidity uid]
+
++++|create-mail-message|'s locals
+
+    -cmm-locals-:
+    uidvalidity uid
+
+---Change the flags of the message identified by |message-id| with |flags|
+
+    -change-message-flags-:
+    select-mailbox db message-id/1
+    ; TODO: check uidvalidity!
+    command: switch/default flags/1 [
+        + ['+FLAGS.SILENT]
+        - ['-FLAGS.SILENT]
+    ] [
+        'FLAGS.SILENT
+    ]
+    insert db/imap-port compose/only [UID STORE (message-id/3) (command) (to-imap-flags flags)]
+    copy db/imap-port
+
++++|change-message-flags|' locals
+
+    -cmf-locals-:
+    command
+
+---Return an object for the message identified by |message-id|
+
+    -get-mail-message-:
+    ; text is probably not a good idea
+    ; text-plain and text-html need to be converted to utf-8, but qmail is probably not going to use them anyway
+    ; typically what qmail will do is get structure, then get part/n
+    select-mailbox db message-id/1
+    either part [
+        switch/default part-name [
+            source [part-name: to path! [BODY.PEEK ""] result: 'message]
+            header [part-name: 'RFC822.HEADER result: 'message]
+            ;text text-plain text-html [
+            ;    part-name: 'BODY/1
+            ;    message: get-mail-message/part db message-id 'structure
+            ;    message: find-text-parts message
+            ;]
+            ;text [part-name/2: any [select message 'html select message 'text 1]]
+            ;text-plain [if not part-name/2: select message 'text [return none]]
+            ;text-html [if not part-name/2: select message 'html [return none]]
+            structure [part-name: 'BODY result: 'structure]
+        ] [
+            if path? part-name [
+                part-name/1: 'BODY.PEEK
+                ; hack...
+                part-name: form part-name
+                replace/all find/tail part-name "/" "/" "."
+                part-name: load part-name
+                result: 'message
+            ]
+        ]
+    ] [
+        part-name: to path! [BODY.PEEK ""]
+        result: 'message
+    ]
+    insert db/imap-port compose [UID FETCH (message-id/3) (part-name)]
+    parse copy db/imap-port [
+        some [
+            into [
+                '* integer! 'FETCH into [
+                    any [
+                        ['RFC822 | 'RFC822.HEADER | path!] set message [string! | binary!]
+                        |
+                        'FLAGS set flags paren! (flags: from-imap-flags flags)
+                        |
+                        'BODY set structure paren! (structure: parse-bodystructure structure)
+                        |
+                        'UID integer!
+                    ]
+                ]
+            ]
+            |
+            into [
+                '* 'OK into ['PARSE] string! ; parse error with the message... not sure how to report it?
+            ]
+        ]
+        into ok-response
+    ]
+    ; change into using message object, not result of import email; above needs to be changed too
+    ;if not part [message: import-email message]
+    get result
+
++++|get-mail-message|'s locals
+
+    -gmm-locals-:
+    message flags structure i type result
+
+---Move the message identified by |message-id| to the folder identified by |dest-folder-id|
+
+    -move-mail-message-:
+    new-id: copy-mail-message db message-id dest-folder-id
+    change-message-flags db message-id [+ Deleted]
+    new-id
+
++++|move-mail-message|'s locals
+
+    -mmm-locals-:
+    new-id
+
+---Create a new copy of the message identified by |message-id| inside |dest-folder-id| and return the message id of the copy
+
+    -copy-mail-message-:
+    if not find db/imap-port/locals/capabilities 'UIDPLUS [
+        select-mailbox db dest-folder-id
+        parse db/select-response [
+            any [
+                into [
+                    '* 'OK into ['UIDVALIDITY set dest-uidvalidity integer!] string!
+                ]
+                |
+                into [
+                    '* 'OK into ['UIDNEXT set new-uid integer!] string!
+                ]
+                |
+                skip
+            ]
+        ]
+    ]
+    select-mailbox db message-id/1
+    ; TODO: check uidvalidity!
+    old-uid: message-id/3
+    insert db/imap-port compose [UID COPY (old-uid) (dest-folder-id)]
+    either all [dest-uidvalidity new-uid] [
+        copy db/imap-port
+    ] [
+        parse copy db/imap-port [
+            any [
+                into [
+                    word! 'OK into ['COPYUID set dest-uidvalidity integer! 1 1 old-uid set new-uid integer!] string!
+                ] 
+                | 
+                skip
+            ]
+        ]
+    ]
+    reduce [dest-folder-id dest-uidvalidity new-uid]
+
++++|copy-mail-message|'s locals
+
+    -cmm-locals-:
+    dest-uidvalidity old-uid new-uid
+
+---Remove all the messages in |folder-id| which have the deleted flag
+
+    -compact-mail-folder-:
+    select-mailbox db folder-id
+    insert db/imap-port [EXPUNGE]
+    copy db/imap-port
+
+---Create a new folder in the folder |parent-id| and return its id
+
+    -create-mail-folder-:
+    delimiter: if any [children: all [flags find flags 'children] parent-id] [get-delimiter db/imap-port any [parent-id ""]]
+    name: either parent-id [
+        rejoin [parent-id delimiter folder-name]
+    ] [
+        folder-name
+    ]
+    insert db/imap-port compose [CREATE (either children [append copy name delimiter] [name])]
+    copy db/imap-port
+    if flags [
+        insert db/imap-port compose [LIST "" (name)]
+        if parse copy db/imap-port [
+            into ['* 'LIST set serv-flags [paren! | none!] skip [word! | string!]]
+            into ok-response
+        ] [
+            clear flags
+            if serv-flags [mk-folder-flags/to serv-flags flags]
+        ]
+    ]
+    attempt [ ; ignore errors with non-selectable folders (still need them subscribed)
+        insert db/imap-port compose [SUBSCRIBE (name)]
+        copy db/imap-port
+    ]
+    name
+
++++|create-mail-folder|'s locals
+
+    -cremf-locals-:
+    delimiter name children serv-flags
+
+---Destroy the contents of |folder-id|
+
+    -empty-mail-folder-:
+    insert db/imap-port compose [DELETE (folder-id)]
+    copy db/imap-port
+    insert db/imap-port compose [CREATE (folder-id)]
+    copy db/imap-port
+
+---Destroy the contents of |folder-id| and then remove |folder-id|
+
+    -delete-mail-folder-:
+    insert db/imap-port compose [UNSUBSCRIBE (folder-id)]
+    copy db/imap-port
+    insert db/imap-port compose [DELETE (folder-id)]
+    copy db/imap-port
+
+---Move |folder-id| inside of |dest-folder-id|
+
+    -move-mail-folder-:
+    delimiter: get-delimiter db/imap-port folder-id
+    name: last parse/all folder-id delimiter
+    if dest-folder-id [
+        delimiter: get-delimiter db/imap-port dest-folder-id
+        name: rejoin [dest-folder-id delimiter name]
+    ]
+    subfolders: copy [ ]
+    do-list db/imap-port 'lsub false folder-id subfolders
+    alter-subscription db/imap-port subfolders 'UNSUBSCRIBE
+    insert db/imap-port compose [UNSUBSCRIBE (folder-id)]
+    copy db/imap-port
+    insert db/imap-port compose [RENAME (folder-id) (name)]
+    copy db/imap-port
+    id-map: copy [ ]
+    make-id-map id-map folder-id name subfolders
+    foreach [from to] id-map [
+        insert db/imap-port compose [SUBSCRIBE (to)]
+        copy db/imap-port
+    ]
+    id-map
+
++++|move-mail-folder|'s locals
+
+    -mmf-locals-:
+    delimiter name subfolders id-map
+
+---Change the name of |folder-id| to |new-folder-name|
+
+    -rename-mail-folder-:
+    delimiter: get-delimiter db/imap-port folder-id
+    parent: copy/part folder-id any [find/last/tail folder-id delimiter 0]
+    append parent new-folder-name
+    subfolders: copy [ ]
+    do-list db/imap-port 'lsub false folder-id subfolders
+    alter-subscription db/imap-port subfolders 'UNSUBSCRIBE
+    insert db/imap-port compose [UNSUBSCRIBE (folder-id)]
+    copy db/imap-port
+    insert db/imap-port compose [RENAME (folder-id) (parent)]
+    copy db/imap-port
+    id-map: copy [ ]
+    make-id-map id-map folder-id parent subfolders
+    foreach [from to] id-map [
+        insert db/imap-port compose [SUBSCRIBE (to)]
+        copy db/imap-port
+    ]
+    id-map
+
++++|rename-mail-folder|'s locals
+
+    -rmf-locals-:
+    delimiter parent subfolders id-map
+
+---Search the mail base for messages matching |criteria|
+
+    -search-mail-messages-:
+    select-mailbox db folder-id
+    message-count: 0
+    parse db/select-response [
+        any [
+            into ['* integer! 'EXISTS message-count: (message-count: message-count/-2) to end]
+            |
+            into [word! 'OK into ['UIDVALIDITY set uidvalidity integer!] string!]
+            |
+            skip
+        ]
+    ]
+    result: reduce [uidvalidity]
+    if message-count < 1 [return result]
+    ; compile search criteria to imap search command
+    insert db/imap-port compile-search-criteria criteria
+    parse copy db/imap-port [
+        any [
+            into ['* 'SEARCH uids: some integer!]
+            |
+            skip
+        ]
+    ]
+    if not block? uids [return result]
+    append result uids
+
++++|search-mail-messages|'s locals
+
+    -smm-locals-:
+    result message-count uidvalidity uids
+
+---Return a list of the available folders
+
+    -list-mail-folders-:
+    ; need to add a way to hide/unhide folders (subscribe/unsubscribe)
+    result: make block! 16
+    do-list db/imap-port 'list only parent-id result
+    do-list/unhide db/imap-port 'lsub only parent-id result
+    unless all [
+        remove-hidden result
+    ]
+    result
+
++++|list-mail-folders|' locals
+
+    -lmf-locals-:
+    result
+
+===Support functions
+
+    -support-functions-:
+    append-email: func [output address] [
+        insert insert tail output
+            if address/1 [decode-email-field address/1]
+            if all [address/3 address/4 not empty? address/3 not empty? address/4] [
+                repend to email! address/3 ["@" address/4]
+            ]
+    ]
+    ok-response: [word! 'OK opt block! string!]
+    select-mailbox: func [db mailbox] [
+        if db/selected-mailbox <> mailbox [
+            insert db/imap-port compose [SELECT (mailbox)]
+            db/select-response: copy db/imap-port
+            db/selected-mailbox: mailbox
+        ]
+    ]
+    from-imap-flags: func [flags] [
+        flags: intersect to block! flags [/Seen /Answered /Deleted /Flagged /Draft]
+        forall flags [
+            flags/1: select [
+                /Seen read
+                /Answered replied
+                /Deleted deleted
+                /Flagged flagged
+                /Draft draft
+            ] flags/1
+        ]
+        flags
+    ]
+    to-imap-flags: func [flags /local res] [
+        res: make paren! length? flags
+        foreach flag flags [
+            switch flag [
+                read [append res /Seen]
+                replied [append res /Answered]
+                deleted [append res /Deleted]
+                flagged [append res /Flagged]
+                draft [append res /Draft]
+            ]
+        ]
+        res
+    ]
+    parse-bodystructure: func [structure /local result value mk1 mk2] [
+        result: copy [#[none]]
+        parse structure [
+            copy value [string! string!] ( ; content type
+                if any [empty? value/1 empty? value/2] [
+                    value: ["text" "plain"]
+                ]
+                value/1: to word! value/1
+                value/2: to word! value/2
+                append/only result to path! value
+            )
+            [
+                set value paren! ( ; charset etc. (parameters)
+                    value: to block! value
+                    forskip value 2 [value/1: to word! value/1]
+                    append/only result value
+                )
+                |
+                skip (append result none)
+            ]
+            mk1:
+            [string! | none!] ; content id
+            [string! | none!] ; content description
+            string!           ; encoding
+            integer!          ; size
+            mk2: (insert/part tail result mk1 mk2)
+            |
+            some [
+                set value paren! (append/only result parse-bodystructure value)
+            ]
+            set value string! (result/1: to word! value) ; multipart type
+        ]
+        result
+    ]
+    has-attachments?: func [structure] [
+        switch/default structure/1 [
+            #[none] [false]
+            alternative [
+                foreach part next structure [
+                    if has-attachments? part [return true]
+                ]
+                false
+            ]
+            ; I think this should be FALSE, though I haven't checked what Thunderbird does
+            related [false]
+        ] [
+            true
+        ]
+    ]
+    append-tree: func [tree path folderid flags only /local pos] [
+        either pos: find/skip tree path/1 4 [
+            either tail? next path [
+                either only [
+                    remove find pos/3 'Hidden
+                ] [
+                    pos/2: folderid
+                    pos/3: flags
+                ]
+            ] [
+                append-tree pos/4 next path folderid flags only
+            ]
+        ] [
+            unless only [
+                either tail? next path [
+                    repend tree [path/1 folderid flags copy [ ]]
+                ] [
+                    repend tree [path/1 none copy [children] pos: copy [ ]]
+                    append-tree pos next path folderid flags only
+                ]
+            ]
+        ]
+    ]
+    mk-folder-flags: func [flags /to result] [
+        unless result [result: make block! 4]
+        unless find flags /NoInferiors [append result 'children]
+        unless find flags /NoSelect [append result 'messages]
+        if find flags /Marked [append result 'new]
+        result
+    ]
+    remove-hidden: func [folders] [
+        remove-each [name id flags sub-folders] folders [
+            remove-hidden sub-folders
+            all [find flags 'hidden empty? sub-folders id <> "INBOX"]
+        ]
+    ]
+    get-delimiter: func [port parent /local delimiter] [
+        insert port reduce [
+            'list parent ""
+        ]
+        unless all [
+            parse copy port [
+                into ['* 'LIST skip set delimiter [word! | string! | none!] skip]
+                into ok-response
+            ]
+            delimiter
+        ] [
+            make error! "Unknown hierarchy delimiter for folder"
+        ]
+        delimiter
+    ]
+    do-list: func [port cmd only parent result /unhide /local flags delimiter folder] [
+        if parent [
+            delimiter: get-delimiter port parent
+            parent: join parent delimiter
+        ]
+        insert port reduce [
+            cmd any [parent ""] either only ["%"] ["*"]
+        ]
+        unless parse copy port [
+            any [
+                into [
+                    '* ['LIST | 'LSUB] set flags [paren! | none!] set delimiter [word! | string! | none!] opt integer! [
+                        set folder word! (folder: form folder)
+                        |
+                        set folder string!
+                        |
+                        set folder binary! (folder: as-string folder)
+                    ]
+                ] (
+                    ; LSUB may return "folder/" instead of "folder" if the client subscribed it that way
+                    ; (eg. Thunderbird). LIST always returns "folder" though, so we have a problem if we don't
+                    ; remove the delimiter.
+                    if all [delimiter delimiter/1 = last folder] [remove back tail folder]
+                    append-tree
+                        result
+                        either delimiter [
+                            parse/all either parent [find/match folder parent] [folder] form delimiter
+                        ] [
+                            reduce [folder]
+                        ]
+                        folder
+                        append mk-folder-flags flags 'Hidden
+                        unhide
+                )
+            ]
+            into ok-response
+        ] [
+            make error! "Can't parse folder list"
+        ]
+    ]
+    alter-subscription: func [
+        port
+        folders
+        action
+    ] [
+        foreach [name id flags sub-folders] folders [
+            insert port compose [(action) (id)]
+            copy port
+            alter-subscription port sub-folders action
+        ]
+    ]
+    make-id-map: func [
+        map
+        from
+        to
+        sub-folders
+    ] [
+        insert insert map from to
+        foreach [name id flags sub-folders] sub-folders [
+            make-id-map map id join to skip id length? from sub-folders
+        ]
+        map
+    ]
+    node-types: context [
+        and: or: subject: from: to: cc: bcc: body: none
+    ]
+    node-types/and: func [output args] [
+        foreach node args [
+            compile-node output node
+        ]
+    ]
+    node-types/or: func [output args /local paren] [
+        paren: make paren! 8
+        append/only output paren
+        append paren 'OR
+        foreach node args [
+            compile-node paren node
+        ]
+    ]
+    node-types/subject: func [output args] [
+        repend output ['SUBJECT args/1]
+    ]
+    node-types/from: func [output args] [
+        repend output ['FROM args/1]
+    ]
+    node-types/to: func [output args] [
+        repend output ['TO args/1]
+    ]
+    node-types/cc: func [output args] [
+        repend output ['CC args/1]
+    ]
+    node-types/bcc: func [output args] [
+        repend output ['BCC args/1]
+    ]
+    node-types/body: func [output args] [
+        repend output ['BODY args/1]
+    ]
+    compile-node: func [output node /local type] [
+        unless type: in node-types node/1 [
+            make error! "Invalid search criteria"
+        ]
+        do type output next node
+    ]
+    compile-search-criteria: func [criteria /local res] [
+        res: copy [UID SEARCH UNDELETED]
+        compile-node res criteria
+        res
+    ]

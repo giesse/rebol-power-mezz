@@ -24,12 +24,16 @@
 ^mezz/form-error.r$
 ^mezz/html-to-text.html$
 ^mezz/html-to-text.r$
+^mezz/imap.html$
+^mezz/imap.r$
 ^mezz/load-html.html$
 ^mezz/load-html.r$
 ^mezz/logging.html$
 ^mezz/logging.r$
 ^mezz/macros/trees.html$
 ^mezz/macros/trees.r$
+^mezz/mail.html$
+^mezz/mail.r$
 ^mezz/messages.html$
 ^mezz/messages.r$
 ^mezz/module.html$
