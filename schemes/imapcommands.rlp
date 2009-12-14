@@ -1,0 +1,198 @@
+imapcommands:// protocol handler
+
+    Type: Module
+    Purpose: {
+        This program defines the protocol handler for REBOL's imapcommands://
+        protocol scheme. The handler allows connecting to a IMAP server and
+        communicating with it via an IMAP dialect. This allows full access to
+        IMAP's features.
+    }
+    Author: "Gabriele Santilli"
+    File: %imapcommands.r
+    Version: 1.0.0
+    Imports: [
+        %parsers/imap-parser.r
+        %mezz/collect.r
+    ]
+
+===Introduction
+
+REBOL's |imap://| protocol handler is too limited for the purpose of writing a complete
+IMAP client. For this reason, |imapcommands://| was created, that allows a lower level,
+but more complete, access to IMAP servers.
+
+===Overview
+
+This is a *pass-thru* protocol handler; authentication is handled automatically
+on |open|; other than that, commands can be sent to the server using the |insert|
+function, and responses can be obtained using the |copy| function. (See |-handler-functions-|.)
+The handler accepts commands as REBOL values and transforms them to IMAP commands before
+sending them to the server; the server response is also parsed into REBOL values. So,
+the user of this protocol does not have to know IMAP syntax; however the user has to know
+how to use the IMAP commands.
+
+    -main-:
+    -support-functions-
+
+    make Root-Protocol [
+        port-flags: system/standard/port-flags/pass-thru
+        
+        -handler-functions-
+
+        net-utils/net-install IMAPcommands self 143
+        net-utils/net-install IMAPScommands self 993
+    ]
+
+===IMAP handler functions
+
+The handler functions are those that get called when using |open|, |insert| etc. on
+the |port!| value.
+
+The |open| function takes care of initializing the port, opening the TCP connection with
+the server, and performing the user authentication. CRAM-MD5 is the preferred method of
+authentication. If that fails, a simple LOGIN auth is attempted.
+
+    -handler-functions-:
+    open: func [port /local resp auth-done] [
+        port/locals: context [
+            tagid: 1
+            capabilities: none
+        ]
+        either port/scheme = 'IMAPScommands [
+            open-proto/secure/sub-protocol port 'ssl
+        ] [
+            open-proto port
+        ]
+        resp: read-line port
+        auth-done: parse resp ['* 'PREAUTH to end]
+        if not auth-done [
+            send-command port [CAPABILITY]
+            either parse copy port [
+                into ['* 'CAPABILITY resp: to end]
+                into [word! 'OK opt block! string!]
+            ] [
+                port/locals/capabilities: copy* resp
+            ] [
+                port/locals/capabilities: [AUTH=CRAM-MD5]
+            ]
+            if find port/locals/capabilities 'AUTH=CRAM-MD5 [
+                send-command port [AUTHENTICATE CRAM-MD5]
+                if parse read-line port ['+ set resp string!] [
+                    imap-do-cram-md5 port resp
+                    if parse last copy port [word! 'OK opt block! string!] [
+                        auth-done: yes
+                    ]
+                ]
+            ]
+        ]
+        ; attempt login in any case
+        if not auth-done [
+            send-command port compose [LOGIN (form port/user) (form port/pass)]
+            if parse last copy port [word! 'OK opt block! string!] [
+                auth-done: yes
+            ]
+        ]
+        if not auth-done [
+            net-error "No authentication method available"
+        ]
+        port/state/tail: 1
+    ]
+
+The |close-check| block is used by the default |close| function in |Root-Protocol| when
+closing the connection. This block means that the line |"Q1 LOGOUT"| is sent to the server,
+and there is no wait for a response.
+
+    -handler-functions-:
+    close-check: ["Q1 LOGOUT" none]
+
+The |insert| function allows sending a command to the server. The command must be provided
+as a REBOL block. (Example: |[FETCH 1 RFC822.HEADER]|.) See the documentation of |send-command|
+in |-support-functions-| for more details.
+
+    -handler-functions-:
+    insert: func [port value [block!]] [
+        send-command port value
+    ]
+
+The |pick| function allows getting one line of response from the server. *Please note
+that it does not return the whole response, just one line.* Use |copy| to get the whole
+response, or call |pick| repeatedly. (Note, that unlike |copy|, |pick| does not error out
+on a "NO" or "BAD" response from the server.)
+
+    -handler-functions-:
+    pick: func [port] [
+        read-line port
+    ]
+
+|copy| returns the server's response to the last sent command; each line returned by
+the server is contained in a block.
+
+    -handler-functions-:
+    copy: func [port /local resp] [
+        collect [
+            while [parse resp: read-line port ['* to end]] [keep/only resp]
+            if 'OK <> second resp [
+                net-error reform ["Server error: IMAP" next resp]
+            ]
+            keep/only resp
+        ]
+    ]
+
+===IMAP handler support functions
+
+We define |pick*|, |insert*| and |set-modes*| as shortcuts to the global functions. (|copy*|
+is already defined as an alias of |copy|.)
+
+    -support-functions-:
+    pick*: :pick
+    insert*: :insert
+    set-modes*: :set-modes
+
+|read-line| reads one line from the server. The line is parsed using the |parse-imap-line|
+function from the IMAP parser module into REBOL values.
+
+    -support-functions-:
+    read-line: func [port /local line] [
+        if line: pick* port/sub-port 1 [
+            net-utils/net-log line
+            parse-imap-line line port/sub-port
+        ]
+    ]
+
+The |send-command| function sends a command to the server. Each command must be
+prefixed by a unique tag; |port/locals/tagid| is used to generate it. |form-imap|
+(from the IMAP parser module) translates the |command| block into IMAP syntax;
+then each line of the command is sent
+to the server, waiting for the server's ready message before sending any literal string.
+
+    -support-functions-:
+    send-command: func [port command [block!]] [
+        command: form-imap reduce [rejoin ["A" port/locals/tagid " "]] command
+        net-utils/net-log command
+        port/locals/tagid: port/locals/tagid + 1
+        foreach line command [
+            if binary? line [
+                if not parse read-line port ['+ to end] [net-error "Server error: IMAP server not ready"]
+                set-modes* port/sub-port [lines: false binary: true]
+            ]
+            insert* port/sub-port line
+            if binary? line [
+                set-modes* port/sub-port [binary: false lines: true]
+            ]
+        ]
+    ]
+
+The |imap-do-cram-md5| function (taken almost as-is from REBOL's |imap://| protocol handler)
+is used to perform the CRAM-MD5 user authentication.
+
+    -support-functions-:
+    imap-do-cram-md5: func [port server-data /local send-data] [
+        server-data: debase/base server-data 64
+        send-data: reform [
+            port/user
+            lowercase enbase/base checksum/method/key server-data 'md5 port/pass 16
+        ]
+        send-data: enbase/base send-data 64
+        net-utils/net-log send-data
+        insert* port/sub-port send-data
+    ]

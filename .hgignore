@@ -70,5 +70,7 @@
 ^schemes/filter.r$
 ^schemes/hardball.html$
 ^schemes/hardball.r$
+^schemes/imapcommands.html$
+^schemes/imapcommands.r$
 ^schemes/tee.html$
 ^schemes/tee.r$
