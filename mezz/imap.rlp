@@ -6,10 +6,11 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.1.0
+    Version: 1.1.1
     License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
     Imports: [
-        %mezz/mail.r "We need decode-email-field"
+        %mezz/mail.r          "We need decode-email-field"
+        %mezz/text-encoding.r "utf-7-imap encoding"
     ]
     Exports: [
         open-mail-db
@@ -912,6 +913,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     -create-mail-folder-:
     db: pick-mail-db db
     delimiter: if any [children: all [flags find flags 'children] parent-id] [get-delimiter db/imap-port any [parent-id ""]]
+    folder-name: encode-text folder-name 'utf-7-imap
     name: either parent-id [
         rejoin [parent-id delimiter folder-name]
     ] [
@@ -994,7 +996,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     db: pick-mail-db db
     delimiter: get-delimiter db/imap-port folder-id
     parent: copy/part folder-id any [find/last/tail folder-id delimiter 0]
-    append parent new-folder-name
+    encode-text/to new-folder-name 'utf-7-imap parent
     subfolders: copy [ ]
     do-list db/imap-port 'lsub false folder-id subfolders
     alter-subscription db/imap-port subfolders 'UNSUBSCRIBE
@@ -1237,9 +1239,11 @@ This implementation of the above API uses an IMAP server as the storage engine.
                     append-tree
                         result
                         either delimiter [
-                            parse/all either parent [find/match folder parent] [folder] form delimiter
+                            parse/all
+                                decode-text either parent [find/match folder parent] [folder] 'utf-7-imap
+                                form delimiter
                         ] [
-                            reduce [folder]
+                            reduce [decode-text folder 'utf-7-imap]
                         ]
                         folder
                         append mk-folder-flags flags 'Hidden
