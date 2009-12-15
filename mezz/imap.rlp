@@ -6,7 +6,7 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.0.0
+    Version: 1.1.0
     License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r "We need decode-email-field"
@@ -37,6 +37,8 @@ IMAP access functions
 
 This module defines a number of functions that can be used to access mail on
 a IMAP server.
+
+It is designed to be easily used through Hardball.
 
 ===Overview
 
@@ -507,31 +509,32 @@ This implementation of the above API uses an IMAP server as the storage engine.
 
     -open-mail-db-:
     if not object? db [db: context db]
-    context [
-        imap-port: open compose [
-            scheme: (either db/secure [['imapscommands]] [['imapcommands]])
-            host: db/host
-            user: db/user
-            pass: db/pass
-            if all [in db 'port integer? db/port] [port-id: db/port]
+    any [
+        select-mail-db db
+        append-mail-db context [
+            imap-port: open-port db
+            selected-mailbox: none
+            select-response: none
         ]
-        selected-mailbox: none
-        select-response: none
     ]
 
 ---Validate the given IMAP settings
 
     -validate-mail-db-:
     not error? try [
-        db: open-mail-db db
-        insert db/imap-port [LIST "" "*"]
-        copy db/imap-port
-        close-mail-db db
+        ; if it's already open, then it is valid
+        unless select-mail-db db [
+            db: open-port db
+            insert db [LIST "" "*"]
+            copy db
+            close db
+        ]
     ]
 
 ---Check the IMAP connection, reopen it if necessary
 
     -refresh-mail-db-:
+    db: pick-mail-db db
     if error? try [
         insert db/imap-port [NOOP]
         copy db/imap-port
@@ -546,16 +549,18 @@ This implementation of the above API uses an IMAP server as the storage engine.
             port-id: db/imap-port/port-id
         ]
     ]
-    db
+    true
 
 ---Close the mail database
 
     -close-mail-db-:
+    db: take-mail-db db
     close db/imap-port
 
 ---Return the headers for the messages contained in the folder identified by |folder-id|
 
     -list-mail-messages-:
+    db: pick-mail-db db
     select-mailbox db folder-id
     message-count: 0
     parse db/select-response [
@@ -693,6 +698,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Return the total number of messages and the number of unread messages in the folder
 
     -get-message-counts-:
+    db: pick-mail-db db
     select-mailbox db folder-id
     insert db/imap-port [SEARCH UNDELETED UNSEEN]
     parse copy db/imap-port [
@@ -713,6 +719,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Store the mail message |message| inside the folder identified by |folder-id|
 
     -create-mail-message-:
+    db: pick-mail-db db
     if not find db/imap-port/locals/capabilities 'UIDPLUS [
         select-mailbox db folder-id
         parse db/select-response [
@@ -751,6 +758,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Change the flags of the message identified by |message-id| with |flags|
 
     -change-message-flags-:
+    db: pick-mail-db db
     select-mailbox db message-id/1
     ; TODO: check uidvalidity!
     command: switch/default flags/1 [
@@ -770,6 +778,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Return an object for the message identified by |message-id|
 
     -get-mail-message-:
+    db: pick-mail-db db
     ; text is probably not a good idea
     ; text-plain and text-html need to be converted to utf-8, but qmail is probably not going to use them anyway
     ; typically what qmail will do is get structure, then get part/n
@@ -836,6 +845,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Move the message identified by |message-id| to the folder identified by |dest-folder-id|
 
     -move-mail-message-:
+    db: pick-mail-db db
     new-id: copy-mail-message db message-id dest-folder-id
     change-message-flags db message-id [+ Deleted]
     new-id
@@ -848,6 +858,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Create a new copy of the message identified by |message-id| inside |dest-folder-id| and return the message id of the copy
 
     -copy-mail-message-:
+    db: pick-mail-db db
     if not find db/imap-port/locals/capabilities 'UIDPLUS [
         select-mailbox db dest-folder-id
         parse db/select-response [
@@ -891,6 +902,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Remove all the messages in |folder-id| which have the deleted flag
 
     -compact-mail-folder-:
+    db: pick-mail-db db
     select-mailbox db folder-id
     insert db/imap-port [EXPUNGE]
     copy db/imap-port
@@ -898,6 +910,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Create a new folder in the folder |parent-id| and return its id
 
     -create-mail-folder-:
+    db: pick-mail-db db
     delimiter: if any [children: all [flags find flags 'children] parent-id] [get-delimiter db/imap-port any [parent-id ""]]
     name: either parent-id [
         rejoin [parent-id delimiter folder-name]
@@ -930,6 +943,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Destroy the contents of |folder-id|
 
     -empty-mail-folder-:
+    db: pick-mail-db db
     insert db/imap-port compose [DELETE (folder-id)]
     copy db/imap-port
     insert db/imap-port compose [CREATE (folder-id)]
@@ -938,6 +952,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Destroy the contents of |folder-id| and then remove |folder-id|
 
     -delete-mail-folder-:
+    db: pick-mail-db db
     insert db/imap-port compose [UNSUBSCRIBE (folder-id)]
     copy db/imap-port
     insert db/imap-port compose [DELETE (folder-id)]
@@ -946,6 +961,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Move |folder-id| inside of |dest-folder-id|
 
     -move-mail-folder-:
+    db: pick-mail-db db
     delimiter: get-delimiter db/imap-port folder-id
     name: last parse/all folder-id delimiter
     if dest-folder-id [
@@ -975,6 +991,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Change the name of |folder-id| to |new-folder-name|
 
     -rename-mail-folder-:
+    db: pick-mail-db db
     delimiter: get-delimiter db/imap-port folder-id
     parent: copy/part folder-id any [find/last/tail folder-id delimiter 0]
     append parent new-folder-name
@@ -1001,6 +1018,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Search the mail base for messages matching |criteria|
 
     -search-mail-messages-:
+    db: pick-mail-db db
     select-mailbox db folder-id
     message-count: 0
     parse db/select-response [
@@ -1034,6 +1052,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Return a list of the available folders
 
     -list-mail-folders-:
+    db: pick-mail-db db
     ; need to add a way to hide/unhide folders (subscribe/unsubscribe)
     result: make block! 16
     do-list db/imap-port 'list only parent-id result
@@ -1299,4 +1318,39 @@ This implementation of the above API uses an IMAP server as the storage engine.
         res: copy [UID SEARCH UNDELETED]
         compile-node res criteria
         res
+    ]
+    mail-db-store: [ ]
+    select-mail-db: func [db /local pos] [
+        all [
+            pos: find mail-db-store reduce [db/host db/port db/user]
+            3 + index? pos
+        ]
+    ]
+    append-mail-db: func [db /local pos] [
+        pos: any [
+            find mail-db-store [#[none] #[none] #[none] #[none]]
+            tail mail-db-store
+        ]
+        change pos reduce [
+            db/imap-port/host db/imap-port/port-id db/imap-port/user
+            db
+        ]
+        3 + index? pos
+    ]
+    open-port: func [db] [
+        open compose [
+            scheme: (either db/secure [['imapscommands]] [['imapcommands]])
+            host: db/host
+            user: db/user
+            pass: db/pass
+            if all [in db 'port integer? db/port] [port-id: db/port]
+        ]
+    ]
+    pick-mail-db: func [db] [
+        pick mail-db-store db
+    ]
+    take-mail-db: func [db] [
+        also
+            pick mail-db-store db
+            change at mail-db-store db - 3 [#[none] #[none] #[none] #[none]]
     ]
