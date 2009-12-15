@@ -12,7 +12,7 @@ module [
     Imports: [%schemes/hardball.r]
 ] [
     serve-modules [
-        modules: %mezz/text-encoding.r
+        modules: [%mezz/text-encoding.r %mezz/imap.r]
         public-key: rsa-key/n
         private-key: rsa-key
         allowed-peers: reduce [client-public-key]

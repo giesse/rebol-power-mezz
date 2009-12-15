@@ -14,4 +14,17 @@ import: func [module] [
         set in system/words word get in module/export-ctx word
     ]
 ]
+load-hardball: does [
+    module [
+        Imports: [%schemes/hardball.r]
+    ] [
+        rsa-key: load %../tests/data/hardball-test-client-key.r
+        server-public-key: get in load %../tests/data/hardball-test-server-key.r 'n
+        configure-hardball [
+            public-key: rsa-key/n
+            private-key: rsa-key
+            allowed-peers: reduce [server-public-key]
+        ]
+    ]
+]
 halt

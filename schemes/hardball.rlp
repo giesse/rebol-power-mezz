@@ -7,7 +7,7 @@ Hardball
     }
     Author: "Gabriele Santilli"
     File: %hardball.r
-    Version: 1.0.0
+    Version: 1.0.1
     Imports: [
         %parsers/common-rules.r
         %parsers/rule-arguments.r
@@ -501,6 +501,7 @@ to both server and client (like the RSA keys) can be set here.
 
     -handler-functions-:
     open: func [port] [
+        setup-logging client-config!/logging
         port/sub-port: open-hardball-connection make client-config! [ ] [
             scheme: 'tcp
             host: port/host
@@ -623,7 +624,7 @@ This section contains the implementation of the lower lever client-side function
     -client-side-:
     client-config!: make config! [
         ; no logging by default
-        logging: [only [ ] to output]
+        logging: [only [print-at-all-costs] to output]
     ]
     send-and-receive: func [port message /local data] [
         with port/locals [
