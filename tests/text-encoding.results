@@ -119,4 +119,4 @@ and always came on a white horse.} </p> "^^/^^/" [<hr>] "^^/^^/"=
 } string! {This is a test - Questo è un test - これわテストです。} string! {This is a test - Questo è un test - これわテストです。} error! 
 {** User Error: json-utf8 encoding does not support decoding in place
 ** Near: decode-text/to tmp 'json-utf8 tmp
-} string! {This is a test - Questo è un test - これわテストです。} string! {A \\ JSON \" String \n with \/ special chars.}
+} string! {This is a test - Questo è un test - これわテストです。} string! {A \\ JSON \" String \n with \/ special chars.} string! "~peter/mail/台北/日本語" string! "~peter/mail/&U,BTFw-/&ZeVnLIqe-" string! "台北日本語" string! "&U,BTF2XlZyyKng-"

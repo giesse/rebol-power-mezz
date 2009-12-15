@@ -8,7 +8,7 @@ Text encoding and decoding functions
     }
     Author: "Gabriele Santilli"
     File: %text-encoding.r
-    Version: 1.2.0
+    Version: 1.3.0
     Imports: [
         %parsers/common-rules.r
     ]
@@ -948,6 +948,65 @@ Other Microsoft custom encodings follow:
     base64: make-encoding [
         encode: func [output text] [append output enbase text]
         decode: func [output text] [append output debase text]
+    ]
+
+The |utf-7-imap| encoding is used in IMAP to encode folder names.
+
+    -encodings-:
+    utf-7-imap: make-encoding [
+        special: charset [#"^(00)" - #"^(1F)" #"&" #"^(7F)"]
+        normal: exclude ascii-char special
+        decode: func [result text /local mk1 mk2] [
+            parse/all text [
+                some [
+                    mk1: some normal mk2: (insert/part tail result mk1 mk2)
+                    |
+                    "&-" (append result #"&")
+                    |
+                    #"&" copy mk1 to #"-" skip (modbase64-to-utf8 result mk1)
+                    |
+                    mk1: skip (append result mk1/1) ; invalid character
+                ]
+            ]
+            result
+        ]
+        modbase64-to-utf8: func [output encoded] [
+            encoded: debase
+                append
+                    replace/all encoded #"," #"/"
+                    pick ["" "===" "==" "="] 1 + remainder length? encoded 4
+            forskip encoded 2 [
+                append output encode-utf8 to integer! copy/part encoded 2
+            ]
+        ]
+        int-to-16bit: func [int] [
+            debase/base skip to-hex int 4 16
+        ]
+        encode: func [output text /local mk1 mk2 buffer] [
+            parse/all text [
+                some [
+                    mk1: some normal mk2: (insert/part tail output mk1 mk2)
+                    |
+                    #"&" (append output "&-")
+                    |
+                    (buffer: clear #{})
+                    some [
+                        copy mk1 [
+                            special | utf8-seq2 utf8-seq |
+                            utf8-seq3 2 utf8-seq | utf8-seq4 3 utf8-seq
+                        ] (
+                            ; this is not really correct... only valid for code points < 65536
+                            append buffer int-to-16bit decode-utf8 mk1
+                        )
+                    ]
+                    (
+                        buffer: replace/all trim/with enbase buffer #"=" #"/" #","
+                        insert insert insert tail output #"&" buffer #"-"
+                    )
+                ]
+            ]
+            output
+        ]
     ]
 
 The |quoted-printable| encoding is used in email to encode 8-bit

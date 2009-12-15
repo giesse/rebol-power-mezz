@@ -431,3 +431,15 @@ REBOL [
 [
     encode-text {A \ JSON " String ^/ with / special chars.} 'json-utf8
 ]
+[
+    str: decode-text "~peter/mail/&U,BTFw-/&ZeVnLIqe-" 'utf-7-imap
+]
+[
+    encode-text str 'utf-7-imap
+]
+[
+    str: decode-text "&U,BTF2XlZyyKng-" 'utf-7-imap
+]
+[
+    encode-text str 'utf-7-imap
+]
