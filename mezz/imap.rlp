@@ -6,7 +6,7 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.1.1
+    Version: 1.2.0
     License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
@@ -328,10 +328,7 @@ block containing the message sender, the subject and the size.
 ---Mail messages functions
 
 The |create-mail-message| function stores |message| into the folder identified by |folder-id|.
-|message| is should be a standard REBOL email object, although we may want to handle attachments
-and other message parts separately (eg. |message/content| could be a block rather than a string,
-or we could have additional fields in the object). The details of the message format are yet to
-be decided. (Docs out of date - to be corrected.)
+|message| should be a valid, standard Internet email message.
 
 The function returns the ID that has been assigned to the newly created message.
 
@@ -340,7 +337,7 @@ The function returns the ID that has been assigned to the newly created message.
         "Create a new mail message in a folder"
         db "Result of open-mail-db"
         folder-id
-        message [object!] "Message object"
+        message [string!] "Message text"
 
         /local -cmm-locals-
     ] [
@@ -737,7 +734,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
             ]
         ]
     ]
-    insert db/imap-port compose/only [APPEND (folder-id) (to-imap-flags message/flags) (message/source)]
+    insert db/imap-port compose/only [APPEND (folder-id) (to-imap-flags message/flags) (message)]
     either all [uidvalidity uid] [
         copy db/imap-port
     ] [

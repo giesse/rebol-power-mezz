@@ -91,7 +91,7 @@ DD7E623C8D0F351098FB3D64CFFAE5CA6FA0A218E5B07C4F52A87E9FF065CDEA
 9A18E0CE208D174C32068316BBEFB42003B767309C9A945972F9F294080E9929
 CCE6852D5FAD33537CA41E8D93E470C433DF6E122AD8090E9CBFF76182CB6841
 }]
-logging: [only [] to output]
+logging: [only [print-at-all-costs] to output]
 } block! [hello allowed key got-key 256 decrypted 20 key-ok role client encrypted-ver-number 256 verify got-ver-number 256 decrypted-ver-number 20 all-good] string! {%mezz/text-encoding.r [
     Title: "Text encoding and decoding functions" 
     Author: "Gabriele Santilli" 
@@ -109,7 +109,7 @@ logging: [only [] to output]
 ] %mezz/imap.r [
     Title: "IMAP access functions" 
     Author: "Gabriele Santilli" 
-    Version: 1.1.1 
+    Version: 1.2.0 
     Purpose: {
         This module exports a number of functions to access mail on a IMAP server.
     } 
