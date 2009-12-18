@@ -109,7 +109,7 @@ logging: [only [print-at-all-costs] to output]
 ] %mezz/imap.r [
     Title: "IMAP access functions" 
     Author: "Gabriele Santilli" 
-    Version: 1.2.0 
+    Version: 1.3.0 
     Purpose: {
         This module exports a number of functions to access mail on a IMAP server.
     } 
@@ -159,20 +159,28 @@ logging: [only [print-at-all-costs] to output]
         Imports: [%schemes/hardball.r] 
         Exports: [encode-text decode-text]
     ] 
-    config: make-hardball-configuration [] 
-    port: open-hardball-connection config tcp://localhost:1025 encode-text: func [
+    _config: make-hardball-configuration [] 
+    _port: open-hardball-connection _config _server-url: tcp://localhost:1025 encode-text: func [
         {Encode UTF-8 text to the specified encoding or charset} [catch] 
         text [#[datatype! any-string!]] 
         encoding [#[datatype! word!]] "Name of the target encoding - see docs" 
         /to output [#[datatype! any-string!]] "Output to this buffer"
     ] [
-        call-remote-function port %mezz/text-encoding.r [encode-text :text :encoding :to :output]
+        unless copy _port [
+            close _port 
+            _port: open-hardball-connection _config _server-url
+        ] 
+        call-remote-function _port %mezz/text-encoding.r [encode-text :text :encoding :to :output]
     ] decode-text: func [
         {Decode text from the specified encoding or charset to UTF-8} [catch] 
         text [#[datatype! any-string!]] 
         encoding [#[datatype! word!]] "Name of TEXT's encoding or charset" 
         /to output [#[datatype! any-string!]] "Output to this buffer"
     ] [
-        call-remote-function port %mezz/text-encoding.r [decode-text :text :encoding :to :output]
+        unless copy _port [
+            close _port 
+            _port: open-hardball-connection _config _server-url
+        ] 
+        call-remote-function _port %mezz/text-encoding.r [decode-text :text :encoding :to :output]
     ]
 ] string! {&#31169;&#12399;&#26085;&#26412;&#35486;&#12434;&#21193;&#24375;&#12375;&#12390;&#12356;&#12414;&#12377;&#12290;} string! "私は日本語を勉強しています。" logic! #[true]

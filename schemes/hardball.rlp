@@ -7,7 +7,7 @@ Hardball
     }
     Author: "Gabriele Santilli"
     File: %hardball.r
-    Version: 1.0.1
+    Version: 1.0.2
     Imports: [
         %parsers/common-rules.r
         %parsers/rule-arguments.r
@@ -652,8 +652,8 @@ This section contains the implementation of the lower lever client-side function
                 Exports: (extract function-list 2)
             ]
             keep [
-                config: make-hardball-configuration [ ]
-                port: open-hardball-connection config
+                _config: make-hardball-configuration [ ]
+                _port: open-hardball-connection _config _server-url:
             ]
             keep join tcp:// [server-host #":" server-port-id]
             foreach [name spec] function-list [
@@ -661,7 +661,12 @@ This section contains the implementation of the lower lever client-side function
                 keep 'func
                 keep/only spec
                 keep/only compose/only [
-                    call-remote-function port (module-name) (
+                    ; if we lost connection, try connecting again
+                    unless copy _port [
+                        close _port
+                        _port: open-hardball-connection _config _server-url
+                    ]
+                    call-remote-function _port (module-name) (
                         collect [
                             keep name
                             parse spec [
