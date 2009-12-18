@@ -6,7 +6,7 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.3.0
+    Version: 1.4.0
     License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
@@ -18,7 +18,7 @@ IMAP access functions
         refresh-mail-db
         close-mail-db
         list-mail-folders
-        get-unread-count
+        get-messages-count
         list-mail-messages
         move-mail-message
         copy-mail-message
@@ -134,10 +134,11 @@ are always empty in this case.
 by |folder-id|.
 
     -mail-folders-:
-    get-unread-count: func [
-        "Return the number of unread messages in a folder"
+    get-messages-count: func [
+        "Return the number of messages in a folder"
         db "Result of open-mail-db"
         folder-id
+        /unread "Return number of unread messages"
 
         /local -gmc-locals-
     ] [
@@ -709,7 +710,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     -get-message-counts-:
     db: pick-mail-db db
     select-mailbox db folder-id
-    insert db/imap-port [SEARCH UNDELETED UNSEEN]
+    insert db/imap-port either unread [[SEARCH UNDELETED UNSEEN]] [[SEARCH UNDELETED]]
     parse copy db/imap-port [
         any [
             into ['* 'SEARCH unseen: some integer!]
@@ -720,7 +721,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     unless block? unseen [make error! "Unable to get number of unread messages"]
     length? unseen
 
-+++|get-message-counts|' locals
++++|get-messages-count|'s locals
 
     -gmc-locals-:
     unseen
