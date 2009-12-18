@@ -6,7 +6,7 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.2.0
+    Version: 1.3.0
     License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
@@ -69,13 +69,13 @@ Please note that most functions may fail by throwing an error.
     -open-and-close-:
     open-mail-db: func [
         "Open/initialize a mail database"
-        db "Block with [host: user: pass: secure: port:]"
+        db "Object with [host: user: pass: secure: port:]"
     ] [
         -open-mail-db-
     ]
     valid-mail-db?: func [
         "Validate IMAP settings"
-        db "Block with [host: user: pass: secure: port:]"
+        db "Object with [host: user: pass: secure: port:]"
     ] [
         -validate-mail-db-
     ]
@@ -506,19 +506,27 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Open/initialize the mail database
 
     -open-mail-db-:
-    if not object? db [db: context db]
+    ; we need this because of SELECT-MAIL-DB below
+    unless db/port [
+        db/port: either db/secure [993] [143]
+    ]
     any [
-        select-mail-db db
+        select-mail-db/bump db
         append-mail-db context [
             imap-port: open-port db
             selected-mailbox: none
             select-response: none
+            refcount: 1
         ]
     ]
 
 ---Validate the given IMAP settings
 
     -validate-mail-db-:
+    ; we need this because of SELECT-MAIL-DB below
+    unless db/port [
+        db/port: either db/secure [993] [143]
+    ]
     not error? try [
         ; if it's already open, then it is valid
         unless select-mail-db db [
@@ -552,8 +560,11 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Close the mail database
 
     -close-mail-db-:
-    db: take-mail-db db
-    close db/imap-port
+    db: pick-mail-db db
+    if 0 = db/refcount: max 0 db/refcount - 1 [
+        attempt [close db/imap-port]
+    ]
+    none
 
 ---Return the headers for the messages contained in the folder identified by |folder-id|
 
@@ -767,6 +778,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     ]
     insert db/imap-port compose/only [UID STORE (message-id/3) (command) (to-imap-flags flags)]
     copy db/imap-port
+    true
 
 +++|change-message-flags|' locals
 
@@ -904,6 +916,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     select-mailbox db folder-id
     insert db/imap-port [EXPUNGE]
     copy db/imap-port
+    true
 
 ---Create a new folder in the folder |parent-id| and return its id
 
@@ -947,6 +960,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     copy db/imap-port
     insert db/imap-port compose [CREATE (folder-id)]
     copy db/imap-port
+    true
 
 ---Destroy the contents of |folder-id| and then remove |folder-id|
 
@@ -956,6 +970,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     copy db/imap-port
     insert db/imap-port compose [DELETE (folder-id)]
     copy db/imap-port
+    true
 
 ---Move |folder-id| inside of |dest-folder-id|
 
@@ -1321,22 +1336,22 @@ This implementation of the above API uses an IMAP server as the storage engine.
         res
     ]
     mail-db-store: [ ]
-    select-mail-db: func [db /local pos] [
-        all [
+    select-mail-db: func [db /bump /local pos] [
+        db: all [
             pos: find mail-db-store reduce [db/host db/port db/user]
             3 + index? pos
         ]
-    ]
-    append-mail-db: func [db /local pos] [
-        pos: any [
-            find mail-db-store [#[none] #[none] #[none] #[none]]
-            tail mail-db-store
+        if all [db bump] [
+            pos/4/refcount: pos/4/refcount + 1
         ]
-        change pos reduce [
+        db
+    ]
+    append-mail-db: func [db] [
+        append mail-db-store reduce [
             db/imap-port/host db/imap-port/port-id db/imap-port/user
             db
         ]
-        3 + index? pos
+        length? mail-db-store
     ]
     open-port: func [db] [
         open compose [
@@ -1344,14 +1359,9 @@ This implementation of the above API uses an IMAP server as the storage engine.
             host: db/host
             user: db/user
             pass: db/pass
-            if all [in db 'port integer? db/port] [port-id: db/port]
+            port-id: db/port
         ]
     ]
     pick-mail-db: func [db] [
         pick mail-db-store db
-    ]
-    take-mail-db: func [db] [
-        also
-            pick mail-db-store db
-            change at mail-db-store db - 3 [#[none] #[none] #[none] #[none]]
     ]
