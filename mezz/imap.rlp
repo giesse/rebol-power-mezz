@@ -6,7 +6,7 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.4.0
+    Version: 1.5.0
     License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
@@ -18,7 +18,7 @@ IMAP access functions
         refresh-mail-db
         close-mail-db
         list-mail-folders
-        get-messages-count
+        get-message-counts
         list-mail-messages
         move-mail-message
         copy-mail-message
@@ -130,15 +130,14 @@ are always empty in this case.
         -list-mail-folders-
     ]
 
-|get-unread-count| returns the number of (not deleted) unread messages in the folder identified
-by |folder-id|.
+|get-message-counts| returns a block with the number of messages and unread messages in the folder
+identified by |folder-id|.
 
     -mail-folders-:
-    get-messages-count: func [
+    get-message-counts: func [
         "Return the number of messages in a folder"
         db "Result of open-mail-db"
         folder-id
-        /unread "Return number of unread messages"
 
         /local -gmc-locals-
     ] [
@@ -541,7 +540,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Check the IMAP connection, reopen it if necessary
 
     -refresh-mail-db-:
-    db: pick-mail-db db
+    unless db: pick-mail-db db [return false]
     if error? try [
         insert db/imap-port [NOOP]
         copy db/imap-port
@@ -710,7 +709,16 @@ This implementation of the above API uses an IMAP server as the storage engine.
     -get-message-counts-:
     db: pick-mail-db db
     select-mailbox db folder-id
-    insert db/imap-port either unread [[SEARCH UNDELETED UNSEEN]] [[SEARCH UNDELETED]]
+    parse db/select-response [
+        any [
+            into [
+                '* set value integer! 'EXISTS (total: value)
+            ]
+            |
+            skip
+        ]
+    ]
+    insert db/imap-port [SEARCH UNDELETED UNSEEN]
     parse copy db/imap-port [
         any [
             into ['* 'SEARCH unseen: some integer!]
@@ -719,12 +727,12 @@ This implementation of the above API uses an IMAP server as the storage engine.
         ]
     ]
     unless block? unseen [make error! "Unable to get number of unread messages"]
-    length? unseen
+    reduce [total length? unseen]
 
 +++|get-messages-count|'s locals
 
     -gmc-locals-:
-    unseen
+    value total unseen
 
 ---Store the mail message |message| inside the folder identified by |folder-id|
 
