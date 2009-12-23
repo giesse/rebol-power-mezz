@@ -6,9 +6,10 @@ IMAP Parser
     }
     Author: "Gabriele Santilli"
     File: %imap-parser.r
-    Version: 1.0.0
+    Version: 1.0.1
     Imports: [
         %parsers/common-rules.r
+        %mezz/logging.r
     ]
     Exports: [
         parse-imap-line
@@ -126,7 +127,10 @@ Documentation still to be written.
         port: port'
         reset
         result: curr
-        if not parse/all line response [net-error "Parse error"]
+        if not parse/all line response [
+            append-log 'error ["Unable to parse this line:^/" line]
+            net-error "Parse error"
+        ]
         result
     ]
 
