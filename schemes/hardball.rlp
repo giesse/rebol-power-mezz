@@ -7,7 +7,7 @@ Hardball
     }
     Author: "Gabriele Santilli"
     File: %hardball.r
-    Version: 1.0.2
+    Version: 1.0.3
     Imports: [
         %parsers/common-rules.r
         %parsers/rule-arguments.r
@@ -538,6 +538,7 @@ This section contains the implementation of the lower lever client-side function
         session: make-messages-session
         ; TODO: fix this
         session/role: 'client
+        session/max-block-length: 1024 * 1024
         configuration: config
     ] [
         greet-messages-peer server session configuration

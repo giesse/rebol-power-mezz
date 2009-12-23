@@ -109,7 +109,7 @@ logging: [only [print-at-all-costs] to output]
 ] %mezz/imap.r [
     Title: "IMAP access functions" 
     Author: "Gabriele Santilli" 
-    Version: 1.3.0 
+    Version: 1.5.0 
     Purpose: {
         This module exports a number of functions to access mail on a IMAP server.
     } 
@@ -119,7 +119,7 @@ logging: [only [print-at-all-costs] to output]
         refresh-mail-db 
         close-mail-db 
         list-mail-folders 
-        get-unread-count 
+        get-message-counts 
         list-mail-messages 
         move-mail-message 
         copy-mail-message 
