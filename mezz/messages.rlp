@@ -7,7 +7,7 @@ Functions to send and receive encrypted message packets
     }
     Author: "Gabriele Santilli"
     File: %messages.r
-    Version: 1.0.2
+    Version: 1.0.3
     Imports: [
         %mezz/sequences.r
         %mezz/test-trace.r
@@ -561,7 +561,7 @@ In this section we list and define all the message-level errors.
 ===Random number generator initialization
 
     -rng-init-:
-    random-seed: either exists? %/dev/urandom [
+    random-seed: either all [system/version/4 <> 3 exists? %/dev/urandom] [
         p: open/direct/binary/read %/dev/urandom
         also
             copy/part p 20
