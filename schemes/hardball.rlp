@@ -7,7 +7,7 @@ Hardball
     }
     Author: "Gabriele Santilli"
     File: %hardball.r
-    Version: 1.0.3
+    Version: 1.0.4
     Imports: [
         %parsers/common-rules.r
         %parsers/rule-arguments.r
@@ -664,7 +664,7 @@ This section contains the implementation of the lower lever client-side function
                 keep/only compose/only [
                     ; if we lost connection, try connecting again
                     unless copy _port [
-                        close _port
+                        attempt [close _port]
                         _port: open-hardball-connection _config _server-url
                     ]
                     call-remote-function _port (module-name) (
