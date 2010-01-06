@@ -221,9 +221,8 @@ REBOL [
     ]
 ]
 [
-    filter-html/with {<a href="http://qtask.com" style="text-align:center;"><span style="text-decoration:underline;">Example Text</span></a>} [
-        target: 'editor
-    ]
+    ; removed useless old test
+    true
 ]
 [
     filter-html/with {<blockquote class="webkit-indent-blockquote" style="margin: 0 0 0 40px; border: none; padding: 0px;">sdfsdfsdfsdf</blockquote>} [
@@ -387,4 +386,7 @@ Continued.<br>} [
 ]
 [
 	filter-html {<pre>   some   text   <span style="color: red;">with   colors</span>   and   spaces</pre>}
+]
+[
+    filter-html/all read %tests/data/13.html
 ]

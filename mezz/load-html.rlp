@@ -6,7 +6,7 @@ Parse HTML text into a tree
     }
     Author: "Gabriele Santilli"
     File: %load-html.r
-    Version: 1.1.3
+    Version: 1.1.4
     Imports: [
         %parsers/ml-parser.r
         %mezz/niwashi.r
@@ -185,7 +185,12 @@ This module is a complete HTML parser, supporting HTML 3.2 to 4.1 and XHTML 1.0.
             set-node body-node/previous: head-node
         ]
         unless get-node head-node/childs/title [
-            set-node head-node/childs/1/previous: make-node 'title
+            either empty? get-node head-node/childs [
+                title-node: make-node 'title
+                set-node title-node/parent: head-node
+            ] [
+                set-node head-node/childs/1/previous: make-node 'title
+            ]
         ]
     ] [
         enter-child niwashi [type: 'html]
@@ -200,7 +205,7 @@ This module is a complete HTML parser, supporting HTML 3.2 to 4.1 and XHTML 1.0.
 ---|load-html|'s locals
 
     -lh-locals-:
-    attach? result html-node head-node body-node
+    attach? result html-node head-node body-node title-node
 
 ===Form |html| into HTML text
 

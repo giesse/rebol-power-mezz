@@ -64,3 +64,9 @@ REBOL [
 [
 	form-html load-html {<pre>   some   text   <span style="color: red;">with   colors</span>   and   spaces</pre>}
 ]
+[
+	form-html/with load-html read %tests/data/13.html [pretty?: true]
+]
+[
+	form-html/with load-html/with read %tests/data/13.html [always [ignore meta]] [pretty?: true]
+]
