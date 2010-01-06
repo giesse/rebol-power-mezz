@@ -166,7 +166,7 @@ logging: [only [print-at-all-costs] to output]
         encoding [#[datatype! word!]] "Name of the target encoding - see docs" 
         /to output [#[datatype! any-string!]] "Output to this buffer"
     ] [
-        unless copy _port [
+        unless attempt [copy _port] [
             attempt [close _port] 
             _port: open-hardball-connection _config _server-url
         ] 
@@ -177,7 +177,7 @@ logging: [only [print-at-all-costs] to output]
         encoding [#[datatype! word!]] "Name of TEXT's encoding or charset" 
         /to output [#[datatype! any-string!]] "Output to this buffer"
     ] [
-        unless copy _port [
+        unless attempt [copy _port] [
             attempt [close _port] 
             _port: open-hardball-connection _config _server-url
         ] 
