@@ -6,7 +6,7 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.5.0
+    Version: 1.5.1
     License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
@@ -943,7 +943,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
     if flags [
         insert db/imap-port compose [LIST "" (name)]
         if parse copy db/imap-port [
-            into ['* 'LIST set serv-flags [paren! | none!] skip [word! | string!]]
+            into ['* 'LIST set serv-flags [paren! | none!] skip [word! | string! | integer!]]
             into ok-response
         ] [
             clear flags
@@ -1245,8 +1245,8 @@ This implementation of the above API uses an IMAP server as the storage engine.
         unless parse copy port [
             any [
                 into [
-                    '* ['LIST | 'LSUB] set flags [paren! | none!] set delimiter [word! | string! | none!] opt integer! [
-                        set folder word! (folder: form folder)
+                    '* ['LIST | 'LSUB] set flags [paren! | none!] set delimiter [word! | string! | none!] [
+                        set folder [word! | integer!] (folder: form folder)
                         |
                         set folder string!
                         |

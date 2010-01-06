@@ -76,3 +76,9 @@ This is a test.
 [
     form-imap [ ] [UID STORE 1234 +FLAGS.SILENT (/Seen /Answered)]
 ]
+[
+    mold/all parse-imap-line {* LIST (\HasNoChildren) "/" 1_Test} none
+]
+[
+    mold/all parse-imap-line {* LIST (\HasNoChildren) "/" 123} none
+]

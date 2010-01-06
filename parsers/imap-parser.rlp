@@ -6,7 +6,7 @@ IMAP Parser
     }
     Author: "Gabriele Santilli"
     File: %imap-parser.r
-    Version: 1.0.1
+    Version: 1.0.2
     Imports: [
         %parsers/common-rules.r
         %mezz/logging.r
@@ -86,7 +86,8 @@ Documentation still to be written.
         ]
         opt [space "(" thru ")"]
     ]
-    number: [copy value some digit (emit to integer! value)] ; should be unsigned... :(
+    afternumber: charset " )]"
+    number: [copy value some digit [end | mk1: afternumber :mk1] (emit to integer! value)] ; should be unsigned... :(
     string: [quoted | literal]
     quoted: [
         #"^"" (str: make string! 256) any [
