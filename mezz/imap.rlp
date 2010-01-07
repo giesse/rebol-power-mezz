@@ -6,7 +6,7 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.5.1
+    Version: 1.5.2
     License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
@@ -864,7 +864,6 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Move the message identified by |message-id| to the folder identified by |dest-folder-id|
 
     -move-mail-message-:
-    db: pick-mail-db db
     new-id: copy-mail-message db message-id dest-folder-id
     change-message-flags db message-id [+ Deleted]
     new-id
