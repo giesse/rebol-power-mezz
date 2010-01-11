@@ -7,7 +7,7 @@ Functions to send and receive encrypted message packets
     }
     Author: "Gabriele Santilli"
     File: %messages.r
-    Version: 1.0.3
+    Version: 1.0.4
     Imports: [
         %mezz/sequences.r
         %mezz/test-trace.r
@@ -550,11 +550,11 @@ In this section we list and define all the message-level errors.
     Block-Too-Short: ["Message too short (" :arg1 "bytes)"]
     Block-Too-Long: ["Message too long (" :arg1 "bytes)"]
     Can't-Decrypt: "Unable to decrypt message"
-    Not-Welcome: ["Peer" mold :arg1 "is not welcome"]
+    Not-Welcome: ["Peer" mold copy/part :arg1 5 "is not welcome"]
     Rude: "Peer is being rude (expected Hello message)"
     Key-Length: ["Invalid random number length" :arg1 "(expected 20)"]
     Key-Expected: "Unexpected message (expected 160 bit random number)"
-    Liar: ["Peer attempted to deceive us (received" mold :arg1 ", expected" mold :arg2 ")"]
+    Liar: ["Peer attempted to deceive us (received" mold copy/part :arg1 5 ", expected" mold copy/part :arg2 5 ")"]
     Verification-Expected: "Unexpected message (expected verification number)"
     Handshake-Complete: "Handshake phase already complete, please don't call handle-handshake-message"
 

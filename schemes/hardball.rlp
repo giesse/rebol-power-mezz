@@ -7,7 +7,7 @@ Hardball
     }
     Author: "Gabriele Santilli"
     File: %hardball.r
-    Version: 1.0.5
+    Version: 1.0.6
     Imports: [
         %parsers/common-rules.r
         %parsers/rule-arguments.r
@@ -200,7 +200,7 @@ to both server and client (like the RSA keys) can be set here.
         port-id: 1025
         logging: [only [fatal error info] to output]
     ]
-    listen-awake: func [port /local conn] [
+    listen-awake: func [port /local conn error] [
         ; we have a new connection
         conn: first port
         append-log 'info ["Hello to" conn/remote-ip ":" conn/remote-port]
@@ -211,12 +211,19 @@ to both server and client (like the RSA keys) can be set here.
             buffer: copy #{}
         ]
         conn/awake: :server-awake
-        append connections conn
-        append-test-trace 'greeting
-        greet-messages-peer conn conn/locals/session configuration
+        ; if we get an error here, we just close the connection
+        if error? error: try [
+            append-test-trace 'greeting
+            greet-messages-peer conn conn/locals/session configuration
+            append connections conn
+        ] [
+            append-test-trace 'error-sending-greeting
+            append-log 'error ["Error sending greeting, closing connection:" form-error disarm error]
+            attempt [close conn]
+        ]
         false
     ]
-    server-awake: func [port /local data message] [
+    server-awake: func [port /local data message error] [
         ; incoming data
         unless data: attempt [copy port] [
             append-log 'info ["Goodbye to" port/remote-ip ":" port/remote-port]
@@ -227,12 +234,20 @@ to both server and client (like the RSA keys) can be set here.
         ]
         with port/locals [
             append buffer data
-            while [message: receive-message buffer session] [
-                append-test-trace 'got-message
-                if handle-message port session message [
-                    append-test-trace ['handle-message 'returned 'true]
-                    return true
+            if error? error: try [
+                while [message: receive-message buffer session] [
+                    append-test-trace 'got-message
+                    if handle-message port session message [
+                        append-test-trace ['handle-message 'returned 'true]
+                        return true
+                    ]
                 ]
+            ] [
+                append-test-trace ['error 'during 'receive-message 'or 'handle-message]
+                append-log 'error ["Error while receiving/handling message:" form-error disarm error]
+                append-log 'info ["Closing connection with" port/remote-ip ":" port/remote-port]
+                attempt [close port]
+                remove find connections port
             ]
         ]
         false
@@ -486,7 +501,6 @@ to both server and client (like the RSA keys) can be set here.
                 ]
             ]
         ] [
-            ; TODO: errors
             append-test-trace 'still-handshake
             message: handle-handshake-message session configuration message
             if block? message [
@@ -545,8 +559,7 @@ This section contains the implementation of the lower lever client-side function
         forever [
             wait server
             unless data: copy server [
-                ; TODO: errors
-                throw make error! "Connection unexpectedly closed during handshake"
+                throw-error ['Unexpected-Close "during handshake"]
             ]
             append buffer data
             while [message: receive-message buffer session] [
@@ -572,7 +585,7 @@ This section contains the implementation of the lower lever client-side function
     parse send-and-receive server [List] [
         'Modules 'List list: (return list)
         |
-        (throw make error! "Unexpected response")
+        list: (throw-error ['Unexpected-Response list])
     ]
 
 +++|list-exported-modules|'s locals
@@ -586,7 +599,7 @@ This section contains the implementation of the lower lever client-side function
     parse send-and-receive server reduce ['List module] [
         'Module module 'Exports list: (return list)
         |
-        (throw make error! "Unexpected response")
+        list: (throw-error ['Unexpected-Response list])
     ]
 
 +++|list-exported-functions|'s locals
@@ -610,8 +623,20 @@ This section contains the implementation of the lower lever client-side function
             throw make error! next next second result
         )
         |
-        ; TODO: other errors
-        (throw make error! "Unexpected response")
+        'Error copy result [
+            [
+                'Invalid-Arguments
+                |
+                'Unknown-Function
+                |
+                'Unknown-Module
+                |
+                'Unknown-Command
+            ]
+            string!
+        ] (throw-error [result/1 result/2])
+        |
+        result: (throw-error ['Unexpected-Response result])
     ]
     get/any 'result
 
@@ -633,8 +658,7 @@ This section contains the implementation of the lower lever client-side function
             forever [
                 wait port
                 unless data: copy port [
-                    ; TODO: errors
-                    throw make error! "Connection unexpectedly closed"
+                    throw-error ['Unexpected-Close "(expecting response)"]
                 ]
                 append buffer data
                 if message: receive-message buffer session [
@@ -713,3 +737,17 @@ This section contains the implementation of the lower lever client-side function
         ]
         cfg
     ]
+    ; errors
+    throw-error: func [args [block! word!]] [
+        throw make error! join [Hardball] args
+    ]
+    system/error/hardball: make system/error/hardball [
+        -error-list-
+    ]
+
+---List of error values
+
+    -error-list-:
+    Unexpected-Close: ["Connection unexpectedly closed" :arg1]
+    Unexpected-Response: ["Unexpected response from peer:" copy/part mold/only :arg1 15]
+    Invalid-Arguments: Unknown-Function: Unknown-Module: Unknown-Command: ["Peer says:" :arg1]

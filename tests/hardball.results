@@ -109,7 +109,7 @@ logging: [only [print-at-all-costs] to output]
 ] %mezz/imap.r [
     Title: "IMAP access functions" 
     Author: "Gabriele Santilli" 
-    Version: 1.5.1 
+    Version: 1.5.2 
     Purpose: {
         This module exports a number of functions to access mail on a IMAP server.
     } 
@@ -148,11 +148,11 @@ logging: [only [print-at-all-costs] to output]
 ]} string! "Is a &lt; b?" string! "Is a < b?" error! 
 {** Script Error: encode-text expected text argument of type: any-string
 ** Near: call-remote-function port %mezz/text-encoding.r [encode-text none none none none]
-} fail 
-{** User Error: Unexpected response
+} error! 
+{** Hardball Error: Peer says: Invalid argument list for that function
 ** Near: call-remote-function port %mezz/text-encoding.r [encode-text]
-} fail 
-{** User Error: Unexpected response
+} error! 
+{** Hardball Error: Peer says: The module does not export that function
 ** Near: call-remote-function port %mezz/text-encoding.r [a-function]
 } block! [REBOL [
         Type: Module 
