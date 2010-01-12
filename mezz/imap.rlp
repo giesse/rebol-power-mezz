@@ -6,8 +6,8 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.5.2
-    License: "(C) 2007-2009 Qtask, Inc. All rights reserved."
+    Version: 1.6.0
+    License: "(C) 2007-2010 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
         %mezz/text-encoding.r "utf-7-imap encoding"
@@ -15,6 +15,7 @@ IMAP access functions
     Exports: [
         open-mail-db
         valid-mail-db?
+        check-mail-db
         refresh-mail-db
         close-mail-db
         list-mail-folders
@@ -78,6 +79,12 @@ Please note that most functions may fail by throwing an error.
         db "Object with [host: user: pass: secure: port:]"
     ] [
         -validate-mail-db-
+    ]
+    check-mail-db: func [
+        "Attempt connection, throw error or return true"
+        db "Object with [host: user: pass: secure: port:]"
+    ] [
+        -check-mail-db-
     ]
     refresh-mail-db: func [
         "Make sure the mail database is still available, otherwise reopen it"
@@ -523,19 +530,25 @@ This implementation of the above API uses an IMAP server as the storage engine.
 ---Validate the given IMAP settings
 
     -validate-mail-db-:
+    not error? try [
+        check-mail-db db
+    ]
+
+---Check IMAP settings, throw error, or return true if all is ok
+
+    -check-mail-db-:
     ; we need this because of SELECT-MAIL-DB below
     unless db/port [
         db/port: either db/secure [993] [143]
     ]
-    not error? try [
-        ; if it's already open, then it is valid
-        unless select-mail-db db [
-            db: open-port db
-            insert db [LIST "" "*"]
-            copy db
-            close db
-        ]
+    ; if it's already open, then it is valid
+    unless select-mail-db db [
+        db: open-port db
+        insert db [LIST "" "*"]
+        copy db
+        close db
     ]
+    true
 
 ---Check the IMAP connection, reopen it if necessary
 
