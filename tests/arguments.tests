@@ -1,0 +1,44 @@
+REBOL [
+    Type: Module
+    Title: "Tests for the arguments handling module"
+    Author: "Gabriele Santilli"
+    ; just to set the dependency
+    Imports: [%mezz/arguments.r]
+]
+
+[
+    call/output reduce [
+        system/options/boot %tests/data/test-arguments.r "help"
+    ] str: ""
+    str
+]
+[
+    call/output reduce [
+        system/options/boot %tests/data/test-arguments.r
+    ] str: ""
+    str
+]
+[
+    call/output reduce [
+        system/options/boot %tests/data/test-arguments.r 4200
+    ] str: ""
+    str
+]
+[
+    call/output reduce [
+        system/options/boot %tests/data/test-arguments.r "config /etc/qtask/mail-proxy.conf"
+    ] str: ""
+    str
+]
+[
+    call/output reduce [
+        system/options/boot %tests/data/test-arguments.r "pid /var/run/qtask/mail-proxy.pid"
+    ] str: ""
+    str
+]
+[
+    call/output reduce [
+        system/options/boot %tests/data/test-arguments.r "4200 config /etc/qtask/mail-proxy.conf pid /var/run/qtask/mail-proxy.pid"
+    ] str: ""
+    str
+]

@@ -1,0 +1,36 @@
+string! {IMAP proxy daemon
+Usage:
+
+^-<port-number> - Port number to listen to (default: 1025)
+^-^-Default can be set with the variable MAIL_PROXY_PORT
+^-config <config-file> - Specify alternate configuration file name (default: .conf)
+^-^-Default can be set with the variable MAIL_PROXY_CONFIG
+^-pid <pid-file> - Specify alternate PID file name (default: .pid)
+^-^-Default can be set with the variable MAIL_PROXY_PID
+
+} string! {make object! [
+    port-number: 1025
+    config-file: %.conf
+    pid-file: %.pid
+]
+} string! {make object! [
+    port-number: 4200
+    config-file: %.conf
+    pid-file: %.pid
+]
+} string! {make object! [
+    port-number: 1025
+    config-file: %/etc/qtask/mail-proxy.conf
+    pid-file: %.pid
+]
+} string! {make object! [
+    port-number: 1025
+    config-file: %.conf
+    pid-file: %/var/run/qtask/mail-proxy.pid
+]
+} string! {make object! [
+    port-number: 4200
+    config-file: %/etc/qtask/mail-proxy.conf
+    pid-file: %/var/run/qtask/mail-proxy.pid
+]
+}
