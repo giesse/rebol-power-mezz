@@ -1,0 +1,45 @@
+Stub code for "daemons" on Windows
+
+    Type: Module
+    Purpose: {
+        Contains stub code to allow running "daemon" programs on Windows.
+    }
+    Author: "Gabriele Santilli"
+    File: %windows-daemon.r
+    Version: 1.0.0
+    Imports: [
+        %mezz/logging.r
+    ]
+    Exports: [
+        start-daemon
+    ]
+
+===Introduction
+
+This module contains all the common code for "daemon" programs (eg. servers etc.)
+to be run on the Linux operating system. (All this is very likely to work on all Unix
+systems, though it has been tested on Linux only.)
+
+===Overview
+
+    -main-:
+    handler!: context [
+        title: "Daemon"
+        logging: [all to output]
+        on-init: none
+        on-wakeup: none
+        on-quit: none
+        on-child-termination: none
+        pid-file: none
+        wait-loop: none
+    ]
+    start-daemon: func [
+        "Stub function for compatibility with Linux"
+        handlers [block! object!] "Handler functions and other settings"
+    ] [
+        if block? handlers [handlers: make handler! handlers]
+        setup-logging handlers/logging
+        append-log 'info [handlers/title "starting up..."]
+        handlers/on-init
+        handlers/wait-loop
+    ]

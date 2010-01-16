@@ -28,6 +28,8 @@
 ^mezz/html-to-text.r$
 ^mezz/imap.html$
 ^mezz/imap.r$
+^mezz/linux-daemon.html$
+^mezz/linux-daemon.r$
 ^mezz/load-html.html$
 ^mezz/load-html.r$
 ^mezz/logging.html$
@@ -58,6 +60,8 @@
 ^mezz/text-to-html.r$
 ^mezz/trees.html$
 ^mezz/trees.r$
+^mezz/windows-daemon.html$
+^mezz/windows-daemon.r$
 ^parsers/common-rules.html$
 ^parsers/common-rules.r$
 ^parsers/css-parser.html$
