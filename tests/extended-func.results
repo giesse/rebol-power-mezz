@@ -1,0 +1,79 @@
+string! "#[function! [a b][a + b]]" string! {#[function! [
+    "This is a test function" [catch] 
+    a [number!] "First value" 
+    b [number!] "Second value" /local c
+][
+    c: a + b
+]]} string! {#[function! [
+    "More interesting" 
+    spec [block!] "List of named arguments" /local 
+    first-name 
+    last-name 
+    email-address 
+    home-page 
+    subscribe-newsletter
+][
+    subscribe-newsletter: #[true] 
+    parse 
+    spec [
+        any [
+            set local set-word! (
+                unless find [
+                    first-name: 
+                    last-name: 
+                    email-address: 
+                    home-page: 
+                    subscribe-newsletter:
+                ] local [
+                    make error! reduce ['script 'invalid-arg local]
+                ]
+            ) 
+            do-next (set bind local 'local pop-result) 
+            | 
+            local: skip (make error! reduce ['script 'invalid-arg local])
+        ]
+    ] 
+    reduce [
+        first-name 
+        last-name 
+        email-address 
+        home-page 
+        subscribe-newsletter
+    ]
+]]} block! ["Gabriele" "Santilli" #[none] #[none] #[true]] block! ["Gabriele" "Santilli" #[none] http://www.colellachiara.com/ #[false]] string! {#[function! [
+    "More interesting" 
+    spec [block!] "List of named arguments" /local 
+    first-name 
+    last-name 
+    email-address 
+    home-page 
+    subscribe-newsletter more-locals
+][
+    subscribe-newsletter: #[true] 
+    parse 
+    spec [
+        any [
+            set local set-word! (
+                unless find [
+                    first-name: 
+                    last-name: 
+                    email-address: 
+                    home-page: 
+                    subscribe-newsletter:
+                ] local [
+                    make error! reduce ['script 'invalid-arg local]
+                ]
+            ) 
+            do-next (set bind local 'local pop-result) 
+            | 
+            local: skip (make error! reduce ['script 'invalid-arg local])
+        ]
+    ] 
+    reduce [
+        first-name 
+        last-name 
+        email-address 
+        home-page 
+        subscribe-newsletter
+    ]
+]]}

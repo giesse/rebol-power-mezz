@@ -20,6 +20,8 @@
 ^mezz/collect.r$
 ^mezz/expand-macros.html$
 ^mezz/expand-macros.r$
+^mezz/extended-func.html$
+^mezz/extended-func.r$
 ^mezz/filter-html.html$
 ^mezz/filter-html.r$
 ^mezz/form-error.html$

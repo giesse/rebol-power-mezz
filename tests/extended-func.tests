@@ -1,0 +1,75 @@
+REBOL [
+    Type: Module
+    Title: "Tests for the extended FUNC"
+    Author: "Gabriele Santilli"
+    Imports: [%mezz/extended-func.r]
+]
+
+[
+    mold/all func [a b] [a + b]
+]
+[
+    mold/all func [
+        "This is a test function" [catch]
+        a [number!] "First value"
+        b [number!] "Second value"
+        /local c
+    ] [
+        c: a + b
+    ]
+]
+[
+    mold/all f: func [
+        "More interesting"
+        spec [
+            first-name: none [string!]
+            last-name: none [string!]
+            email-address: none [email! none!] "Optional address"
+            home-page: none [url! none!]
+            subscribe-newsletter: yes [logic!] "Should send spam? Default yes"
+        ]
+    ] [
+        reduce [
+            first-name
+            last-name
+            email-address
+            home-page
+            subscribe-newsletter
+        ]
+    ]
+]
+[
+    f [
+        first-name: "Gabriele"
+        last-name: "Santilli"
+    ]
+]
+[
+    f [
+        last-name: "Santilli"
+        subscribe-newsletter: no
+        home-page: http://www.colellachiara.com/
+        first-name: "Gabriele"
+    ]
+]
+[
+    mold/all func [
+        "More interesting"
+        spec [
+            first-name: none [string!]
+            last-name: none [string!]
+            email-address: none [email! none!] "Optional address"
+            home-page: none [url! none!]
+            subscribe-newsletter: yes [logic!] "Should send spam? Default yes"
+        ]
+        /local more-locals
+    ] [
+        reduce [
+            first-name
+            last-name
+            email-address
+            home-page
+            subscribe-newsletter
+        ]
+    ]
+]
