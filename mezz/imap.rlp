@@ -6,7 +6,7 @@ IMAP access functions
     }
     Author: "Gabriele Santilli"
     File: %imap.r
-    Version: 1.6.0
+    Version: 1.7.0
     License: "(C) 2007-2010 Qtask, Inc. All rights reserved."
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
@@ -811,22 +811,11 @@ This implementation of the above API uses an IMAP server as the storage engine.
 
     -get-mail-message-:
     db: pick-mail-db db
-    ; text is probably not a good idea
-    ; text-plain and text-html need to be converted to utf-8, but qmail is probably not going to use them anyway
-    ; typically what qmail will do is get structure, then get part/n
     select-mailbox db message-id/1
     either part [
         switch/default part-name [
             source [part-name: to path! [BODY.PEEK ""] result: 'message]
             header [part-name: 'RFC822.HEADER result: 'message]
-            ;text text-plain text-html [
-            ;    part-name: 'BODY/1
-            ;    message: get-mail-message/part db message-id 'structure
-            ;    message: find-text-parts message
-            ;]
-            ;text [part-name/2: any [select message 'html select message 'text 1]]
-            ;text-plain [if not part-name/2: select message 'text [return none]]
-            ;text-html [if not part-name/2: select message 'html [return none]]
             structure [part-name: 'BODY result: 'structure]
         ] [
             if path? part-name [
@@ -865,8 +854,6 @@ This implementation of the above API uses an IMAP server as the storage engine.
         ]
         into ok-response
     ]
-    ; change into using message object, not result of import email; above needs to be changed too
-    ;if not part [message: import-email message]
     get result
 
 +++|get-mail-message|'s locals
@@ -1142,6 +1129,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
                 deleted [append res /Deleted]
                 flagged [append res /Flagged]
                 draft [append res /Draft]
+                forwarded [append res #$Forwarded]
             ]
         ]
         res
@@ -1312,7 +1300,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
         map
     ]
     node-types: context [
-        and: or: subject: from: to: cc: bcc: body: none
+        and: or: subject: from: to: cc: bcc: body: unread: unforwarded: none
     ]
     node-types/and: func [output args] [
         foreach node args [
@@ -1344,6 +1332,12 @@ This implementation of the above API uses an IMAP server as the storage engine.
     ]
     node-types/body: func [output args] [
         repend output ['BODY args/1]
+    ]
+    node-types/unread: func [output args] [
+        append output 'UNSEEN
+    ]
+    node-types/unforwarded: func [output args] [
+        append output [UNKEYWORD #$Forwarded]
     ]
     compile-node: func [output node /local type] [
         unless type: in node-types node/1 [
