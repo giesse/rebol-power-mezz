@@ -1,20 +1,5 @@
-Power Mezz
-
-    Purpose: {
-        The Power Mezz package of REBOL scripts.
-    }
-    Author: "Gabriele Santilli"
-    Version: 1.0.0
-
-===Introduction
-
-This is a collection of useful REBOL scripts and modules. The goal of this
-project is to increase sharing across the REBOL community, and to reduce
-the need of reinventing the wheel for each developer.
-
-===License
-
-\note A message from Qtask about this source code:
+=================================
+A message from Qtask about this source code:
 
 We have selected the MIT license (as of 2010-Jan-1) because
 it is the closest “standard” license to our intent.  If we had our way,
@@ -22,11 +7,11 @@ we would declare this source as public domain, with absolutely no
 strings attached, not even the string that says you have to have
 strings.  We want to help people, so please feel free to contact us
 at API@Qtask.com if you have questions.
+ 
 
 (you only need to include the standard license text below in your
 homage to this source code)
-
-/note
+=================================
 
 Copyright 2010 Qtask, Inc.
 
@@ -48,4 +33,3 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
 OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
-
