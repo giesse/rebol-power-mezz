@@ -5,7 +5,6 @@ REBOL [
     Imports: [%mezz/filter-html.r]
 ]
 
-[true] ; compatibility with old test file
 [
     filter-html/all read %tests/data/rebol.com.html
 ]
@@ -29,9 +28,6 @@ REBOL [
 ]
 [
     filter-html/all read %tests/data/5.html
-]
-[
-    filter-html/all read %tests/data/6.html
 ]
 [
     filter-html/all read %tests/data/7.html
@@ -219,10 +215,6 @@ REBOL [
     filter-html/with {<span class="Apple-style-span" style="text-decoration:underline">Example Text</span>} [
         target: 'editor
     ]
-]
-[
-    ; removed useless old test
-    true
 ]
 [
     filter-html/with {<blockquote class="webkit-indent-blockquote" style="margin: 0 0 0 40px; border: none; padding: 0px;">sdfsdfsdfsdf</blockquote>} [

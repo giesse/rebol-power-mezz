@@ -1,1 +1,1 @@
-logic! #[true] string! "tag" string! "tag"
+string! "tag" string! "tag"

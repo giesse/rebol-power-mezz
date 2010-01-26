@@ -1,4 +1,4 @@
-logic! #[true] string! {<html>
+string! {<html>
 <head>
 <title lang="IT-it">This is a test</title>
 </head>

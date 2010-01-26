@@ -4,7 +4,6 @@ REBOL [
     Tests: [%mezz/module.r]
 ]
 
-[true] ; compatibility with old test file
 [
     form my-module: module [
         exports: [b]

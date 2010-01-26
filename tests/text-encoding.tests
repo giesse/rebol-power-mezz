@@ -5,7 +5,6 @@ REBOL [
     Imports: [%mezz/text-encoding.r]
 ]
 
-[true] ; compatibility with old test file
 [
     utf8-string: "This is a test - Questo è un test - これわテストです。"
     encode-text utf8-string 'utf8

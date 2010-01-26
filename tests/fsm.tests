@@ -5,7 +5,6 @@ REBOL [
     Imports: [%dialects/fsm.r]
 ]
 
-[true] ; compatibility with old test file
 [
 	result: [ ]
 	fsm: make-fsm [

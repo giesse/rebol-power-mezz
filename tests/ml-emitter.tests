@@ -5,7 +5,6 @@ REBOL [
     Imports: [%dialects/emit.r %dialects/ml-emitter.r]
 ]
 
-[true] ; compatibility with old test file
 [
     emit "" [
         tag 'html [ ] 'open newline

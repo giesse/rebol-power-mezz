@@ -5,7 +5,6 @@ REBOL [
     Imports: [%mezz/html-to-text.r]
 ]
 
-[true] ; compatibility with old test file
 [
     html-to-text read %tests/data/rebol.com.html
 ]
@@ -29,9 +28,6 @@ REBOL [
 ]
 [
     html-to-text read %tests/data/5.html
-]
-[
-    html-to-text read %tests/data/6.html
 ]
 [
     html-to-text read %tests/data/7.html

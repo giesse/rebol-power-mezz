@@ -1,0 +1,2449 @@
+string! { 
+
+== TABLE =============================================================
+--
+   || ||
+   || ||
+   || Web 3.0 starts here. Smarter, faster, better.
+   || 
+--
+   || ||
+--
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || ||
+   || --
+   ||    || ||
+   ||    ||  
+   ||    || ||
+   ||    || LANGUAGE
+   ||    ||    Overview [1] 
+   ||    ||   Downloads [2] 
+   ||    ||   Documents [3] 
+   ||    ||   Developer [4] 
+   ||    ||   Library [5] 
+   ||    ||   License [6] 
+   ||    ||   
+   ||    || COMPANY
+   ||    ||   
+   ||    || 
+   ||    || About [7] 
+   ||    ||   Support [8] 
+   ||    ||   Feedback [9] 
+   ||    ||   Contact [10] 
+   ||    ||   
+   ||    || 
+   || --
+   ||    || ||
+   ||    ||  
+   ||    || ||
+   ||    ||   
+   ||    ||   REBOL.COM 
+   ||    ||   REBOL.NET  
+   ||    ||        
+   ||    || 
+   || ================================================================
+   || 
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  [IMAGE] [11]  
+   ||    ||    ||    || 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || REBOL rebels against software complexity. 
+   ||    ||    ||    ||  Do it in 1MB, not 200MB.  
+   ||    ||    ||    || ----------------------------------------------
+   ||    ||    ||    || 
+   ||    ||    ||    ||  The new release is here... 
+   ||    ||    ||    ||  [IMAGE] [12]  
+   ||    ||    ||    ||  Vista, XP, OSX, Linux, BSD, and more.
+   ||    ||    ||    || 
+   ||    ||    ||    || ----------------------------------------------
+   ||    ||    ||    || 
+   ||    ||    ||    ||  
+   ||    ||    ||    || 
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    ||  REBOL 3 (3.0) Project Home Page [13]  
+   ||    ||    ||    ||    || 
+   ||    ||    ||    ||    || Redesigned, optimized, and enhanced. 
+   ||    ||    ||    ||    || 
+   ||    ||    ||    ||    ||  The main goal of REBOL 3.0 is to build 
+   ||    ||    ||    ||    || a lightweight, extensible platform that 
+   ||    ||    ||    ||    || operates over a variety of operating 
+   ||    ||    ||    ||    || systems and devices. 
+   ||    ||    ||    ||    || 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    ||    ||  
+   ||    ||    ||    || 
+   ||    ||    ||    || ----------------------------------------------
+   ||    ||    ||    || 
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || REBOL Guide du programmeur 
+   ||    ||    ||    ||    ||  By Olivier Auverlot 
+   ||    ||    ||    ||    ||  REBOL book in French Other REBOL books..
+   ||    ||    ||    ||    || . [14]  
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    ||    ||  More stuff... [15]  
+   ||    ||    ||    || 
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || New Stuff...
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || 27-Sep-2008 V2.7.6 Released [16]  
+   ||    ||    ||    ||    ||  Download it now! 
+   ||    ||    ||    ||    ||  Includes SDK tools. 
+   ||    ||    ||    ||    || V3.0 Unicode Alpha [17]  
+   ||    ||    ||    ||    ||  First words of Chinese, 
+   ||    ||    ||    ||    ||  other languages too. 
+   ||    ||    ||    ||    || 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || Learn Stuff...
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || What is REBOL? 
+   ||    ||    ||    ||    ||  A quick description. Learn REBOL [18]  
+   ||    ||    ||    ||    ||  Quick, light, and easy.
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || Community...
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || Vive la REBOLution 
+   ||    ||    ||    ||    ||  Carl's main blogThe REBOL Week [19]  
+   ||    ||    ||    ||    ||  News and events.
+   ||    ||    ||    ||    || Developer Central [20]  
+   ||    ||    ||    ||    ||  For techies only.
+   ||    ||    ||    ||    || 
+   ||    ||    ||    ||    || REBOL 3.0 Design [21]  
+   ||    ||    ||    ||    ||  Gurus building the 
+   ||    ||    ||    ||    ||  future.
+   ||    ||    ||    ||    || 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    ||    ||  [IMAGE]  [22]  
+   ||    ||    ||    || 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || ==========================================================
+   ||    || 
+   || ================================================================
+   || 
+--
+   || ||
+   || Updated 27-Sep-2008 [Edit [23] ] 
+   || ||
+   || Copyright 2008 REBOL Technologies 
+======================================================================
+
+
+[1] /index-lang.html
+[2] /download.html
+[3] /docs.html
+[4] http://www.rebol.net
+[5] http://www.rebol.org
+[6] /license.html
+[7] /mission.html
+[8] /support.html
+[9] /feedback.html
+[10] /contacts.html
+[11] sdk.html
+[12] http://www.rebol.com/view-platforms.html
+[13] rebol3/
+[14] http://www.rebol.com/books.html
+[15] more.html
+[16] http://www.rebol.net/upnews/0026.html
+[17] http://www.rebol.net/r3blogs/0117.html
+[18] tutorials.html
+[19] http://rebolweek.blogspot.com/
+[20] http://www.rebol.net
+[21] http://www.rebol.net/cgi-bin/r3blog.r
+[22] http://www4.clustrmaps.com/counter/maps.php?url=http://www.rebol.com
+[23] /cgi-bin/wip.r?r=edit+%25web/index.html&
+} string! {[IMAGE]
+======================================================================
+
+LEADING THE WEB TO ITS FULL POTENTIAL...
+
+ 
+
+Skip to Technologies [1]  | Activities [2]  | Technical Reports [3]  | 
+Site Index [4]  | New Visitors [5]  | About W3C [6]  | Join W3C [7]  | 
+Contact W3C [8]  
+
+The World Wide Web Consortium (W3C) develops interoperable 
+technologies (specifications, guidelines, software, and tools) to lead 
+the Web to its full potential. W3C is a forum for information, 
+commerce, communication, and collective understanding. On this page, 
+you'll find W3C news [9] , links to W3C technologies [10]  and ways to 
+get involved [11] . New visitors can find help in Finding Your Way at 
+W3C [12] . We encourage organizations to learn more about W3C [13]  
+and about W3C Membership [14] .
+
+XML10
+
+ [IMAGE]  [15]  
+
+ To celebrate ten years of XML [16] , W3C invites you to send a 
+greeting [17]  and tell us about an XML-related blog or article. Many 
+thanks to the FLWOR Foundation for their generous sponsorship of XML10.
+ 
+
+W3C SUPPORTERS
+
+Help W3C by making a donation through the W3C Supporters Program [18] .
+
+
+EMPLOYMENT
+
+Current job opportunities [19]  at W3C: Training and Mobile Web 
+Specialist [20] . Current W3C Fellows Program openings [21]  are 
+Business and Technology Communications Specialist [22] ; Software 
+Engineer [23] .
+
+W3C A TO Z [24] 
+
+    * Skip to News [25] 
+    * Accessibility [26] 
+    * Amaya [27] 
+    * CC/PP [28] 
+    * Compound Document Formats (CDF) [29] 
+    * CSS [30] 
+    * CSS Validator [31] 
+    * Databinding [32] 
+    * DOM [33] 
+    * Efficient XML Interchange [34] 
+    * Geolocation [35] 
+    * eGovernment [36] 
+    * GRDDL [37] 
+    * Health Care and Life Sciences [38] 
+    * HTML [39] 
+    * HTML Tidy [40] 
+    * HTML Validator [41] 
+    * HTTP [42] 
+    * Incubator [43] 
+    * InkML [44] 
+    * Internationalization [45] 
+    * Jigsaw [46] 
+    * Libwww [47] 
+    * MathML [48] 
+    * Media Annotations [49] 
+    * Media Fragments [50] 
+    * Mobile Web Initiative (W3C-MWI) [51] 
+    * Multimodal Interaction [52] 
+    * OWL [53] 
+    * Patent Policy [54] 
+    * PICS [55] 
+    * PNG [56] 
+    * POWDER [57] 
+    * Privacy and P3P [58] 
+    * RDF [59] 
+    * Rules [60] 
+    * Security [61] 
+    * Semantic Web [62] 
+    * Service Modeling Language (SML) [63] 
+    * SMIL [64] 
+    * SOAP/XMLP [65] 
+    * SOAP-JMS [66] 
+    * SPARQL [67] 
+    * Style [68] 
+    * SVG [69] 
+    * TAG [70] 
+    * Timed Text [71] 
+    * URI/URL [72] 
+    * Validators [73] 
+    * Video [74] 
+    * Voice [75] 
+    * Ubiquitous Web Applications [76] 
+    * WAI [77] 
+    * Web Applications [78] 
+    * Web Architecture (TAG) [79] 
+    * WebCGM [80] 
+    * Web Services [81] 
+    * WS-Addressing [82] 
+    * WS-CDL [83] 
+    * WSDL [84] 
+    * WS-Policy [85] 
+    * XForms [86] 
+    * XHTML [87] 
+    * XHTML2 [88] 
+    * XLink [89] 
+    * XML [90] 
+    * XML Base [91] 
+    * XML Key Management [92] 
+    * XML Processing [93] 
+    * XML Query [94] 
+    * XML Schema [95] 
+    * XML Signature and Encryption [96] 
+    * XPath [97] 
+    * XPointer [98] 
+    * XSL and XSLT [99] 
+
+More topics... [100] 
+
+NEWS [101] 
+
+Skip to Search [102] 
+
+WEB CONTENT ACCESSIBILITY GUIDELINES (WCAG) 2.0 IS A PROPOSED 
+RECOMMENDATION
+
+2008-11-03: The Web Content Accessibility Guidelines (WCAG) Working 
+Group [103]  has published the Web Content Accessibility Guidelines 2.
+0 [104]  as a Proposed Recommendation, and published updated Working 
+Drafts of Understanding WCAG 2.0 [105] , Techniques for WCAG 2.0 [106] 
+, and How to Meet WCAG 2.0 [107] . WCAG defines how to make Web sites, 
+Web applications, and other Web content accessible to people with 
+disabilities. Comments are welcome through 2 December 2008. Read the 
+announcement [108] , Overview of WCAG 2.0 Documents [109] , and about 
+the Web Accessibility Initiative [110] . (Permalink [111] ) 
+
+[IMAGE]CALL FOR REVIEW: W3C MOBILEOK BASIC TESTS 1.0 IS A PROPOSED 
+RECOMMENDATION
+
+2008-11-03: The Mobile Web Best Practices Working Group [112]  has 
+published the Proposed Recommendation of W3C mobileOK Basic Tests 1.0 
+[113] . This document defines the set of machine-verifiable tests that 
+provide the basis for making a claim of W3C mobileOK Basic conformance 
+and is based on W3C Mobile Web Best Practices [114] . Content which 
+passes the tests has taken some steps to provide a functional user 
+experience for users of basic mobile devices whose capabilities at 
+least match those of the Default Delivery Context. Comments are 
+welcome through 1 December 2008. Learn more about the Mobile Web 
+Initiative [115] . (Permalink [116] ) 
+
+[IMAGE]W3C TALKS IN NOVEMBER
+
+2008-11-03: Browse W3C presentations and events [117]  also available 
+as an RSS channel [118] .  (Permalink [119] ) 
+
+    * 5 November, Aarhus, Denmark: E-gov and the citizen - 
+      transformation by new technology.Olle Olsson presents at jboye08 
+      [120] . 
+    * 6 November, Monterrey, Mexico: Improving government through 
+      better use of the Web.José Manuel Alonso gives a keynote at 
+      Seminario Internacional de Usabilidad y Accesibilidad para la 
+      Web 2008 [121] . 
+    * 14 November, Paris, France: La mode se démode, le Style jamais.
+      Daniel Glazman presents at Paris Web 2008 [122] . 
+    * 18 November, Sophia Antipolis, France: The W3C Multimodal 
+      Architecture.Ingmar Kliche presents at ETSI Workshop on 
+      Multimodal Interaction on Mobile Devices  [123] . 
+    * 28 November, Berlin, Germany: Towards eGovernment 2.0 through 
+      better use of the Web.José Manuel Alonso gives a keynote at E-
+      Government-Standards Kongress [124] . 
+    * View upcoming talks by country [125] 
+    * More talks... [126] 
+
+[IMAGE]INCUBATOR GROUP TO EVALUATE RESEARCH ON MODEL-BASED USER 
+INTERFACES
+
+2008-10-27: W3C is pleased to announce the creation of the Model-Based 
+User Interfaces Incubator Group [127] , sponsored by W3C Members 
+Consiglio Nazionale delle Ricerche, Fraunhofer Gesellschaft, 
+JustSystems, Siemens, Telefónica de España, and Université 
+Catholique de Louvain. The group's mission is to evaluate research on 
+model-based user interface design as a framework for authoring Web 
+applications and with a view to proposing work on related standards. 
+Read more about the Incubator Activity [128] , an initiative to foster 
+development of emerging Web-related technologies. Incubator Activity 
+work is not on the W3C standards track [129] . (Permalink [130] ) 
+
+[IMAGE]CHALLENGES FOR FUTURE WEB BRING EXPERTS TOGETHER AT W3C GLOBAL 
+PLENARY 
+
+[IMAGE] [131] 2008-10-21: All this week, the World Wide Web Consortium 
+holds its annual Technical Plenary week [132]  near its European host 
+site in France. More than 350 software engineers, developers, and 
+other experts in a wide range of technologies such as HTML, XML, CSS, 
+Mobile Web, Semantic Web, and Video in the Web, come together to 
+address a variety of challenges in the development of Web standards. 
+Tim Berners-Lee, W3C Director and inventor of the Web, will open the 
+22 October plenary session with a keynote and discussion on the 
+technical direction of W3C for the next several years and where Web 
+applications, documents, and data come together. In the keynote, 
+Berners-Lee will also share thoughts on the future of HTML in the 
+browser and how HTML and XML communities can learn from each other. 
+Slides and minutes from the plenary day will be publicly available. 
+Read the press release [133]  for more information, including 
+information for media wishing to cover the event.  (Photo credit: Karl 
+Dubost. Permalink [134] ) 
+
+[IMAGE]LAST CALL: MEDIA QUERIES
+
+2008-10-16: The Cascading Style Sheets (CSS) Working Group [135]  has 
+published the Last Call Working Draft of Media Queries [136] . HTML4 
+and CSS2 currently support media-dependent style sheets tailored for 
+different media types. For example, a document may use sans-serif 
+fonts when displayed on a screen and serif fonts when printed. 
+'screen' and 'print' are two media types that have been defined. Media 
+queries extend the functionality of media types by allowing more 
+precise labeling of style sheets. Comments are welcome through 21 
+November. Learn more about the Style Activity [137] . (Permalink [138] 
+) 
+
+[IMAGE]MULTIMODAL ARCHITECTURE AND INTERFACES FIFTH WORKING DRAFT 
+PUBLISHED
+
+2008-10-16: The Multimodal Interaction Working Group [139]  has 
+published an updated Working Draft of  Multimodal Architecture and 
+Interfaces (MMI Architecture) [140] , which defines a loosely coupled 
+architecture for multimodal user interfaces. The main change in this 
+draft is the addition of the rules and guidelines which will allow 
+modality experts to describe the features, capabilities and APIs for 
+specific modality components in sufficient detail so that the 
+components will be interoperable in implementations of the Multimodal 
+Architecture. The architecture envisioned by the Working Group will 
+provide a general and flexible framework providing interoperability 
+among modality-specific components from different vendors - for 
+example, speech recognition from one vendor and handwriting 
+recognition from another. Learn more about W3C's  Multimodal 
+Interaction Activity [141] . (Permalink [142] ) 
+
+[IMAGE]RDFA IN XHTML: SYNTAX AND PROCESSING IS A W3C RECOMMENDATION; 
+RDFA PRIMER UPDATED
+
+2008-10-15: The Semantic Web Deployment Working Group [143]  and the 
+XHTML2 Working Group [144]  published the W3C Recommendation RDFa in 
+XHTML: Syntax and Processing [145] . This specification allows 
+publishers to express structured data on the Web within XHTML. This 
+allows tools to read it, enabling a new world of user functionality, 
+allowing users to transfer structured data between applications and 
+web sites, and allowing browsing applications to improve the user 
+experience. For those looking for an introduction to the use of RDFa 
+and some real-world examples, please consult the updated RDFa Primer 
+[146] . Learn more about the Semantic Web Activity [147]  and the HTML 
+Activity [148] . (Permalink [149] ) 
+
+[IMAGE]REQUIREMENTS OF JAPANESE TEXT LAYOUT DRAFT PUBLISHED
+
+2008-10-15: Participants from four W3C Groups CSS [150] , 
+Internationalization Core [151] , SVG [152]  and XSL [153]  Working 
+Groups as part of the Japanese Layout Task Force [154]  published an 
+update of Requirements of Japanese Text Layout [155] . This document 
+describes requirements for general Japanese layout realized with 
+technologies like CSS, SVG and XSL-FO. The document is mainly based on 
+a standard for Japanese layout, JIS X 4051. However, it also addresses 
+areas which are not covered by JIS X 4051. This draft contains most of 
+the material which the task force intends to publish as a Group Note 
+in December 2008. A Japanese version [156]  is also available. Learn 
+more about W3C's Internationalization Activity [157] . (Permalink [158]
+ ) 
+
+[IMAGE]W3C INVITES COMMUNITY TO EXPLORE FUTURE OF SOCIAL NETWORKING IN 
+WORKSHOP
+
+2008-10-14: Social networking is a complex, rapidly expanding, and in 
+some cases, disruptive sector of the information economy. For example, 
+user-generated content is causing changes in the traditional content/
+media industry structure. In the future, community features may well 
+become an integral part of all digital experiences from information/
+publishing to business and entertainment. Companies providing services 
+for social media and social networking must anticipate barriers to 
+industry growth and stability. W3C believes that now is the time for 
+industry to gather to discuss their experience so far, and what 
+barriers they foresee in the near- and medium-term. W3C therefore 
+invites people to participate in a Workshop on the Future of Social 
+Networking [159] , to analyze risks and opportunities of the social 
+networking industry, and to define plans for the future. The Workshop 
+will be held 15-16 January 2009 in Barcelona (Spain) and is hosted by 
+Universitat Politècnica de Catalunya and ReadyPeople. Anyone may 
+attend, but position papers [160]  are required and are due November 
+20. Instructions for Workshop registration/participation will be sent 
+exclusively to authors of submitted position papers. Read more about 
+the Workshop scope [161]  and sponsorship opportunities [162] . 
+(Permalink [163] ) 
+
+[IMAGE]W3C STANDARD SIMPLIFIES CREATION OF SPEECH-ENABLED WEB 
+APPLICATIONS
+
+2008-10-14: W3C published today a standard that will simplify the 
+development of Web applications that speak and listen to users. The 
+Pronunciation Lexicon Specification (PLS) 1.0 [164]  is the newest 
+piece of W3C's Speech Interface Framework for creating Web 
+applications driven by voice and speech. PLS can reduce the cost of 
+developing these applications by allowing people to share and reuse 
+pronunciation dictionaries. "There are 10 times as many phones in the 
+world as connected PCs. Phones will become the major portal to the Web,
+" said James A. Larson, co-Chair of the Voice Browser Working Group 
+[165] , which produced the new standard. Read the press release [166]  
+and testimonials [167] , and learn more about the W3C Voice Browser 
+Activity [168] . (Permalink [169] ) 
+
+[IMAGE]W3C ORGANIZES WORKSHOP ON SPEAKER BIOMETRICS AND VOICEXML 3.0
+
+2008-10-13: W3C invites people to participate in a  Workshop on 
+Speaker biometrics and VoiceXML 3.0 [170]  on 5-6 March 2009 in Menlo 
+Park, California (USA), hosted by SRI International. Attendees will 
+discuss directions for Speaker Identification and Verification (SIV) 
+standards work, and in particular, requirements for SIV and SIV 
+standards relevant to VoiceXML 3.0. The goal of the Workshop is to 
+help the Voice Browser Working Group integrate existing and in-process 
+standards with VoiceXML 3.0 specification and make the specification 
+more useful in current and emerging markets. Position papers are due 
+18 December 2008. Read about  Voice Extensible Markup Language 
+(VoiceXML) 3.0 Requirements [171] , Voice Browser [172]  and learn 
+more about W3C Workshops [173] . (Permalink [174] ) 
+
+[IMAGE]SEVEN OWL 2 DRAFTS PUBLISHED
+
+2008-10-09: The OWL Working Group [175]  published seven documents 
+yesterday relating to the OWL 2 Web Ontology Language. OWL 2 extends 
+OWL [176] , a core standard of the Semantic Web [177] , adding new 
+features that users have requested and that software providers are 
+prepared to implement. The documents are:
+
+   1. Structural Specification and Functional-Style Syntax [178] 
+   2. Direct Semantics [179]  
+   3. RDF-Based Semantics [180]  (First Public Draft)
+   4. Mapping to RDF Graphs [181]  
+   5. XML Serialization [182]  
+   6. Profiles [183]  
+   7. Conformance and Test Cases [184]  (First Public Draft)
+
+The first three documents form the technical core of OWL 2, which has 
+both a traditional "direct" semantics (for OWL DL) and a new "RDF-
+based" semantics (for OWL Full). Documents 4 and 5 specify two 
+different serializations for OWL ontologies, one based on RDF and one 
+using XML more directly. Document 6 defines useful subsets of OWL 
+which may be easier to implement or may better meet certain 
+performance requirements. Finally, document 7 specifies conformance 
+and will later enumerate the OWL 2 test cases. Five other documents 
+are under development; but they are not yet ready for public review. 
+Learn more about the Semantic Web Activity [185] .  (Permalink [186] ) 
+
+
+[IMAGE]WIDGETS 1.0: UPDATES
+
+2008-10-09: The Web Applications Working Group [187]  has published 
+the First Public Working Draft of Widgets 1.0: Updates [188] . This 
+specification defines a model to allow a widget user agent to locate 
+and replace a widget resource with a new or different version of a 
+widget resource. The updates model is designed to work both over HTTP 
+and from local storage. For updates performed via the Web, the model 
+makes use a simple XML documents that authors place on a Web server to 
+indicate, amongst other things, where the next most suitable version 
+of a widget resource can be retrieved from. It also defines a 
+mechanism that allows authors to be notified of installation errors or 
+success. This specification also describes how to renegotiate security 
+policies when widgets are updated. Learn more about the Rich Web 
+Client Activity [189] . (Permalink [190] ) 
+
+[IMAGE]SCHEMA SUPPORT STRENGTHENS TOOLKIT IN UPDATED XHTML 
+MODULARIZATION STANDARD
+
+2008-10-08: W3C updated its XHTML Modularization standard today with 
+support for designing modular languages using XML Schema [191] . The 
+addition of schemas to XHTML Modularization 1.1 [192]  is an important 
+step towards the XHTML2 Working Group [193] 's goal that XHTML support 
+rich Web content and be extensible, while remaining interoperable. A 
+modularization standard allows language designers to reuse elements 
+defined by multiple parties (including other W3C standards such as SVG 
+and MathML) and combine them into new formats to meet specific 
+application needs. The standard allows people to use schema-enabled, 
+off-the-shelf tools to immediately begin authoring and validating 
+documents written in those new languages. The XHTML2 Working Group, 
+which gained experience using Modularization 1.1 to build some modules 
+and languages [194] , now plans to add schema support to other XHTML 
+standards. Learn more about the HTML Activity [195] .  (Permalink [196]
+ ) 
+
+PAST NEWS [197] 
+
+SEARCH [198] 
+
+Skip to Contents [199] 
+
+[IMAGE] [200] 
+  Search W3C
+   
+    
+
+Search W3C Mailing Lists [201] 
+
+TESTIMONIALS [202] 
+
+Research Academic Computer Technology Institute (CTI)
+
+[IMAGE] [203] 
+
+The Research Academic Computer Technology Institute (CTI) was founded 
+in 1985 and conducts basic and applied research in software and 
+hardware technology. As a W3C member, CTI is committed to the 
+development of know-how and technology transfer through open standards.
+ (Member testimonials) [204] 
+
+MEMBERS
+
+    * Member Home Page [205] 
+    * Member Submissions [206] 
+    * Current Members [207] 
+    * Meetings [208] 
+    * Fellows [209]  (New Openings [210] )
+
+GET INVOLVED
+
+    * W3C Membership Benefits [211] 
+    * Reasons to Join W3C [212] 
+    * Mailing Lists [213] 
+    * Potential New Work [214] 
+    * Translations [215] 
+    * Workshops [216] 
+    * Liaisons [217] 
+    * Open Source Software [218] 
+    * Q&A Blog [219] 
+    * Employment [220] 
+    * More ways to participate [221] 
+
+INTRODUCTION
+
+    * About W3C [222] 
+    * Frequently Asked Questions (FAQ) [223] 
+    * Glossary [224] 
+    * Process Document [225] 
+    * Tutorials [226] 
+    * More... [227] 
+
+W3C TEAM
+
+    * People [228] 
+    * Team Submissions [229] 
+
+PRESENTATIONS
+
+    * Public Presentations [230] 
+
+NEWS ROOM
+
+    * W3C News Archive [231]  (RSS [232] )
+    * Weekly Public Newsletter [233] 
+    * Press Releases [234] 
+    * Multilingual Press Release RSS [235] 
+    * W3C in the Press [236] 
+
+WORLD OFFICES [237] 
+
+The W3C Offices [238] , part of the W3C International Relations team 
+[239]  translate many W3C home page news items. W3C Offices are 
+located in these parts of the world:
+
+    * Australia [240] 
+    * Benelux [241] /Bénélux [242] 
+    * Brasil (Brazil) [243] 
+    * 中国 (China) [244] 
+    * Suomi (Finland) [245] 
+    * Deutschland und Österreich (Germany and Austria) [246] 
+    * Ελλάδα (Greece) [247] 
+    * Magyarország (Hungary) [248] 
+    * भारत (India) [249] 
+    * ישראל (Israel) [250] 
+    * Italia (Italy) [251] 
+    * 한국 (Korea) [252] 
+    * المغرب (Morocco) [253] 
+    * Southern Africa [254] 
+    * España (Spain) [255] 
+    * Sverige (Sweden) [256] 
+    * United Kingdom and Ireland [257] 
+
+SYSTEMS [258] 
+
+    * Get Password [259] 
+    * System Status [260] 
+
+----------------------------------------------------------------------
+
+W3C would like to thank the Supporters [261]  who have contributed 
+financially or through a donation of goods to W3C.
+
+Read [262]  about the layout [263]  and send comments [264]  about 
+this page. Syndicate [265]  this page with RSS 1.0 [266] , an RDF [267]
+  vocabulary used for site summaries [268] . 
+
+ Webmaster [269]  · Last modified: $Date: 2008/11/04 13:04:40 $ |
+  [IMAGE] [270]  | [IMAGE] [271]  | [IMAGE]  [272]  | 
+
+Copyright [273]  © 1994-2008 W3C [274] ® (MIT [275] , ERCIM [276] , 
+Keio [277] ), All Rights Reserved. W3C liability [278] , trademark 
+[279] , document use [280]  and software licensing [281]  rules apply. 
+Your interactions with this site are in accordance with our public 
+[282]  and Member [283]  privacy statements.
+
+
+[1] #technologies
+[2] /Consortium/activities
+[3] /TR/
+[4] /Consortium/siteindex
+[5] /Consortium/new-to-w3c
+[6] /Consortium/
+[7] /Consortium/join
+[8] /Consortium/contact
+[9] #news
+[10] #technologies
+[11] #contents
+[12] /Consortium/new-to-w3c
+[13] /Consortium/
+[14] /Consortium/membership
+[15] /2008/xml10/
+[16] /2008/xml10/
+[17] /2008/xml10/card/greeting-form
+[18] /Consortium/sup
+[19] /Consortium/Recruitment/
+[20] /2008/07/UBIposition.html
+[21] /Consortium/Recruitment/Fellows#openings
+[22] /2007/01/comm-fellow1
+[23] /2007/01/SysteamFellowsPosition
+[24] none
+[25] #news
+[26] /WAI/
+[27] /Amaya/
+[28] /Mobile/CCPP/
+[29] /2004/CDF/
+[30] /Style/CSS/
+[31] http://jigsaw.w3.org/css-validator/
+[32] /2002/ws/databinding/
+[33] /DOM/
+[34] /XML/EXI
+[35] /2008/geolocation/
+[36] /2007/eGov/
+[37] /2001/sw/grddl-wg/
+[38] /2001/sw/hcls/
+[39] /html/
+[40] /People/Raggett/tidy/
+[41] http://validator.w3.org/
+[42] /Protocols/
+[43] /2005/Incubator/
+[44] /2002/mmi/ink
+[45] /International/
+[46] /Jigsaw/
+[47] /Library/
+[48] /Math/
+[49] /2008/WebVideo/Annotations/
+[50] /2008/WebVideo/Fragments/
+[51] /Mobile/
+[52] /2002/mmi/
+[53] /2004/OWL/
+[54] /2004/pp/
+[55] /PICS/
+[56] /Graphics/PNG/
+[57] /2007/powder/
+[58] /P3P/
+[59] /RDF/
+[60] /2005/rules/
+[61] /Security/
+[62] /2001/sw/
+[63] /XML/SML
+[64] /AudioVideo/
+[65] /2000/xp/Group/
+[66] /2002/ws/soapjms/
+[67] /2001/sw/DataAccess/
+[68] /Style/
+[69] /Graphics/SVG/
+[70] /2001/tag/
+[71] /AudioVideo/TT/
+[72] /Addressing/
+[73] /QA/Tools/#validators
+[74] /2008/WebVideo/
+[75] /Voice/
+[76] /2007/uwa/
+[77] /WAI/
+[78] /2008/webapps/
+[79] /2001/tag/
+[80] /Graphics/WebCGM/WG/
+[81] /2002/ws/
+[82] /2002/ws/addr/
+[83] /2002/ws/chor/
+[84] /2002/ws/desc/
+[85] /2002/ws/policy/
+[86] /MarkUp/Forms/
+[87] /MarkUp/
+[88] /MarkUp/
+[89] /XML/Linking
+[90] /XML/
+[91] /TR/xmlbase/
+[92] /2001/XKMS/
+[93] /XML/Processing/
+[94] /XML/Query
+[95] /XML/Schema
+[96] /2008/xmlsec/
+[97] /Style/XSL/
+[98] /XML/Linking
+[99] /Style/XSL/
+[100] /Consortium/siteindex
+[101] none
+[102] #search
+[103] /WAI/GL/
+[104] /TR/2008/PR-WCAG20-20081103/
+[105] /TR/2008/WD-UNDERSTANDING-WCAG20-20081103/
+[106] /TR/2008/WD-WCAG20-TECHS-20081103/
+[107] /WAI/WCAG20/quickref/
+[108] http://lists.w3.org/Archives/Public/w3c-wai-ig/2008OctDec/0091.html
+[109] /WAI/intro/wcag20.php
+[110] /WAI/
+[111] /News/2008#item182
+[112] /2005/MWI/BPWG/
+[113] /TR/2008/PR-mobileOK-basic10-tests-20081103/
+[114] /TR/mobile-bp/
+[115] /Mobile/
+[116] /News/2008#item181
+[117] /Talks/
+[118] /2004/08/TalkFiles/Talks.rss
+[119] /News/2008#item180
+[120] http://jboye08.dk/
+[121] http://www.uaweb.org.mx/en/seminar2008
+[122] http://www.paris-web.fr/2008/
+[123] http://www.etsi.org/MobileMultimodal
+[124] none
+[125] http://www.w3.org/2004/08/W3CTalks?date=Recent+and+upcoming&countryListing=yes&submit=Submit
+[126] /Talks/
+[127] /2005/Incubator/model-based-ui/
+[128] /2005/Incubator/
+[129] /TR/
+[130] /News/2008#item179
+[131] /2008/10/TPAC/
+[132] /2008/10/TPAC/
+[133] /2008/10/tpac-pressrelease.html
+[134] /News/2008#item178
+[135] /Style/CSS/members
+[136] /TR/2008/WD-css3-mediaqueries-20081015/
+[137] /Style/
+[138] /News/2008#item176
+[139] /2002/mmi/
+[140] /TR/2008/WD-mmi-arch-20081016/
+[141] /2002/mmi/Activity.html
+[142] /News/2008#item177
+[143] /2006/07/SWD/
+[144] /MarkUp/
+[145] /TR/2008/REC-rdfa-syntax-20081014/
+[146] /TR/2008/NOTE-xhtml-rdfa-primer-20081014/
+[147] http://www.w3.org/2001/sw/
+[148] http://www.w3.org/MarkUp/Activity
+[149] /News/2008#item174
+[150] /Style/CSS/
+[151] /International/core/
+[152] /Graphics/SVG/
+[153] /Style/XSL/
+[154] /2007/02/japanese-layout/
+[155] /TR/2008/WD-jlreq-20081015/
+[156] /TR/2008/WD-jlreq-20081015/ja/
+[157] /International/
+[158] /News/2008#item175
+[159] /2008/09/msnws/cfp.html
+[160] /2008/09/msnws/cfp.html#papers
+[161] http://www.w3.org/2008/09/msnws/cfp.html#scope
+[162] /2008/09/msnws/sponsorship
+[163] /News/2008#item173
+[164] /TR/2008/REC-pronunciation-lexicon-20081014/
+[165] /Voice/
+[166] /2008/10/pls-pressrelease.html.en
+[167] /2008/10/pls-testimonials
+[168] /Voice/
+[169] /News/2008#item172
+[170] /2008/08/siv/cfp.html
+[171] /TR/2008/WD-vxml30reqs-20080808/
+[172] /Voice/
+[173] /2003/08/Workshops/
+[174] /News/2008#item171
+[175] /2007/OWL/
+[176] http://www.w3.org/TR/owl-ref/
+[177] http://www.w3.org/2001/sw/
+[178] /TR/2008/WD-owl2-syntax-20081008/
+[179] /TR/2008/WD-owl2-semantics-20081008/
+[180] /TR/2008/WD-owl2-rdf-based-semantics-20081008/
+[181] /TR/2008/WD-owl2-mapping-to-rdf-20081008/
+[182] /TR/2008/WD-owl2-xml-serialization-20081008/
+[183] /TR/2008/WD-owl2-profiles-20081008/
+[184] /TR/2008/WD-owl2-test-20081008/
+[185] /2001/sw/
+[186] /News/2008#item170
+[187] /2008/webapps/
+[188] /TR/2008/WD-widgets-updates-20081007/
+[189] /2006/rwc/
+[190] /News/2008#item169
+[191] /TR/2004/REC-xmlschema-1-20041028/
+[192] /TR/2008/REC-xhtml-modularization-20081008/
+[193] /MarkUp/
+[194] /MarkUp/2008/xhtml-m12n-11-implementation.html
+[195] /MarkUp/Activity
+[196] /News/2008#item168
+[197] /News/2008
+[198] none
+[199] #contents
+[200] http://www.google.com
+[201] /Search/Mail/Public/
+[202] none
+[203] http://www.cti.gr/
+[204] http://www.w3.org/Consortium/Member/Testimonial/List
+[205] /Member/
+[206] /Submission/
+[207] /Consortium/Member/List
+[208] /Consortium/meetings
+[209] /Consortium/Recruitment/Fellows
+[210] /Consortium/Recruitment/Fellows#openings
+[211] /Consortium/membership-benefits
+[212] /Consortium/membership#bizcase
+[213] /Mail/
+[214] http://lists.w3.org/Archives/Public/public-new-work/latest
+[215] /Consortium/Translation/
+[216] /2003/08/Workshops/
+[217] /2001/11/StdLiaison
+[218] /Status
+[219] /QA/
+[220] /Consortium/Recruitment/
+[221] /Consortium/org#public
+[222] /Consortium/
+[223] /Consortium/faq
+[224] /2003/glossary/
+[225] /Consortium/Process/
+[226] /2002/03/tutorials
+[227] /2002/03/new-to-w3c
+[228] /People/
+[229] /TeamSubmission/
+[230] /Talks/
+[231] /News/
+[232] /2000/08/w3c-synd/home.rss
+[233] /News/Public/
+[234] /Press/
+[235] /Press/#rss
+[236] /Press/Articles
+[237] none
+[238] /Consortium/Offices/
+[239] /2007/IntlRel.html
+[240] http://www.w3c.org.au/
+[241] http://www.w3c.nl/index.shtml.nl
+[242] http://www.w3c.nl/index.shtml.fr
+[243] http://www.w3c.br/
+[244] http://www.chinaw3c.org/
+[245] http://www.w3c.tut.fi/
+[246] http://www.w3c.de/
+[247] http://www.w3c.gr/
+[248] http://www.w3c.hu/
+[249] http://www.w3cindia.in/
+[250] http://www.w3c.org.il/
+[251] http://www.w3c.it/
+[252] http://www.w3c.or.kr/
+[253] http://www.w3c.org.ma/
+[254] http://www.w3c.org.za/
+[255] http://www.w3c.es/
+[256] http://www.w3c.se
+[257] http://www.w3c.rl.ac.uk/
+[258] none
+[259] /Help/Account/
+[260] /2003/08/system-status
+[261] /Consortium/sup
+[262] none
+[263] /2002/11/homepage
+[264] http://lists.w3.org/Archives/Public/site-comments/
+[265] /2000/08/w3c-synd/home.rss
+[266] http://purl.org/rss/1.0/
+[267] /RDF/
+[268] /2000/08/w3c-synd/#
+[269] /Help/Webmaster
+[270] http://validator.w3.org/check?uri=referer
+[271] http://jigsaw.w3.org/css-validator/
+[272] /WAI/WCAG1AA-Conformance
+[273] /Consortium/Legal/ipr-notice#Copyright
+[274] /
+[275] http://www.csail.mit.edu/
+[276] http://www.ercim.org/
+[277] http://www.keio.ac.jp/
+[278] /Consortium/Legal/ipr-notice#Legal_Disclaimer
+[279] /Consortium/Legal/ipr-notice#W3C_Trademarks
+[280] /Consortium/Legal/copyright-documents
+[281] /Consortium/Legal/copyright-software
+[282] /Consortium/Legal/privacy-statement#Public
+[283] /Consortium/Legal/privacy-statement#Members
+} string! {A FAIRY TALE
+======================================================================
+
+CHAPTER 1
+
+Once upon a time, there was a beautiful princess. The princess was 
+loved by everyone, but she never went out of her castle. She dreamed 
+of her prince. The prince was handsome and always came on a white 
+horse.
+
+----------------------------------------------------------------------
+
+      Once upon a time, there was a beautiful princess. The princess 
+      was loved by everyone, but she never went out of her castle. She 
+      dreamed of her prince. The prince was handsome and always came 
+      on a white horse.
+      
+    * The princess was beautiful.
+    * The prince was handsome.
+    * The castle was big.
+    * Once upon a time, there was a beautiful princess. The princess 
+      was loved by everyone, but she never went out of her castle. She 
+      dreamed of her prince. The prince was handsome and always came 
+      on a white horse.
+
+   1. The princess was beautiful.
+   2. The prince was handsome.
+   3. The castle was big.
+
+      Princess:
+      A beautiful girl.
+      
+      Prince:
+      A handsome man.
+      
+
+== TABLE =============================================================
+--
+   || ||
+   || Col 1
+   || ||
+   || Col 2
+--
+   || ||
+   || Col 2.1
+   || ||
+   || Col 2.2
+======================================================================
+
+
+} string! {== TABLE =============================================================
+--
+   || ||
+   || ||
+   || ||
+--
+   || ||
+   || ||
+   || [IMAGE] [1] 
+   || ================================================================
+   || 
+   || ||
+--
+   || ||
+   || ||
+   || Buongiorno UTENTE !
+   || 
+   || come da tua cortese richiesta abbiamo provveduto a generare una 
+   || nuova password associata al tuo Bnk4 Account, che ti permette di 
+   || accedere ai servizi Born4.
+   || 
+   || Per ragioni di sicurezza la password che trovi allegata a questo 
+   || messaggio è temporanea : utilizzala per accedere al sito, entra 
+   || nella sezione "Il mio account" e scegli "Modificare la password" 
+   || per crearne una nuova.
+   || 
+   || Password temporanea : TESTTEST
+   || 
+   ||  Cordialmente, 
+   || 
+   ||   Test
+   ||   Responsabile Relazione Clienti  
+   || 
+   ||  Born4Shop Servizio Clienti, Via M.Buonarroti, 8, 20145 Milano - 
+   || ITALIA
+   ||   Tel : 800 91 64 20 - Fax : +39 02 70049065
+   ||    E-mail : Servizio-Clienti@born4shop.com  [2]  
+   || 
+   || ||
+--
+   || ||
+   || ||
+   || ||
+--
+   || ||
+   ||  
+--
+   || ||
+   || ||
+   || ||
+--
+   || ||
+   || ||
+   || Chi siamo  |  Domande [3]   |  Contattaci [4]   |  Carta Dei 
+   || Valori [5]   |  Condizioni Contrattuali [6]  
+   || ||
+--
+   || ||
+   || ||
+   || ||
+======================================================================
+
+
+[1] http://www.born4shop.com
+[2] mailto:servizio-clienti@born4shop.com
+[3] http://www.born4shop.com/Info/Faq.aspx
+[4] http://www.born4shop.com/Info/ContactUs.aspx
+[5] http://www.born4shop.com/Info/CartaDeiValori.aspx
+[6] http://www.born4shop.com/Info/Agreement.aspx
+} string! {== TABLE =============================================================
+--
+   || ||
+   || Se l’e-mail non è visualizzata correttamente, clicca qui [1] .
+   || 
+   || 
+======================================================================
+
+== TABLE =============================================================
+--
+   || ||
+   || [IMAGE]
+   || 
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || ||
+   ||    || ||
+   || ================================================================
+   || 
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+   ||  
+======================================================================
+
+== TABLE =============================================================
+--
+   || ||
+   || IL BORN4SHOP VILLAGE DI CARTASI GARANTISCE: Qualità dei 
+   || prodotti, Convenienza del prezzo e Sicurezza dei pagamenti 
+   || (grazie all’adozione dei più moderni protocolli di sicurezza).
+   || 
+   ||   Entro 10 giorni dal ricevimento dei prodotti acquistati, 
+   || potrai esercitare il diritto di recesso contattando il nostro 
+   || Servizio Clienti. 
+   ||   Per essere sicuro di ricevere sempre gli inviti alle vendite 
+   || copia/incolla l’indirizzo noreplay@village.com nella tua 
+   || rubrica dei tuoi Contatti. 
+   ||   Unsubscribe [2]  Condizioni Contrattuali [3]  Carta dei Valori 
+   || [4]  
+   ||   Questo messaggio è stato inviato in modalità automatica, ti 
+   || preghiamo di non rispondere.
+   ||   
+   ||   Born4shop è un marchio commerciale di BNK4 Italia S.p.A. 
+   || società leader nel commercio elettronico sicuro e conveniente.
+   ||   Ricevi questa comunicazione in quanto registrato/a a http://
+   || cartasi.village.born4shop.com, l’outlet on-line delle grandi 
+   || marche.
+   ||   
+   || 
+======================================================================
+
+[IMAGE]
+
+
+[1] http://clientsection.contactlab.it/service/display/index.php?d=Zz0yMDAwNjQzJnE9NDExNjc3MjUmZT1sdWNhQHRydWZmYXJlbGxpLml0%0A
+[2] http://clientsection.contactlab.it/service/unsubscribe/wfc/1720006439603/d/Zz0yMDAwNjQzJmU9bHVjYUB0cnVmZmFyZWxsaS5pdCZpPTU5Mjk5MzYmcT00%0AMTE2NzcyNQ%3D%3D%0A/k/bb02c81677de2828589b57e7933bb137/
+[3] http://f.contactlab.it/c/2000643/1585/41167725/124154
+[4] http://f.contactlab.it/c/2000643/1585/41167725/124155
+} string! {== TABLE =============================================================
+--
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    || ==========================================================
+   ||    || 
+   || --
+   ||    || ||
+   || --
+   ||    || ||
+   ||    || Gestire le ricerche salvate
+   || --
+   ||    || ||
+   || --
+   ||    || ||
+   || --
+   ||    || ||
+   || --
+   ||    || ||
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || La mia Ricerca Salvata:
+   ||    ||    || ||
+   ||    ||    || Primo
+   ||    ||    || ||
+   ||    ||    || Mostra tutte le opportunità | Migliora Agente [1]  |
+   ||    ||    ||  Disattiva Agente [2] 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || Hai dimenticato username e password?
+   ||    || ==========================================================
+   ||    || 
+   ||    || ||
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Località
+   ||    ||    || ||
+   ||    ||    || Titolo
+   ||    ||    || ||
+   ||    ||    || Azienda
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Prague, Czech Republic 
+   ||    ||    || ||
+   ||    ||    || Telecoms Support Engineer (Avaya) - work for Monster!
+   ||    ||    || 
+   ||    ||    || ||
+   ||    ||    || Monster Prague 
+   ||    ||    || ||
+   ||    ||    || Candidati
+   ||    || --
+   ||    ||    || ||
+   ||    || ==========================================================
+   ||    || 
+   || ================================================================
+   || 
+--
+   || ||
+--
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || ||
+   ||    || ||
+   || --
+   ||    || ||
+   || --
+   ||    || ||
+   || ================================================================
+   || 
+--
+   || ||
+======================================================================
+
+== TABLE =============================================================
+--
+   || ||
+   || EncUserID=kdsjflkdsjflkdsjfsdlkjfslkjfkdsjfdsk
+======================================================================
+
+
+[1] http://my.monster.it/manageagents.asp
+[2] http://my.monster.it/manageagents.asp
+} string! {== TABLE =============================================================
+----------------------------------------------------------------------
+--
+   || ||
+--
+   || ||
+--
+   || ||
+   || ||
+   || ||
+   || ||
+--
+   || ||
+   || SOLO ONLINE
+   ||  a 14,95 Euro/mese,
+   ||  anziche' 19,95 
+   ||  
+   ||  [IMAGE] [1]  
+   || ||
+   || SOLO ONLINE
+   ||  a 19,95 Euro/mese,
+   ||  anziche' 24,95 
+   ||  
+   ||  [IMAGE] [2]  
+--
+   || ||
+   || ||
+--
+   || ||
+   || Vai al massimo e invii in un lampo file di grandi dimensioni,
+   ||  risparmiando 5 Euro al mese per 1 anno intero. 
+   ||  
+   ||  Semaforo verde fino al 30 settembre! 
+   ||  
+   ||  
+--
+   || ||
+--
+   || ||
+   || == TABLE =======================================================
+   || ----------------------------------------------------------------
+   || --
+   ||    || ||
+   ||    || Ti invitiamo a non rispondere a questa mail.
+   ||    ||  Se non vuoi ricevere altre informazioni pubblicitarie fai 
+   ||    || la login sul sito 187.it [3] 
+   ||    ||  con le tue credenziali 187 o alice e modifica il consenso 
+   ||    || alla privacy. 
+   ||    || ||
+   || ================================================================
+   || 
+======================================================================
+
+
+[1] http://clk.atdmt.com/LIX/go/115671353/direct/01/
+[2] http://clk.atdmt.com/LIX/go/115671352/direct/01/
+[3] http://www.187.it
+} string! {== TABLE =============================================================
+--
+   || ||
+--
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    ||  In this issue
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Clickatell Survey
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Top FAQ
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Meet us @Events
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Latest News
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Clickatell 24/7 Support
+   ||    || ==========================================================
+   ||    || 
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Meet Clickatell @Events
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    ||  
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || African Banking Technology Conference, West Africa.
+   ||    ||    ||   Date: May 7 - 8, 2008 
+   ||    ||    ||   Venue: Eko Hotel, Lagos, Nigeria 
+   ||    ||    ||   View website [1]  
+   ||    ||    ||   
+   ||    ||    ||  
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Clickatell News
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Clickatell Showcases Mobile Authentication at recent 
+   ||    ||    || RSA Data Security Conference.
+   ||    ||    ||   
+   ||    ||    ||    Demonstrating two-factor authentication to mobile 
+   ||    ||    || devices, Clickatell shows how enterprise users can 
+   ||    ||    || receive an RSA-generated one-time password (OTP) via 
+   ||    ||    || text message... Read more [2] 
+   ||    ||    ||   
+   ||    ||    ||   
+   ||    ||    || 
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Clickatell 24/7 Support
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || [IMAGE] [3] 
+   ||    ||    || 
+   ||    || ==========================================================
+   ||    || 
+   || ================================================================
+   || 
+   || ||
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || ||
+   || ================================================================
+   || 
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Dear  User, 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Username: user 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Client ID: test
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || Balance: 0.0
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || To add credits to your account login now [4]  
+   ||    || ==========================================================
+   ||    || 
+   ||    || ||
+   || ================================================================
+   || 
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    ||  
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || Are we fulfilling your SMS business needs?
+   ||    ||    ||    ||   
+   ||    ||    ||    ||    Have we done something well, or not so well?
+   ||    ||    ||    ||  How do you think we can improve our service 
+   ||    ||    ||    || offerings? 
+   ||    ||    ||    ||   
+   ||    ||    ||    ||   
+   ||    ||    ||    || 
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || Our #1 aim is to provide you with the highest 
+   ||    ||    ||    || standards of service at all times, but to do 
+   ||    ||    ||    || this properly we will always need your help. 
+   ||    ||    ||    ||   
+   ||    ||    ||    ||   Please assist us in this by taking a few 
+   ||    ||    ||    || minutes to complete our customer survey [5]  
+   ||    ||    ||    || now.
+   ||    ||    ||    ||   
+   ||    ||    ||    ||   Let your voice [6]  be heard now...
+   ||    ||    ||    ||   
+   ||    ||    ||    || 
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    ||  
+   ||    || ==========================================================
+   ||    || 
+   || --
+   ||    || ||
+   || ================================================================
+   || 
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    ||  
+   ||    ||    || ||
+   ||    ||    ||  
+   ||    ||    ||   Top FAQ of the Week
+   ||    ||    ||   Looking at one of the top Frequently Asked 
+   ||    ||    || Questions [7]  to give you the answers you need and 
+   ||    ||    || help make your messaging experience a pleasant one.
+   ||    ||    ||   
+   ||    ||    ||    Question: What is my Client ID?
+   ||    ||    ||   
+   ||    ||    ||   Answer:
+   ||    ||    ||   Only Clickatell Central accounts have Client ID's. 
+   ||    ||    || You will have such an account only if you are using 
+   ||    ||    || an API product [8]  (for developers). 
+   ||    ||    ||   
+   ||    ||    ||   The Client ID is typically a 6 character code (3 
+   ||    ||    || letters, 3 numbers) and was emailed to your 
+   ||    ||    || registered email address on registration of your 
+   ||    ||    || account. If you have a Clickatell Central account, 
+   ||    ||    || but do not remember your Client ID, please contact 
+   ||    ||    || our support team [9] . 
+   ||    ||    ||   
+   ||    ||    ||   A Communicator account will not have a Client ID - 
+   ||    ||    || you can login [10] 
+   ||    ||    ||   without a Client ID.
+   ||    ||    ||   
+   ||    ||    ||   Messenger Pro users also do not have have a Client 
+   ||    ||    || ID - you can login [11]  normally. To automatically 
+   ||    ||    || visit this page, click on the 'buy credits' button 
+   ||    ||    || on the 'Options' tab of Messenger Pro.
+   ||    ||    ||   
+   ||    ||    ||   If this does not resolve the problem you 
+   ||    ||    || experience, please contact the support team [12] .
+   ||    ||    ||   
+   ||    ||    ||   
+   ||    ||    || 
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    ||  
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || ==========================================================
+   ||    || 
+   || ================================================================
+   || 
+--
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || ||
+   ||    || In order to receive optimal support from Clickatell, 
+   ||    || please ensure that your details are up to date. Should you 
+   ||    || not wish to receive this weekly balance update, please 
+   ||    || change your account preferences while logged in [13]  to 
+   ||    || Clickatell Central.
+   ||    || ||
+   || ================================================================
+   || 
+   ||  
+   || 
+======================================================================
+
+
+[1] http://www.clickatell.com/central/campaigns/redir.php?cid=8950830953
+[2] http://www.clickatell.com/central/campaigns/redir.php?cid=5430985309
+[3] http://www.clickatell.com/central/campaigns/redir.php?cid=589485320
+[4] http://www.clickatell.com/central/campaigns/redir.php?cid=2432
+[5] http://www.clickatell.com/central/campaigns/redir.php?cid=543534
+[6] http://www.clickatell.com/central/campaigns/redir.php?cid=5435435
+[7] http://www.clickatell.com/central/campaigns/redir.php?cid=5435345
+[8] http://www.clickatell.com/login.php?csite=clickatell
+[9] http://www.clickatell.com/central/campaigns/redir.php?cid=5435432543
+[10] http://www.clickatell.com/login.php?csite=communicator
+[11] http://www.clickatell.com/login.php?csite=mpro
+[12] http://www.clickatell.com/central/campaigns/redir.php?cid=54354352
+[13] http://www.clickatell.com/central/campaigns/redir.php?cid=4353
+} string! {== TABLE =============================================================
+----------------------------------------------------------------------
+--
+   || ||
+--
+   || ||
+   || ||
+--
+   || ||
+   || 
+   ||  L'alta tecnologia di grandi marche in 36 mesi senza interessi 
+   || con rate 
+   ||  a partire da 11 Euro 
+   ||  sul Conto Telecom Italia, consegna gratuita, 2 anni di garanzia 
+   || e assistenza.
+   ||  
+   ||  PC desktop o portatili, Monitor Tv, Console per videogiochi, 
+   || telefoni per chiamare in VoIP.
+   ||  
+   ||  Oggetti accessibili dei tuoi desideri.
+   ||  
+   ||  
+   ||  
+   || 
+   ||  [1] 
+   || 
+   || ||
+   || [IMAGE] [2] 
+   || 
+--
+   || ||
+   || ||
+   ||  
+--
+   || ||
+--
+   || ||
+======================================================================
+
+== TABLE =============================================================
+----------------------------------------------------------------------
+--
+   || ||
+   || [IMAGE]
+   ||  
+   ||  
+   || 
+   || ||
+--
+   || ||
+   || ||
+   || Vieni a trovarci e scopri la maxi convenienza di www.187.it [3] .
+   || 
+   ||  
+   ||  Lasciati conquistare dal fantastico cordless della gamma 
+   || Aladino offerto oggi a un prezzo che t'incanta... 
+   ||  
+   ||  
+   ||  
+   || 
+--
+   || ||
+   ||  
+--
+   || ||
+======================================================================
+
+== TABLE =============================================================
+----------------------------------------------------------------------
+--
+   || ||
+   || ||
+   || [IMAGE]
+   || 
+--
+   || ||
+   || 
+   ||  Sul sito 187.it ti aspettano occasioni esclusive. Ora ci sono 3 
+   || magnifici MP3 in PROMOZIONE [4]  e, per i tuoi acquisti online, 
+   || la consegna e' GRATIS.
+   ||  
+   ||  
+   || 
+--
+   || ||
+   || 
+   ||  XX Beauty
+   ||  Il bello di avere musica, immagini, 
+   ||  video, testi e radio sempre con te
+   ||  A 49,90 Euro invece di 64,90 
+   || 
+   || Blusens G12
+   ||  Tutti i tuoi contenuti multimediali 
+   ||  disponibili sul display a colori da 1,8" 
+   ||  A 79,90 Euro invece di 99,90 
+   || 
+   || XX Gymp3
+   ||  Aggancia una colonna sonora  
+   ||  alle frenetiche attivita' di ogni giorno 
+   ||  A 35,90 Euro invece di 29,90
+   || 
+   || ||
+--
+   || ||
+   ||  
+   || ||
+   ||  
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+   || Ti invitiamo a non rispondere a questa mail.
+   ||  Se non vuoi ricevere altre informazioni pubblicitarie fai la 
+   || login sul sito 187.it [5]  con le tue credenziali 187 o alice e 
+   || modifica il consenso alla privacy.
+======================================================================
+
+       
+      
+
+[1] http://go.virgilio.it/clkc_ADV_20052008ROSSOALICE_CB02_187_AlicePC/http://adsl.alice.it/prodotti/index.html?&AC_EV=0269
+[2] http://go.virgilio.it/clkc_ADV_20052008ROSSOALICE_CB02_187_AlicePC/http://adsl.alice.it/prodotti/index.html?&AC_EV=0269
+[3] http://go.virgilio.it/clkc_ADV_20052008ROSSOALICE_CB02_187_aladino/http://www.187.alice.it/cgi-bin/di_187/di/187/di3/demand/home.do?BV_UseBVCookie=Yes&tabId=1
+[4] http://go.virgilio.it/clkc_ADV_20052008ROSSOALICE_CB02_187_MP3/http://www.187.alice.it/cgi-bin/di_187/di/187/di3/demand/browseChannel.do?channelId=-536887627&BV_UseBVCookie=Yes&pageTypeId=536888874
+[5] https://www.187.it
+} string! {== TABLE =============================================================
+--
+   || ||
+   || ||
+   || 21 maggio 2008 
+   || ||
+======================================================================
+
+== TABLE =============================================================
+----------------------------------------------------------------------
+--
+   || ||
+   || ||
+--
+   || ||
+   || ||
+   || == TABLE =======================================================
+   || ----------------------------------------------------------------
+   || --
+   ||    || ||
+   ||    || ||
+   ||    || Se non visualizzi correttamente questa pagina clicca qui>> 
+   ||    || [1]  
+   ||    ||   
+   ||    ||   Gentile Utente, ecco le migliori offerte di lavoro della 
+   ||    || settimana!
+   ||    || ||
+   ||    || ||
+   || --
+   ||    || ||
+   ||    || ||
+   ||    || ||
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || STEWARD/HOSTESS 
+   ||    ||    ||    ||    - consiglierai i nostri clienti sportivi 
+   ||    ||    ||    || nelle loro scelte rispondendo ai loro bisogni; 
+   ||    ||    ||    || - fidelizzerai i nostri ...
+   ||    ||    ||    ||    visualizza l'offerta>>  [2] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ADDETTA/O CUSTOMER SERVICE 40 08
+   ||    ||    ||    ||    Il ruolo prevede: - gestione delle 
+   ||    ||    ||    || attività di front-in con i clienti e di back -
+   ||    ||    ||    || office - gestione e inserimento ...
+   ||    ||    ||    ||    visualizza l'offerta>>  [3] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || PROGRAMMATORE RPGIII/AS400
+   ||    ||    ||    ||     La ns. Cliente, la GB GROUP, azienda 
+   ||    ||    ||    || leader mondiale nella produzione e fornitura 
+   ||    ||    ||    || di pezzi intercambiabili per macchine 
+   ||    ||    ||    || movimento terra ...
+   ||    ||    ||    ||    visualizza l'offerta>>  [4] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || Fresatore - Tornitore
+   ||    ||    ||    ||    Selezioniamo per industria meccanica un 
+   ||    ||    ||    || FRESATORE/TORNITORE anche privo di esperienza, 
+   ||    ||    ||    || che sia disposto ad acquisire ...
+   ||    ||    ||    ||    visualizza l'offerta>>  [5] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || PROCESS ENGINEER & ENERGY MANAGER
+   ||    ||    ||    ||    :: Praxi S.p.A. :: GAMBRO, societa´ 
+   ||    ||    ||    || multinazionale svedese,leader del settore 
+   ||    ||    ||    || biomedicale, ...
+   ||    ||    ||    ||    visualizza l'offerta>>  [6] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || Software Engineer Microsoft Sharepoint/.NET
+   ||    ||    ||    ||    Profilo: il candidato sarà coinvolto in un 
+   ||    ||    ||    || progetto enterprise per la realizzazione di un 
+   ||    ||    ||    || portale utilizzando lo stato ...
+   ||    ||    ||    ||    visualizza l'offerta>>  [7] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || GIOVANI DIALOGATRICI E DIALOGATORI
+   ||    ||    ||    ||    Il face to face (“dialogo diretto”) è 
+   ||    ||    ||    || un’attività che Amnesty International 
+   ||    ||    ||    || svolge per acquisire nuovi sostenitori e ...
+   ||    ||    ||    ||    visualizza l'offerta>>  [8] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || Analisti Programmatori PL/SQL
+   ||    ||    ||    ||    Ricerchiamo per importanti aziende clienti 
+   ||    ||    ||    || che operano nell’IT Analisti – 
+   ||    ||    ||    || Programmatori PL/SQL Sr e Jr: professionisti ..
+   ||    ||    ||    || .
+   ||    ||    ||    ||    visualizza l'offerta>>  [9] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || ||
+   ||    ||    ||    || Programmatori/Analisti-Programmatori J2EE (Rif.
+   ||    ||    ||    ||  APJ2EE0805_CL)
+   ||    ||    ||    ||    Cerchiamo Programmatori ed Analisti-
+   ||    ||    ||    || Programmatori Java in ambiente J2EE. Si offre 
+   ||    ||    ||    || contratto a progetto di lunga ...
+   ||    ||    ||    ||    visualizza l'offerta>>  [10] 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || == TABLE ===========================================
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || MASTER BREVE PER FRONT OFFICE MANAGER 
+   ||    ||    ||    ||    || DEL SETTORE 
+   ||    ||    ||    ||    ||    Partirà il 13 ottobre a Roma il 
+   ||    ||    ||    ||    || Master breve per Front Office Manager 
+   ||    ||    ||    ||    || del settore alberghiero organizzato dal 
+   ||    ||    ||    ||    || Centro ...
+   ||    ||    ||    ||    ||    visualizza >>  [11] 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || STAGE: La chiave per il tuo successo
+   ||    ||    ||    ||    ||    Lo stage aziendale è la porta 
+   ||    ||    ||    ||    || d'accesso al mercato del lavoro? Noi te 
+   ||    ||    ||    ||    || ne diamo la chiave. Coltiva il tuo sogno 
+   ||    ||    ||    ||    || ...
+   ||    ||    ||    ||    ||    visualizza >>  [12] 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || Management dei progetti internazionali
+   ||    ||    ||    ||    ||    Corso di Alta Formazione- 20 Crediti 
+   ||    ||    ||    ||    || Formativi Universitari 5 mesi di aula e 
+   ||    ||    ||    ||    || 6 di stage 1a edizione REALIZZA UN ...
+   ||    ||    ||    ||    ||    visualizza >>  [13] 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || Skills Master in Corporate Finance
+   ||    ||    ||    ||    ||    Lo Skills Master in Corporate Finance 
+   ||    ||    ||    ||    || rafforza le competenze professionali dei 
+   ||    ||    ||    ||    || partecipanti. Il programma, fortemente ..
+   ||    ||    ||    ||    || .
+   ||    ||    ||    ||    ||    visualizza >>  [14] 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || EVENTLAB 2008 - Workshop di formazione
+   ||    ||    ||    ||    ||   Il conc
+   ||    ||    ||    ||    ||    In collaborazione con ExtraLarge 
+   ||    ||    ||    ||    || onlus - associazione no profit 
+   ||    ||    ||    ||    || specializzata nella produzione di 
+   ||    ||    ||    ||    || contenuti culturali e ...
+   ||    ||    ||    ||    ||    visualizza >>  [15] 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    || --
+   ||    ||    ||    || ||
+   ||    ||    ||    || == TABLE =====================================
+   ||    ||    ||    || --
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || ||
+   ||    ||    ||    ||    || MASTER DI SPECIALIZZAZIONE IN RISORSE 
+   ||    ||    ||    ||    || UMANE
+   ||    ||    ||    ||    ||    Inizio: 24 maggio 2008 Obiettivi: Il 
+   ||    ||    ||    ||    || Master di Specializzazione offre 
+   ||    ||    ||    ||    || l’opportunità di sviluppare delle ...
+   ||    ||    ||    ||    ||    visualizza >>  [16] 
+   ||    ||    ||    || ==============================================
+   ||    ||    ||    || 
+   ||    ||    || ====================================================
+   ||    ||    || 
+   ||    || ==========================================================
+   ||    || 
+   || ================================================================
+   || 
+--
+   || ||
+   || ||
+======================================================================
+
+
+  
+
+Ricevi questo messaggio perchè sei iscritto al sito www.CliccaLavoro.
+it [17] 
+  
+  Non rispondere direttamente a questo messaggio.
+  Se non desideri piu' ricevere messaggi via email clicca qui [18] 
+  http://www.cliccalavoro.it/bin/users/newsletter_unsub?type=
+newsletter&email=test@test.it [19] 
+  e segui le istruzioni.
+
+[IMAGE]
+
+
+[1] http://f.contactlab.it/c/2000186/4477/111129537/31648
+[2] http://f.contactlab.it/c/2000186/4477/111129537/31650
+[3] http://f.contactlab.it/c/2000186/4477/111129537/31651
+[4] http://f.contactlab.it/c/2000186/4477/111129537/31652
+[5] http://f.contactlab.it/c/2000186/4477/111129537/31653
+[6] http://f.contactlab.it/c/2000186/4477/111129537/31654
+[7] http://f.contactlab.it/c/2000186/4477/111129537/31655
+[8] http://f.contactlab.it/c/2000186/4477/111129537/31656
+[9] http://f.contactlab.it/c/2000186/4477/111129537/31657
+[10] http://f.contactlab.it/c/2000186/4477/111129537/31658
+[11] http://f.contactlab.it/c/2000186/4477/111129537/31663
+[12] http://f.contactlab.it/c/2000186/4477/111129537/31664
+[13] http://f.contactlab.it/c/2000186/4477/111129537/31665
+[14] http://f.contactlab.it/c/2000186/4477/111129537/31666
+[15] http://f.contactlab.it/c/2000186/4477/111129537/31667
+[16] http://f.contactlab.it/c/2000186/4477/111129537/31668
+[17] http://f.contactlab.it/c/2000186/4477/111129537/31647
+[18] http://www.cliccalavoro.it/bin/users/newsletter_unsub?type=newsletter&email=test@test.it
+[19] http://www.cliccalavoro.it/bin/users/newsletter_unsub?type=newsletter&email=test@test.it
+} string! {== TABLE =============================================================
+--
+   || ||
+   || Se l’e-mail non è visualizzata correttamente, clicca qui [1] .
+   || 
+   || 
+======================================================================
+
+== TABLE =============================================================
+--
+   || ||
+   || [IMAGE]
+   || 
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || ||
+   ||    || ||
+   || ================================================================
+   || 
+--
+   || ||
+--
+   || ||
+--
+   || ||
+--
+   || ||
+   ||  
+======================================================================
+
+== TABLE =============================================================
+--
+   || ||
+   || IL BORN4SHOP VILLAGE DI CARTASI GARANTISCE: Qualità dei 
+   || prodotti, Convenienza del prezzo e Sicurezza dei pagamenti 
+   || (grazie all’adozione dei più moderni protocolli di sicurezza).
+   || 
+   ||   Entro 10 giorni dal ricevimento dei prodotti acquistati, 
+   || potrai esercitare il diritto di recesso contattando il nostro 
+   || Servizio Clienti. 
+   ||   Per essere sicuro di ricevere sempre gli inviti alle vendite 
+   || copia/incolla l’indirizzo noreplay@village.com nella tua 
+   || rubrica dei tuoi Contatti. 
+   ||   Unsubscribe [2]  Condizioni Contrattuali [3]  Carta dei Valori 
+   || [4]  
+   ||   Questo messaggio è stato inviato in modalità automatica, ti 
+   || preghiamo di non rispondere.
+   ||   
+   ||   Born4shop è un marchio commerciale di BNK4 Italia S.p.A. 
+   || società leader nel commercio elettronico sicuro e conveniente.
+   ||   Ricevi questa comunicazione in quanto registrato/a a http://
+   || cartasi.village.born4shop.com, l’outlet on-line delle grandi 
+   || marche.
+   ||   
+   || 
+======================================================================
+
+[IMAGE]
+
+
+[1] http://clientsection.contactlab.it/service/display/index.php?d=Zz0yMDAwNjQzJnE9Mzk0NjU4MDMmZT1sdWNhQHRydWZmYXJlbGxpLml0%0A
+[2] http://clientsection.contactlab.it/service/unsubscribe/wfc/1720006439603/d/Zz0yMDAwNjQzJmU9bHVjYUB0cnVmZmFyZWxsaS5pdCZpPTU1NzE4NjUmcT0z%0AOTQ2NTgwMw%3D%3D%0A/k/bb02c81677de2828589b57e7933bb137/
+[3] http://f.contactlab.it/c/2000643/1553/39465803/124137
+[4] http://f.contactlab.it/c/2000643/1553/39465803/124138
+} string! {== TABLE =============================================================
+--
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+--
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+--
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+--
+   || ||
+   || ||
+   || ||
+   || == TABLE =======================================================
+   || ----------------------------------------------------------------
+   || --
+   ||    || ||
+   ||    || IN QUESTO NUMERO   
+   ||    ||   
+   ||    ||     Novità: Citroën C3 Picasso [1]  Crossover Peugeot  
+   ||    || [2]    Il giudizio su Alfa MiTo  [3]    Renault Ondelios 
+   ||    || [4]   Fiat Fiorino Qubo [5]   Porsche Cayenne [6]    
+   ||    || Novità Nissan a Parigi [7]   Chevrolet Orlando [8]   Mini 
+   ||    || Crossover concept [9]    A3 e Serie 1 Cabrio  [10]  
+   ||    || ||
+   ||    || IN EDICOLA  
+   ||    ||  [IMAGE] [11] 
+   ||    || 
+   || ================================================================
+   || 
+   || ----------------------------------------------------------------
+   || 
+   || == TABLE =======================================================
+   || ----------------------------------------------------------------
+   || --
+   ||    || ||
+   ||    ||  AUTO IN ARRIVO
+   ||    ||   [IMAGE] [12] 
+   ||    ||   Citroën C3 Picasso - LA FRANCESINA CHE ARRIVA DALL'EST  
+   ||    || [13] 
+   ||    ||  A meno di un mese dalla presentazione al Salone di Parigi,
+   ||    ||  cadono i veli della piccola monovolume francese C3 
+   ||    || Picasso. Un po' tonda, un po' cubica, arriverà a febbraio 
+   ||    || 2009, sarà prodotta nello stabilmento di Trnava in 
+   ||    || Slovacchia in 110 mila esemplari l'anno, di cui il 20% 
+   ||    || destinato al mercato italiano.
+   ||    || 
+   || ================================================================
+   || 
+   || ----------------------------------------------------------------
+   || 
+   || == TABLE =======================================================
+   || ----------------------------------------------------------------
+   || --
+   ||    || ||
+   ||    || ANTEPRIME
+   ||    ||    Crossover Peugeot
+   ||    ||   SVELATA LA CONCEPT PROLOGUE [14] 
+   ||    ||   Dietro a nomi provvisori, informazioni scarne e fumose, 
+   ||    || si svela il futuro crossover della Casa francese. Per ora 
+   ||    || si chiama Prologue, ma il nome definitivo sarà diverso. 
+   ||    || Le forme, però, sono ormai complete e rivelano un secondo 
+   ||    || interessante capitolo off-road di Peugeot dopo l'esordio 
+   ||    || con la Suv 4007. Un ghiotto prologo al Salone di Parigi di 
+   ||    || ottobre. 
+   ||    || ||
+   ||    ||   [IMAGE] [15]  
+   ||    || 
+   || ================================================================
+   || 
+   || ----------------------------------------------------------------
+   || 
+   || == TABLE =======================================================
+   || ----------------------------------------------------------------
+   || --
+   ||    || ||
+   ||    || ||
+   ||    || ATTUALITÀ  
+   ||    ||    Alfa MiTo - IL GIUDIZIO DEI NAVIGATORI [16]  
+   ||    ||  Nel weekend 13-14 settembre l'Alfa Romeo ha organizzato 
+   ||    || un "porte aperte" per far conoscere "dal vivo" la nuova 
+   ||    || MiTo. Molti i nostri navigatori che si sono recati 
+   ||    || all'appuntamento e hanno raccolto l'invito a esprimere la 
+   ||    || loro opinione sull'ultima nata della Casa del Biscione. 
+   ||    || Ecco che cosa ne pensano. 
+   ||    || 
+   || ================================================================
+   || 
+   || ----------------------------------------------------------------
+   || 
+   || AUTONOVITÀ 
+   ||   
+   || 
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || Renault Ondelios  
+   ||    ||   
+   ||    || ||
+   ||    || Fiat Fiorino Qubo  
+   ||    || ||
+   ||    || Porsche Cayenne 
+   || ================================================================
+   || 
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || == TABLE =================================================
+   ||    || --
+   ||    ||    || ||
+   ||    ||    || Novità Nissan a Parigi   
+   ||    ||    ||   
+   ||    ||    ||   
+   ||    ||    || ||
+   ||    ||    || Chevrolet Orlando  
+   ||    ||    || ||
+   ||    ||    || Mini Crossover concept
+   ||    || ==========================================================
+   ||    || 
+   || ================================================================
+   || 
+   || ----------------------------------------------------------------
+   || 
+   || == TABLE =======================================================
+   || --
+   ||    || ||
+   ||    || PROVE SU STRADA  
+   ||    ||    Audi A3 e BMW Serie 1 - LE SENZA TETTO  [17] 
+   ||    ||  La bella stagione sta per finire e presto le cabrio 
+   ||    || dovranno richiudere la capote, ma BMW 125 e Audi A3 non 
+   ||    || finiranno certo parcheggiate in autorimessa in attesa 
+   ||    || della prossima estate. Continueranno a girare per le 
+   ||    || strade, come delle qualsiasi berline, a patto ovviamente 
+   ||    || di qualche sacrificio in termini di abitabilità 
+   ||    || posteriore e di capacità di carico. 
+   ||    || 
+   ||    || ||
+   ||    || [IMAGE] [18] 
+   ||    || 
+   || ================================================================
+   || 
+   || ----------------------------------------------------------------
+   || 
+   || ||
+   || ||
+   || == TABLE =======================================================
+   || ----------------------------------------------------------------
+   || --
+   ||    || ||
+   ||    || Attualità    
+   || --
+   ||    || ||
+   ||    || In arrivo    
+   || --
+   ||    || ||
+   ||    || Video    
+   || --
+   ||    || ||
+   ||    || Prove    
+   || --
+   ||    || ||
+   ||    || Info utili    
+   || --
+   ||    || ||
+   ||    || Auto nuove    
+   || --
+   ||    || ||
+   ||    || Auto usate    
+   || --
+   ||    || ||
+   ||    || Assicurazioni    
+   || --
+   ||    || ||
+   ||    || GPS    
+   || --
+   ||    || ||
+   ||    || Infotrafic    
+   || --
+   ||    || ||
+   ||    || Shop    
+   || --
+   ||    || ||
+   ||    || Club Motori    
+   || --
+   ||    || ||
+   ||    || La Tua Auto    
+   || ================================================================
+   || 
+   ||   [19] [IMAGE] [20] 
+   ||  
+   ||  IN EDICOLA
+   || 
+   ||  [IMAGE] [21] 
+   || 
+   || ||
+   || ||
+--
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+   || ||
+--
+   || ||
+   || ||
+   || ||
+   ||  EDITORIALE DOMUS
+   ||   L'indirizzo e-mail al quale viene spedita questa newsletter è 
+   || quello fornito in occasione dell'iscrizione alla comunità di 
+   || Editoriale Domus.
+   ||   Per non ricevere più questa newsletter [22] : fai log in con 
+   || la tua username e password e deseleziona la newsletter "Club 
+   || Motori"
+   ||   Per modificare i tuoi dati: fai log in con la tua username e 
+   || password e clicca la voce "modifica".
+   ||   Per uscire dalla comunità di Editoriale Domus: fai log in con 
+   || username e password e clicca la voce "unsubscribe".
+   ||   Hai dimenticato la password? Clicca qui [23]   
+   || 
+   || ||
+   || ||
+   || ||
+   || ||
+======================================================================
+
+ 
+
+ 
+
+[IMAGE]
+
+
+[1] http://f.contactlab.it/c/2000650/676/39469952/10105
+[2] http://f.contactlab.it/c/2000650/676/39469952/10106
+[3] http://f.contactlab.it/c/2000650/676/39469952/10107
+[4] http://f.contactlab.it/c/2000650/676/39469952/10108
+[5] http://f.contactlab.it/c/2000650/676/39469952/10109
+[6] http://f.contactlab.it/c/2000650/676/39469952/10110
+[7] http://f.contactlab.it/c/2000650/676/39469952/10111
+[8] http://f.contactlab.it/c/2000650/676/39469952/10112
+[9] http://f.contactlab.it/c/2000650/676/39469952/10113
+[10] http://f.contactlab.it/c/2000650/676/39469952/10114
+[11] http://f.contactlab.it/c/2000650/676/39469952/10115
+[12] http://f.contactlab.it/c/2000650/676/39469952/10105
+[13] http://f.contactlab.it/c/2000650/676/39469952/10105
+[14] http://f.contactlab.it/c/2000650/676/39469952/10106
+[15] http://f.contactlab.it/c/2000650/676/39469952/10106
+[16] http://f.contactlab.it/c/2000650/676/39469952/10107
+[17] http://f.contactlab.it/c/2000650/676/39469952/10114
+[18] http://f.contactlab.it/c/2000650/676/39469952/10114
+[19] http://f.contactlab.it/c/2000650/676/39469952/10129
+[20] http://f.contactlab.it/c/2000650/676/39469952/10129
+[21] http://f.contactlab.it/c/2000650/676/39469952/10130
+[22] http://f.contactlab.it/c/2000650/676/39469952/10131
+[23] http://f.contactlab.it/c/2000650/676/39469952/10132
+}

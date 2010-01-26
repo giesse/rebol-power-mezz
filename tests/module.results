@@ -1,9 +1,9 @@
-logic! #[true] string! {type: module
-title: "Untitled"
-purpose: "Undocumented"
-imports: none
-exports: [b]
-globals: none
+string! {Type: module
+Title: "Untitled"
+Purpose: "Undocumented"
+Imports: none
+Exports: [b]
+Globals: none
 local-ctx: make object! [
     c: 3
 ]
@@ -25,24 +25,24 @@ export-ctx: make object! [
 {** Script Error: a has no value
 ** Where: module
 ** Near: a
-} string! {type: module
-title: "Untitled"
-purpose: "Undocumented"
-imports: [my-module]
-exports: none
-globals: none
+} string! {Type: module
+Title: "Untitled"
+Purpose: "Undocumented"
+Imports: [my-module]
+Exports: none
+Globals: none
 local-ctx: none
 export-ctx: none
 } error! 
 {** Script Error: c has no value
 ** Where: module
 ** Near: c
-} integer! 2 string! {type: module
-title: "My module"
-purpose: "Test the MODULE function"
-imports: [my-module]
-exports: [f g]
-globals: [test]
+} integer! 2 string! {Type: module
+Title: "My module"
+Purpose: "Test the MODULE function"
+Imports: [my-module]
+Exports: [f g]
+Globals: [test]
 local-ctx: make object! [
     enbase: native
     h: func [][g 2]

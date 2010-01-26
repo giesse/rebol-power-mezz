@@ -1,6 +1,6 @@
 integer! 2 string! {REBOL [
-^-Title: "Run tests"
-^-Author: "Gabriele Santilli"
+    Title: "Run tests"
+    Author: "Gabriele Santilli"
 ]
 
 change-dir base-dir: clean-path %../
@@ -155,6 +155,7 @@ module [
                 results: skip results 2
                 tail? next file
             ]
+            clear results ; remove extra results
             save/all results-file head results
             print [tab "PASSED:" passed newline tab "FAILED:" failed]
         ] [

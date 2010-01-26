@@ -5,7 +5,6 @@ REBOL [
     Imports: [%parsers/rule-arguments.r]
 ]
 
-[true] ; compatibility with old test file
 [
     tag: make-rule [word /local name] [
         #"<" copy name to #">" skip (set word name)

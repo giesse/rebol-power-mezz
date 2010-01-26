@@ -5,7 +5,6 @@ REBOL [
     Imports: [%mezz/text-to-html.r]
 ]
 
-[true] ; compatibility with old test file
 [
     text-to-html "This is a test"
 ]

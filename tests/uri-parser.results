@@ -1,4 +1,4 @@
-logic! #[true] string! {scheme: "http"
+string! {scheme: "http"
 userinfo: none
 host: "www.rebol.com"
 port: none

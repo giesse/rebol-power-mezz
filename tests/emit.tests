@@ -5,7 +5,6 @@ REBOL [
     Imports: [%dialects/emit.r]
 ]
 
-[true] ; compatibility with old test file
 [
     tag: macro [name style contents] [
         #"<" name if style [{ style="} style #"^""] #">" emit contents "</" name #">"

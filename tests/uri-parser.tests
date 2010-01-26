@@ -5,7 +5,6 @@ REBOL [
     Imports: [%parsers/uri-parser.r]
 ]
 
-[true] ; compatibility with old test file
 [
     form parse-uri "http://www.rebol.com"
 ]

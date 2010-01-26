@@ -5,7 +5,6 @@ REBOL [
     Imports: [%parsers/ml-parser.r]
 ]
 
-[true] ; compatibility with old test file
 [
     load-markup {Some <b>html</b>. See <a href="http://www.example.com">link</a>.}
 ]
@@ -32,9 +31,6 @@ REBOL [
 ]
 [
     load-markup read %tests/data/5.html
-]
-[
-    load-markup read %tests/data/6.html
 ]
 [
     load-markup read %tests/data/7.html
