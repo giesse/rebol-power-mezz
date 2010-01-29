@@ -43,7 +43,7 @@ IMAP access functions
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %imap.r
-    Version: 1.7.0
+    Version: 1.7.1
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
         %mezz/text-encoding.r "utf-7-imap encoding"
@@ -381,6 +381,7 @@ The function returns the ID that has been assigned to the newly created message.
         db "Result of open-mail-db"
         folder-id
         message [string!] "Message text"
+        flags [block!] "Message flags"
 
         /local -cmm-locals-
     ] [
@@ -803,7 +804,7 @@ This implementation of the above API uses an IMAP server as the storage engine.
             ]
         ]
     ]
-    insert db/imap-port compose/only [APPEND (folder-id) (to-imap-flags message/flags) (message)]
+    insert db/imap-port compose/only [APPEND (folder-id) (to-imap-flags flags) (message)]
     either all [uidvalidity uid] [
         copy db/imap-port
     ] [
