@@ -356,19 +356,19 @@ Continued.<br>} [
     ]
 ]
 [
-	"IE sucks"
-	filter-html {<DIV STYLE="width: expression(alert('XSS-1'));"> Div expression </div>
+    "IE sucks"
+    filter-html {<DIV STYLE="width: expression(alert('XSS-1'));"> Div expression </div>
 <br>
 <IMG STYLE="xss:expr/*XSS*/ession(alert('XSS-2'))">
 <br>}
 ]
 [
-	"IE sucks"
-	filter-html {<style>.xss {width: expression(alert('XSS'));}</style>}
+    "IE sucks"
+    filter-html {<style>.xss {width: expression(alert('XSS'));}</style>}
 ]
 [
-	"IE sucks"
-	filter-html/all {<style>.xss {width: expression(alert('XSS'));}</style>}
+    "IE sucks"
+    filter-html/all {<style>.xss {width: expression(alert('XSS'));}</style>}
 ]
 [
     filter-html/with read %tests/data/rebol.com.html [all: yes pretty-print: yes]
@@ -377,8 +377,11 @@ Continued.<br>} [
     filter-html/all read %tests/data/apple.com.startpage.html
 ]
 [
-	filter-html {<pre>   some   text   <span style="color: red;">with   colors</span>   and   spaces</pre>}
+    filter-html {<pre>   some   text   <span style="color: red;">with   colors</span>   and   spaces</pre>}
 ]
 [
     filter-html/all read %tests/data/13.html
+]
+[
+    filter-html/all read %tests/data/14.html
 ]
