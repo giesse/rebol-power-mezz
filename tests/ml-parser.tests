@@ -50,3 +50,7 @@ REBOL [
 [
     load-markup read %tests/data/14.html
 ]
+[
+    ; more MS bullshit
+    load-markup {<p class=MsoListParagraph style='text-indent:-.25in;mso-list:l2 level1 lfo2'><![if !supportLists]><span style='font-family:Symbol'><span style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span><![endif]>Statuses <u>are</u> customizable and can be changed<o:p></o:p></p>}
+]

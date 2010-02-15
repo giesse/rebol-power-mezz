@@ -43,7 +43,7 @@
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %ml-parser.r
-    Version: 1.1.3
+    Version: 1.1.4
     Imports: [
         %parsers/common-rules.r
         %mezz/text-encoding.r   "For decoding of HTML entities"
@@ -186,7 +186,14 @@ CDATA sections are like normal text sections except that the |"<"| and |"&"| cha
 lose any special meaning; this means that text is passed on verbatim.
 
     -parsing-rules-:
-    comment: [copy txt ["<!--" thru "-->"] (cb 'comment txt)]
+    comment: [
+        copy txt [
+            ; more MS useless bullshit
+            "<![" thru "]>"
+            |
+            "<!--" thru "-->"
+        ] (cb 'comment txt)
+    ]
     declaration: [copy txt ["<!doctype" space-char thru #">"] (cb 'declaration txt)] ; simplified - may break
     cdata: ["<![CDATA[" copy txt to "]]>" 3 skip (cb 'text any [txt copy ""])]
 
