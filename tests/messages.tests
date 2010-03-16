@@ -127,3 +127,13 @@ REBOL [
     send-message server-buffer client-session [One]
     receive-message server-buffer server-session
 ]
+[
+	{Random Can't-Decrypt error}
+	loop 1000 [
+		msg: copy [ ]
+		loop random 500 [append msg random {This is a test to see if some messages can break the encryption}]
+		send-message server-buffer client-session msg
+		receive-message server-buffer server-session
+	]
+	true
+]

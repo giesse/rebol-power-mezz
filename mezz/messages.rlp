@@ -44,11 +44,12 @@ Functions to send and receive encrypted message packets
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %messages.r
-    Version: 1.0.4
+    Version: 1.0.5
     Imports: [
         %mezz/sequences.r
         %mezz/test-trace.r
         %mezz/logging.r
+        %mezz/form-error.r
     ]
     Exports: [
         make-messages-session
@@ -327,7 +328,7 @@ the handshake is done; before that, messages are obfuscated but can be decrypted
                 either recv-hdr/block-length <= length? buffer [
                     session/block: copy/part buffer recv-hdr/block-length
                     if session/block: decrypt-message session session/block [
-                        session/block: attempt [to block! as-string session/block]
+                        session/block: log-attempt [to block! to string! session/block]
                     ]
                     append-log 'debug ["Received message:" mold/all session/block]
                     remove/part buffer recv-hdr/block-length
@@ -577,6 +578,14 @@ In this section we list and define all the message-level errors.
     ]
     throw-error: func [args [block! word!]] [
         throw make error! join [Hardball] args
+    ]
+    log-attempt: func [value] [
+        either error? set/any 'value try :value [
+            append-log 'error [form-error/all disarm value]
+            none
+        ] [
+            get/any 'value
+        ]
     ]
 
 ---List of error values
