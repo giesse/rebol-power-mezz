@@ -43,7 +43,7 @@ IMAP access functions
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %imap.r
-    Version: 1.7.1
+    Version: 1.7.2
     Imports: [
         %mezz/mail.r          "We need decode-email-field"
         %mezz/text-encoding.r "utf-7-imap encoding"
@@ -286,9 +286,14 @@ The |create-mail-folder| function creates a new folder and returns its ID. Suppo
 of nested folders may differ across IMAP server implementations; the function will throw
 an error if the server does not allow creating the folder in the specified way.
 
-The |folder-name| should be UTF-8 encoded text.
+The |folder-name| MUST be UTF-8 encoded text.
 
-|flags| is modified with the actual folder flags after creation (according to the IMAP server).
+If |/with| is used, the function returns an object with |folder-id| and |flags|
+containing the actual folder flags after creation (according to the IMAP server - may
+be different from what was asked for). Currently, the only flag that can be set
+on creation is |'children| (which asks for the folder to allow having subfolders);
+some IMAP servers will in this case create a folder that cannot contain messages,
+and in this case the function will not return the |'messages| flag in the result.
 
     -mail-folders-:
     create-mail-folder: func [
@@ -982,15 +987,21 @@ This implementation of the above API uses an IMAP server as the storage engine.
             into ['* 'LIST set serv-flags [paren! | none!] skip [word! | string! | integer!]]
             into ok-response
         ] [
-            clear flags
-            if serv-flags [mk-folder-flags/to serv-flags flags]
+            if serv-flags [serv-flags: mk-folder-flags serv-flags]
         ]
     ]
     attempt [ ; ignore errors with non-selectable folders (still need them subscribed)
         insert db/imap-port compose [SUBSCRIBE (name)]
         copy db/imap-port
     ]
-    name
+    either serv-flags [
+        context [
+            folder-id: name
+            flags: serv-flags
+        ]
+    ] [
+        name
+    ]
 
 +++|create-mail-folder|'s locals
 
