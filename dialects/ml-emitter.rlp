@@ -21,7 +21,7 @@ Macros to emit [X][HT]ML
         homage to this source code)
         =================================
 
-        Copyright 2009 Qtask, Inc.
+        Copyright 2010 Qtask, Inc.
 
         Permission is hereby granted, free of charge, to any person obtaining
         a copy of this software and associated documentation files
@@ -43,7 +43,7 @@ Macros to emit [X][HT]ML
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %ml-emitter.r
-    Version: 1.4.1
+    Version: 1.5.0
     Imports: [
         %dialects/emit.r
         %parsers/rule-arguments.r
@@ -237,14 +237,47 @@ to generate *ML code.
             ]
         ]
     ]
+    auto-size-col: context [
+        stretch: shrink: min: none
+    ]
     layout: macro [
         "Layout using a HTML table"
         spec [block!]
         cells [block!]
-        /local table table-style table-class
+        /local table table-style table-class auto-size
     ] [
-        (parse spec [any ['style set table-style string! | 'class set table-class string!] spec:] table: make-table spec [ ])
+        (
+            parse spec [
+                any [
+                    'style set table-style string!
+                    |
+                    'class set table-class string!
+                    |
+                    'auto-size copy auto-size some block!
+                ]
+                spec:
+            ]
+            if auto-size [
+                table-class: either table-class [
+                    append copy table-class " autosize"
+                ] [
+                    "autosize"
+                ]
+            ]
+            table: make-table spec
+            [ ]
+        )
         tag 'table [style: table-style class: table-class] [
+            if block? auto-size [
+                foreach 'item auto-size [
+                    (item: make auto-size-col item  [ ])
+                    tag 'col [
+                        asStretch: item/stretch
+                        asShrink: item/shrink
+                        asMinWidth: item/min
+                    ] 'empty
+                ]
+            ]
             tag 'tbody [] [
                 make-rows table cells 0
             ]

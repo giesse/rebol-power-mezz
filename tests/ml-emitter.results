@@ -68,4 +68,4 @@ string! {<html>
 </head>
 <body>
 <table><tbody><tr><td colspan="2" rowspan="1" class="title">This is a test form</td></tr><tr><td colspan="1" rowspan="1" class="label">A label</td><td colspan="1" rowspan="1"><input name="one" type="text" /></td></tr><tr><td colspan="1" rowspan="1" class="label green">Another label</td><td colspan="1" rowspan="1"><input name="two" type="text" /></td></tr><tr><td colspan="1" rowspan="1" class="label">...and so on...</td><td colspan="1" rowspan="1"><input name="three" type="text" /></td></tr><tr><td colspan="1" rowspan="1"></td><td colspan="1" rowspan="1" class="button"><input type="submit" value="Save" /></td></tr><tr><td colspan="2" rowspan="1" class="title">This is a test form</td></tr></tbody></table></body>
-</html>}
+</html>} string! {<table class="autosize"><col asStretch="1000" asMinWidth="200" /><col asStretch="0" asShrink="0" /><tbody><tr><td colspan="1" rowspan="1">This is a test</td><td colspan="1" rowspan="1">Status: OK</td></tr></tbody></table>}

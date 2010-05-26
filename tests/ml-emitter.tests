@@ -226,3 +226,16 @@ REBOL [
         ]
     ]
 ]
+[
+    emit "" [
+        layout [
+            auto-size [stretch: 1000 min: 200] [stretch: 0 shrink: 0]
+            "ab"
+            title: #"a"
+            status: #"b"
+        ] [
+            title: ["This is a test"]
+            status: ["Status: OK"]
+        ]
+    ]
+]
