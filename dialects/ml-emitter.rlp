@@ -43,7 +43,7 @@ Macros to emit [X][HT]ML
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %ml-emitter.r
-    Version: 1.5.0
+    Version: 1.5.1
     Imports: [
         %dialects/emit.r
         %parsers/rule-arguments.r
@@ -238,7 +238,7 @@ to generate *ML code.
         ]
     ]
     auto-size-col: context [
-        stretch: shrink: min: none
+        stretch: shrink: min: width: none
     ]
     layout: macro [
         "Layout using a HTML table"
@@ -275,6 +275,7 @@ to generate *ML code.
                         asStretch: item/stretch
                         asShrink: item/shrink
                         asMinWidth: item/min
+                        asWidth: item/width
                     ] 'empty
                 ]
             ]
