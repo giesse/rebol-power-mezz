@@ -43,7 +43,7 @@ Macros to emit [X][HT]ML
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %ml-emitter.r
-    Version: 1.5.1
+    Version: 1.5.2
     Imports: [
         %dialects/emit.r
         %parsers/rule-arguments.r
@@ -244,7 +244,7 @@ to generate *ML code.
         "Layout using a HTML table"
         spec [block!]
         cells [block!]
-        /local table table-style table-class auto-size
+        /local table table-style table-class auto-size as-group
     ] [
         (
             parse spec [
@@ -253,7 +253,7 @@ to generate *ML code.
                     |
                     'class set table-class string!
                     |
-                    'auto-size copy auto-size some block!
+                    'auto-size set as-group opt string! copy auto-size some block!
                 ]
                 spec:
             ]
@@ -267,7 +267,7 @@ to generate *ML code.
             table: make-table spec
             [ ]
         )
-        tag 'table [style: table-style class: table-class] [
+        tag 'table [style: table-style class: table-class asGroup: as-group] [
             if block? auto-size [
                 foreach 'item auto-size [
                     (item: make auto-size-col item  [ ])
