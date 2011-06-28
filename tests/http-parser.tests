@@ -1,0 +1,97 @@
+REBOL [
+    Type: Module
+    Title: "Tests for the simple HTTP requests parser"
+    Author: "Gabriele Santilli"
+    Imports: [%parsers/http-parser.r]
+]
+
+[
+    result: none
+    extract: func [obj words /new-obj] [
+        new-obj: use append copy [self] words [bind? 'self]
+        foreach word words [
+            set in new-obj word get in obj word
+        ]
+        new-obj
+    ]
+    show-req: does [
+        extract req [buffer finished? method resource query content-type content-length content keep-alive]
+    ]
+    req: make-request-object func [request] [
+        result: extract request [method resource query content-type content-length content finished?]
+        if request/finished? [
+            req: make-request-object get in request 'on-request* get in request 'on-error*
+        ]
+    ] func [request error] [
+        result: error
+    ]
+    mold show-req
+]
+[
+    handle-data req "GET / HTTP/1.0^M^J^M^J"
+    mold reduce [show-req result]
+]
+[
+    result: none
+    handle-data req "GET /something HTTP/1.1"
+    mold reduce [show-req result]
+]
+[
+    handle-data req "^M^JConnection: keep-alive^M^J"
+    mold reduce [show-req result]
+]
+[
+    handle-data req "^M^J"
+    mold reduce [show-req result]
+]
+[
+    result: none
+    handle-data req "POST /a/file?a=b&b=c HTTP/1.1^M^J"
+    mold reduce [show-req result]
+]
+[
+    handle-data req "Content-type: application/json^M^JConnection: close^M^J^M^J"
+    mold reduce [show-req result]
+]
+[
+    handle-data req "Some data sent as content"
+    mold reduce [show-req result]
+]
+[
+    handle-close req
+    mold reduce [show-req result]
+]
+[
+    output: ""
+    emit-response-header output 200 "Ok" [
+        Content-Type: "text/html"
+    ]
+    mold output
+]
+[
+    clear output
+    emit-response-header output 200 "Ok" [
+        Content-Type: "text/plain"
+        Content-Length: 10
+    ]
+    append output "1234567890"
+    mold output
+]
+[
+    clear output
+    emit-response-header output 200 "Ok" [
+        Content-Type: "application/json"
+        Transfer-Encoding: "chunked"
+    ]
+    mold output
+]
+[
+    emit-chunk output "[1,2,3,4,"
+    emit-chunk output "{one:1,two:2}"
+    emit-chunk output {,"string"]}
+    mold output
+]
+[
+    emit-trailer output
+    mold output
+]

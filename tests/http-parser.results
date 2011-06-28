@@ -1,0 +1,138 @@
+string! {make object! [
+    buffer: #{}
+    finished?: false
+    method: none
+    resource: none
+    query: none
+    content-type: none
+    content-length: none
+    content: none
+    keep-alive: none
+]} string! {[make object! [
+        buffer: #{}
+        finished?: false
+        method: none
+        resource: none
+        query: none
+        content-type: none
+        content-length: none
+        content: none
+        keep-alive: none
+    ] make object! [
+        method: "GET"
+        resource: "/"
+        query: none
+        content-type: none
+        content-length: none
+        content: none
+        finished?: true
+    ]]} string! {[make object! [
+        buffer: #{474554202F736F6D657468696E6720485454502F312E31}
+        finished?: false
+        method: none
+        resource: none
+        query: none
+        content-type: none
+        content-length: none
+        content: none
+        keep-alive: none
+    ] none]} string! {[make object! [
+        buffer: #{}
+        finished?: false
+        method: "GET"
+        resource: "/something"
+        query: none
+        content-type: none
+        content-length: none
+        content: none
+        keep-alive: true
+    ] none]} string! {[make object! [
+        buffer: #{}
+        finished?: false
+        method: none
+        resource: none
+        query: none
+        content-type: none
+        content-length: none
+        content: none
+        keep-alive: none
+    ] make object! [
+        method: "GET"
+        resource: "/something"
+        query: none
+        content-type: none
+        content-length: none
+        content: none
+        finished?: false
+    ]]} string! {[make object! [
+        buffer: #{}
+        finished?: false
+        method: "POST"
+        resource: "/a/file"
+        query: "a=b&b=c"
+        content-type: none
+        content-length: none
+        content: none
+        keep-alive: none
+    ] none]} string! {[make object! [
+        buffer: #{}
+        finished?: false
+        method: "POST"
+        resource: "/a/file"
+        query: "a=b&b=c"
+        content-type: "application/json"
+        content-length: none
+        content: #{}
+        keep-alive: false
+    ] none]} string! {[make object! [
+        buffer: #{536F6D6520646174612073656E7420617320636F6E74656E74}
+        finished?: false
+        method: "POST"
+        resource: "/a/file"
+        query: "a=b&b=c"
+        content-type: "application/json"
+        content-length: none
+        content: #{536F6D6520646174612073656E7420617320636F6E74656E74}
+        keep-alive: false
+    ] none]} string! {[make object! [
+        buffer: #{}
+        finished?: false
+        method: none
+        resource: none
+        query: none
+        content-type: none
+        content-length: none
+        content: none
+        keep-alive: none
+    ] make object! [
+        method: "POST"
+        resource: "/a/file"
+        query: "a=b&b=c"
+        content-type: "application/json"
+        content-length: none
+        content: #{536F6D6520646174612073656E7420617320636F6E74656E74}
+        finished?: true
+    ]]} string! {{HTTP/1.1 200 Ok^^M
+Content-Type: text/html^^M
+^^M
+}} string! {{HTTP/1.1 200 Ok^^M
+Content-Type: text/plain^^M
+Content-Length: 10^^M
+^^M
+1234567890}} string! {{HTTP/1.1 200 Ok^^M
+Content-Type: application/json^^M
+Transfer-Encoding: chunked^^M
+^^M
+}} string! {{HTTP/1.1 200 Ok^^M
+Content-Type: application/json^^M
+Transfer-Encoding: chunked^^M
+^^M
+}} string! {{HTTP/1.1 200 Ok^^M
+Content-Type: application/json^^M
+Transfer-Encoding: chunked^^M
+^^M
+00000020^^M
+[1,2,3,4,{one:1,two:2},"string"]^^M
+00000000^^M
+^^M
+}}

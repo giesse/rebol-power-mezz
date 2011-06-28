@@ -68,6 +68,8 @@
 ^parsers/common-rules.r$
 ^parsers/css-parser.html$
 ^parsers/css-parser.r$
+^parsers/http-parser.html$
+^parsers/http-parser.r$
 ^parsers/imap-parser.html$
 ^parsers/imap-parser.r$
 ^parsers/ml-parser.html$
