@@ -28,7 +28,7 @@ HTTP Requests parser and Response generator
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %http-parser.r
-    Version: 1.0.0
+    Version: 1.1.0
     Exports: [
         make-request-object
         handle-data
@@ -50,10 +50,12 @@ Documentation still to be written.
     -main-:
     make-request-object: func [
         "Create and initialize a request object to be used with handle-data"
+        user-data' "Will be available as request/user-data"
         on-request [function!] "Called when request is complete - func [request] [...]"
         on-error [function!] "Callen in case of error - func [request error [word!]] [...]"
     ] [
         context [
+            user-data: user-data'
             buffer: copy #{}
             on-data: :on-header-data
             on-request*: :on-request
