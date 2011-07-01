@@ -15,10 +15,10 @@ REBOL [
         new-obj
     ]
     show-req: does [
-        extract req [buffer finished? method resource query content-type content-length content keep-alive]
+        extract req [buffer finished? method resource path query content-type content-length content keep-alive]
     ]
     req: make-request-object none func [request] [
-        result: extract request [method resource query content-type content-length content finished?]
+        result: extract request [method resource path query content-type content-length content finished?]
         if request/finished? [
             req: make-request-object none get in request 'on-request* get in request 'on-error*
         ]

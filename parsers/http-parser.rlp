@@ -28,7 +28,10 @@ HTTP Requests parser and Response generator
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %http-parser.r
-    Version: 1.1.0
+    Version: 1.2.0
+    Imports: [
+        %parsers/uri-parser.r
+    ]
     Exports: [
         make-request-object
         handle-data
@@ -61,7 +64,7 @@ Documentation still to be written.
             on-request*: :on-request
             on-error*: :on-error
             finished?: no ; true if no more data is accepted from the client (ie. connection should be closed)
-            method: resource: query: content-type: content-length: content: keep-alive: none
+            method: resource: path: query: content-type: content-length: content: keep-alive: none
         ]
     ]
     handle-data: func [
@@ -129,18 +132,20 @@ Documentation still to be written.
     ]
 
     space: charset " ^-"
-    res-chars: complement union space charset "?"
+    res-chars: complement space
 
-    on-header-data: func [locals /local method resource query rest] [
+    on-header-data: func [locals /local method resource path query rest] [
         parse/all locals/buffer [
             copy method ["GET" | "POST"] some space
             copy resource some res-chars
-            [#"?" copy query some res-chars | (query: none)]
             some space "HTTP/1." [#"0" | #"1"]
             any space "^M^J" rest: (
                 remove/part locals/buffer as-binary rest
                 locals/on-data: :on-other-header-data
-                foreach word [method resource query] [
+                path: parse-uri/relative resource
+                query: path/query
+                path: path/path
+                foreach word [method resource path query] [
                     set in locals word get word
                 ]
                 unless empty? locals/buffer [locals/on-data locals]

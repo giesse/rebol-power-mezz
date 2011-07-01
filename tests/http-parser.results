@@ -3,6 +3,7 @@ string! {make object! [
     finished?: false
     method: none
     resource: none
+    path: none
     query: none
     content-type: none
     content-length: none
@@ -13,6 +14,7 @@ string! {make object! [
         finished?: false
         method: none
         resource: none
+        path: none
         query: none
         content-type: none
         content-length: none
@@ -21,6 +23,7 @@ string! {make object! [
     ] make object! [
         method: "GET"
         resource: "/"
+        path: [root ""]
         query: none
         content-type: none
         content-length: none
@@ -31,6 +34,7 @@ string! {make object! [
         finished?: false
         method: none
         resource: none
+        path: none
         query: none
         content-type: none
         content-length: none
@@ -41,6 +45,7 @@ string! {make object! [
         finished?: false
         method: "GET"
         resource: "/something"
+        path: [root "something"]
         query: none
         content-type: none
         content-length: none
@@ -51,6 +56,7 @@ string! {make object! [
         finished?: false
         method: none
         resource: none
+        path: [root "something"]
         query: none
         content-type: none
         content-length: none
@@ -59,6 +65,7 @@ string! {make object! [
     ] make object! [
         method: "GET"
         resource: "/something"
+        path: [root "something"]
         query: none
         content-type: none
         content-length: none
@@ -68,7 +75,8 @@ string! {make object! [
         buffer: #{}
         finished?: false
         method: "POST"
-        resource: "/a/file"
+        resource: "/a/file?a=b&b=c"
+        path: [root "a" "file"]
         query: "a=b&b=c"
         content-type: none
         content-length: none
@@ -78,7 +86,8 @@ string! {make object! [
         buffer: #{}
         finished?: false
         method: "POST"
-        resource: "/a/file"
+        resource: "/a/file?a=b&b=c"
+        path: [root "a" "file"]
         query: "a=b&b=c"
         content-type: "application/json"
         content-length: none
@@ -88,7 +97,8 @@ string! {make object! [
         buffer: #{536F6D6520646174612073656E7420617320636F6E74656E74}
         finished?: false
         method: "POST"
-        resource: "/a/file"
+        resource: "/a/file?a=b&b=c"
+        path: [root "a" "file"]
         query: "a=b&b=c"
         content-type: "application/json"
         content-length: none
@@ -99,6 +109,7 @@ string! {make object! [
         finished?: false
         method: none
         resource: none
+        path: none
         query: none
         content-type: none
         content-length: none
@@ -106,7 +117,8 @@ string! {make object! [
         keep-alive: none
     ] make object! [
         method: "POST"
-        resource: "/a/file"
+        resource: "/a/file?a=b&b=c"
+        path: [root "a" "file"]
         query: "a=b&b=c"
         content-type: "application/json"
         content-length: none
