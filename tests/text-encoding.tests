@@ -442,3 +442,15 @@ REBOL [
 [
     encode-text str 'utf-7-imap
 ]
+[
+    str: encode-text {Text with long lines that needs to be broken up bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla} 'quoted-printable
+]
+[
+    decode-text str 'quoted-printable
+]
+[
+    str: encode-text {Text with long lines that needs to be broken up bla bla bla blablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablablabla bla bla} 'quoted-printable
+]
+[
+    decode-text str 'quoted-printable
+]
