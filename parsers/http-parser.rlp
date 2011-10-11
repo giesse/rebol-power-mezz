@@ -28,7 +28,7 @@ HTTP Requests parser and Response generator
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %http-parser.r
-    Version: 1.2.0
+    Version: 1.3.0
     Imports: [
         %parsers/uri-parser.r
     ]
@@ -142,7 +142,7 @@ Documentation still to be written.
             any space "^M^J" rest: (
                 remove/part locals/buffer as-binary rest
                 locals/on-data: :on-other-header-data
-                path: parse-uri/relative resource
+                path: decode-uri-fields parse-uri/relative resource
                 query: path/query
                 path: path/path
                 foreach word [method resource path query] [
