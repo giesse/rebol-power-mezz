@@ -1,0 +1,41 @@
+REBOL [
+    Type: Module
+    Title: "Tests for HTTP"
+    Author: "Gabriele Santilli"
+    Imports: [%schemes/http.r]
+]
+
+[read http://www.rebol.com/]
+[query http://www.rebol.com/]
+[exists? http://www.rebol.com/]
+[form info? http://www.rebol.com/]
+[
+    p: make port! http://www.rebol.com/
+    open p
+    form p/locals
+]
+[copy p]
+[close p true]
+[
+    p: make port! http://www.rebol.com/
+    open/custom p [HEAD]
+    form p/locals
+]
+[copy p]
+[close p true]
+[read/custom http://www.colellachiara.com/ [[If-None-Match: {"5860b-42e-3f9e8db883e40"}]]]
+[read/custom http://www.colellachiara.com/ [PUT {some content}]]
+[read/custom http://www.colellachiara.com/ [POST {some content}]]
+[read/custom http://www.colellachiara.com/ [DELETE]]
+[
+    p: open/custom http://www.colellachiara.com/ [[If-None-Match: {"5860b-42e-3f9e8db883e40"}]]
+    form p/locals
+]
+[copy p]
+[close p true]
+[
+    p: open/custom http://www.colellachiara.com/ [HEAD [If-None-Match: {"5860b-42e-3f9e8db883e40"}]]
+    form p/locals
+]
+[copy p]
+[close p true]

@@ -1,0 +1,279 @@
+string! {<!doctype html>
+<html><head>
+<meta name="generator" content="REBOL WIP Wiki"/>
+<meta name="date" content="8-Oct-2011/10:59:49-7:00"/>
+<meta name="rebol-version" content="2.100.97.4.2"/>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<meta http-equiv="Cache-Control" content="no-cache" />
+<meta name="Description" content="REBOL: a lightweight computer language with advanced semantics. Site includes products, downloads, documentation, and support.
+">
+<meta name="Keywords" content="REBOL, programming, Internet, software, domain specific language, distributed computing, collaboration, operating systems, development, rebel
+">
+<title>REBOL Language</title>
+<link rel="stylesheet" type="text/css" charset="utf-8" href="http://www.rebol.com/wip3.css"/>
+</head><body>
+<table class=logo-bar>
+<tr>
+<td><a href="http://www.rebol.com/"><img src="http://www.rebol.com/graphics/reb-logo.gif"  width="176" height="44"  alt="REBOL"></a></td>
+<td width="100%">
+<table class=top-bar>
+<tr>
+<td><a href="http://www.rebol.com/downloads.html" class=bar-txt>Downloads</a></td>
+<td><a href="http://www.rebol.com/products.html" class=bar-txt>Products</a></td>
+<td><a href="http://www.rebol.com/docs.html" class=bar-txt>Documents</a></td>
+<td><a href="http://www.rebol.com/community.html" class=bar-txt>Community</a></td>
+<td><form action="http://www.rebol.com/search-results.html" id="cse-search-box"> <div> <input type="hidden" name="cx" value="partner-pub-6715190228778758:z0jtki-u4dw" /> <input type="hidden" name="cof" value="FORID:9" /> <input type="hidden" name="ie" value="ISO-8859-1" /> <input type="text" name="q" size="20" /> <input type="submit" name="sa" value="Do" style="font-size: 8pt;" /> </div> </form> <script type="text/javascript" src="http://www.google.com/cse/brand?form=cse-search-box&amp;lang=en"></script></td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+<div class=nav-bar><span class=min-note>8-Oct-2011 UTC</span> <a href="http://www.rebol.com/cgi-bin/wip3.cgi?edit=index.txt" class=nav-sym>&#9635;</a> &nbsp;</div>
+<div class="main"><table cellpadding="3" cellspacing="0" border="0" width="100%"><tr><td valign="top" none><div class=bh>Fighting software complexity...</div>
+<p><b>Software systems have become too complex</b>, layers upon layers of complexity, each more brittle and vulnerable to failure. In the end <b><i>software becomes the problem, not the solution</i></b>. We rebel against such complexity, fighting back with the most powerful tool available: <b><i><a href="http://www.rebol.com/what-rebol.html">language itself</a></i></b>.</p>
+<hr>
+<p><b><a href="http://www.rebol.com/docs/expert-intro.html">REBOL Overview for Scientists, Engineers, Professors, Programmers</a></b></p>
+<p><b>REBOL is not a traditional computer language.</b> It's not for everyone. It's for thinkers and doers -- those who want more power and flexibility in their language, and those who want to solve computing problems in smarter more elegant ways.</p>
+<hr><table cellpadding="3" cellspacing="0" border="0" width="100%"><tr><td valign="top" none>
+<p><a href="http://www.rebol.com/docs/reference.html"><img src="/graphics/ref-card.jpg"></a></p></td><td width="1%">&nbsp;</td><td valign="top" none>
+<p><br><b><a href="http://www.rebol.com/docs/reference.html">R3 Quick Reference Card</a></b></p>
+<p>A useful resource for new programmers who want to see the primary functions and types in a single glance.</p></td></tr></table>
+<hr>
+<table class=icon-list>
+<tr><td class=icon-image><img src="/graphics/view.jpg"></td><td class=icon-field>
+<p><b><a href="http://www.rebol.com/download.html">REBOL 2.7.8 Released</a></b> 9-Jan-2011</p>
+<p><b>New native and mezzanine functions, and <a href="http://www.rebol.com/docs/changes-2-7.html">more</a>.</b></p>
+<p>Plus: direct support in Core for Cheyenne web server!</p></td>
+</tr>
+<tr><td class=icon-image><img src="/graphics/command.jpg"></td><td class=icon-field>
+<p><b><a href="http://www.rebol.com/sdk.html">REBOL/SDK 2.7.8 Released</a></b> 9-Jan-2011</p>
+<p><b>The new SDK and Command packages now available.</b></p>
+<p>Platforms include MS Windows, OS X, Linux, and BSD.</p></td>
+</tr>
+<tr><td class=icon-image><img src="/graphics/dev.jpg"></td><td class=icon-field>
+<p><b><a href="http://www.rebol.com/rebol3/index.html">REBOL 3.0 Alpha Test</a></b> 20-Feb-2011</p>
+<p><b>Improved, extended, optimized.</b></p>
+<p>REBOL is now faster and even more powerful. New datatypes, new natives, new ideas, and even Unicode. A lean, extensible platform that spans all operating systems and devices. One language, server and client, no bloat.</p></td>
+</tr>
+<tr><td class=icon-image><img src="/graphics/http.jpg"></td><td class=icon-field>
+<p><b><a href="http://www.rebol.com/article/0456.html">Major Website Revision</a></b> 28-Jan-2010</p>
+<p><b>Better structure, rebuilt pages, better tools.</b></p>
+<p>This website has changed in a big way, reorganizing most of its basic structure, integrating all primary pages into a single wiki engine for a consistent display, and providing greater level of interlinking than before.</p></td></tr>
+</table></td><td width="1%">&nbsp;</td><td valign="top" width=220>
+<table class="boxbar"><tr><td class=side-left></td><td class=side-top width="100%">Learn</td><td class=side-right></td></tr><tr><td colspan=3 class="side-body"><p><b><a href="http://www.rebol.com/what-rebol.html">What is REBOL?</a></b><br>Un-bloat your software.</p><p><b><a href="http://www.rebol.com/tutorials.html">Tutorials, Examples</a></b><br>Many ways to start.</p></td></tr></table><br>
+<table class="boxbar"><tr><td class=side-left></td><td class=side-top width="100%">News</td><td class=side-right></td></tr><tr><td colspan=3 class="side-body"><p><b><a href="http://www.rebol.com/article/0508.html">Needed: Common PARSEs</a></b><br>Why reinvent them each time?</p><p><b><a href="http://www.rebol.net/r3blogs/0351.html">Is Git working for R3?</a></b><br>Time to merge A111 changes.</p><p><b><a href="http://www.rebol.com/article/0506.html">The new SPEED? Function</a></b><br>Something to think about</p><p><b><a href="http://www.rebol.com/docs/changes-2-7.html">REBOL 2.7.8 Released</a></b><br>Including SDK and Command</p><p><b><a href="http://www.rebol.com/article/0497.html">Complexity Pollution</a></b><br>Keep fighting it.</p><p><b><a href="http://www.rebol.com/r3/changes.html">OS X Host Kit</a></b><br>First draft, finally.</p><p><b><a href="http://www.rebol.com/r3/changes.html">R3 A110 Host Kit via Git</a></b><br>Source on GitHub.com</p><p><b><a href="http://www.rebol.net/r3blogs/0345.html">R3 A109 for Amiga OS4</a></b><br>Preliminary release</p><p><b><a href="http://www.rebol.com/r3/changes.html">R3 A109 Core Release</a></b><br>Fixes and improvements</p><p><b><a href="http://www.rebol.com/r3/changes.html">R3 A106 Host-Kit Update</a></b><br>Issues as words</p></td></tr></table><br>
+<p style="text-align: center; font-size: 8pt; margin: 0; margin-bottom: 8px;">A fast powerful REBOL web server:
+<br><a href="http://cheyenne-server.org"><img src="/graphics/powered-by-cheyenne.png" alt="Cheyenne Web Server"></a></p>
+<table class="boxbar"><tr><td class=side-left></td><td class=side-top width="100%">Links</td><td class=side-right></td></tr><tr><td colspan=3 class="side-body"><p><b><a href="http://twitter.com/rebol3">REBOL3 on Twitter</a></b><br>Informal activity log</p><p><b><a href="http://www.facebook.com/group.php?gid=99459740077" target="_blank">REBOL on FaceBook</a></b><br>For those who want it</p><p><b><a href="http://www.rebol.com/cgi-bin/blog.r">Carl's REBOL Blog</a></b><br>Vive la REBOLution!</p><p><b><a href="http://www.rebol.net/cgi-bin/r3blog.r">REBOL 3.0 Blog</a></b><br>Building the future</p><p><b><a href="http://rebolweek.blogspot.com">The REBOL Week</a></b><br>Community news</p><p><b><a href="http://reboltutorial.com">RebolTutorial Website</a></b><br>Articles on REBOL</p></td></tr></table><br>
+<p style="text-align: center; font-size: 8pt; margin: 0;">
+<a href="http://www4.clustrmaps.com/counter/maps.php?url=http://www.rebol.com" id="clustrMapsLink"><img src="http://www4.clustrmaps.com/counter/index2.php?url=http://www.rebol.com" style="border:0px;" alt="Locations of visitors to this page" title="Locations of visitors to this page" id="clustrMapsImg" onError="this.onError=null; this.src='http://www2.clustrmaps.com/images/clustrmaps-back-soon.jpg'; document.getElementById('clustrMapsLink').href='http://www2.clustrmaps.com'" /></p></td></tr></table>
+</div><div class=nav-bar><a href="http://www.rebol.com/wip-wiki.html" class=wip-note>WIP Wiki 3.3.0</a> <a href="http://www.rebol.com/cgi-bin/wip3.cgi?edit=index.txt" class=nav-sym>&#9635;</a> <a href="http://www.rebol.com/cgi-bin/wip3.cgi?admin=1" class=nav-sym>&#9636;</a>&nbsp;</div>
+
+<table class=bot-bar>
+<tr>
+<td><a href="http://www.rebol.com/about.html" class=bot-txt>About</a> | <a href="http://www.rebol.com/cgi-bin/feedback/post2.r" class=bot-txt>Contact</a> | <a href="http://www.rebol.com/support.html" class=bot-txt>Support</a> | <a href="http://www.rebol.com/privacy.html" class=bot-txt>Privacy</a> | <a href="http://www.rebol.com/license.html" class=bot-txt>License</a></td><td class=bot-right><a href="http://www.rebol.com" class=bot-txt>REBOL Technologies 2011</a></td>
+</tr>
+</table>
+
+</body>
+</html>} block! [ok 9379 "text/html"] logic! #[true] string! "size: 9379^/date: 8-Oct-2011/17:59:49^/type: file^/" string! {method: GET
+headers: []
+content: none
+response-line: "HTTP/1.1 200 OK"
+response-parsed: ok
+response-headers: make object! [
+    Content-Type: "text/html"
+    Content-Length: "9379"
+    Transfer-Encoding: none
+    Last-Modified: "Sat, 08 Oct 2011 17:59:49 GMT"
+    Date: "Wed, 13 Jun 2012 20:38:34 GMT"
+    Server: "Apache"
+    Accept-Ranges: "bytes"
+    Connection: "close"
+]
+chunked?: false
+chunked-buffer: none
+} string! {<!doctype html>
+<html><head>
+<meta name="generator" content="REBOL WIP Wiki"/>
+<meta name="date" content="8-Oct-2011/10:59:49-7:00"/>
+<meta name="rebol-version" content="2.100.97.4.2"/>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<meta http-equiv="Cache-Control" content="no-cache" />
+<meta name="Description" content="REBOL: a lightweight computer language with advanced semantics. Site includes products, downloads, documentation, and support.
+">
+<meta name="Keywords" content="REBOL, programming, Internet, software, domain specific language, distributed computing, collaboration, operating systems, development, rebel
+">
+<title>REBOL Language</title>
+<link rel="stylesheet" type="text/css" charset="utf-8" href="http://www.rebol.com/wip3.css"/>
+</head><body>
+<table class=logo-bar>
+<tr>
+<td><a href="http://www.rebol.com/"><img src="http://www.rebol.com/graphics/reb-logo.gif"  width="176" height="44"  alt="REBOL"></a></td>
+<td width="100%">
+<table class=top-bar>
+<tr>
+<td><a href="http://www.rebol.com/downloads.html" class=bar-txt>Downloads</a></td>
+<td><a href="http://www.rebol.com/products.html" class=bar-txt>Products</a></td>
+<td><a href="http://www.rebol.com/docs.html" class=bar-txt>Documents</a></td>
+<td><a href="http://www.rebol.com/community.html" class=bar-txt>Community</a></td>
+<td><form action="http://www.rebol.com/search-results.html" id="cse-search-box"> <div> <input type="hidden" name="cx" value="partner-pub-6715190228778758:z0jtki-u4dw" /> <input type="hidden" name="cof" value="FORID:9" /> <input type="hidden" name="ie" value="ISO-8859-1" /> <input type="text" name="q" size="20" /> <input type="submit" name="sa" value="Do" style="font-size: 8pt;" /> </div> </form> <script type="text/javascript" src="http://www.google.com/cse/brand?form=cse-search-box&amp;lang=en"></script></td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+<div class=nav-bar><span class=min-note>8-Oct-2011 UTC</span> <a href="http://www.rebol.com/cgi-bin/wip3.cgi?edit=index.txt" class=nav-sym>&#9635;</a> &nbsp;</div>
+<div class="main"><table cellpadding="3" cellspacing="0" border="0" width="100%"><tr><td valign="top" none><div class=bh>Fighting software complexity...</div>
+<p><b>Software systems have become too complex</b>, layers upon layers of complexity, each more brittle and vulnerable to failure. In the end <b><i>software becomes the problem, not the solution</i></b>. We rebel against such complexity, fighting back with the most powerful tool available: <b><i><a href="http://www.rebol.com/what-rebol.html">language itself</a></i></b>.</p>
+<hr>
+<p><b><a href="http://www.rebol.com/docs/expert-intro.html">REBOL Overview for Scientists, Engineers, Professors, Programmers</a></b></p>
+<p><b>REBOL is not a traditional computer language.</b> It's not for everyone. It's for thinkers and doers -- those who want more power and flexibility in their language, and those who want to solve computing problems in smarter more elegant ways.</p>
+<hr><table cellpadding="3" cellspacing="0" border="0" width="100%"><tr><td valign="top" none>
+<p><a href="http://www.rebol.com/docs/reference.html"><img src="/graphics/ref-card.jpg"></a></p></td><td width="1%">&nbsp;</td><td valign="top" none>
+<p><br><b><a href="http://www.rebol.com/docs/reference.html">R3 Quick Reference Card</a></b></p>
+<p>A useful resource for new programmers who want to see the primary functions and types in a single glance.</p></td></tr></table>
+<hr>
+<table class=icon-list>
+<tr><td class=icon-image><img src="/graphics/view.jpg"></td><td class=icon-field>
+<p><b><a href="http://www.rebol.com/download.html">REBOL 2.7.8 Released</a></b> 9-Jan-2011</p>
+<p><b>New native and mezzanine functions, and <a href="http://www.rebol.com/docs/changes-2-7.html">more</a>.</b></p>
+<p>Plus: direct support in Core for Cheyenne web server!</p></td>
+</tr>
+<tr><td class=icon-image><img src="/graphics/command.jpg"></td><td class=icon-field>
+<p><b><a href="http://www.rebol.com/sdk.html">REBOL/SDK 2.7.8 Released</a></b> 9-Jan-2011</p>
+<p><b>The new SDK and Command packages now available.</b></p>
+<p>Platforms include MS Windows, OS X, Linux, and BSD.</p></td>
+</tr>
+<tr><td class=icon-image><img src="/graphics/dev.jpg"></td><td class=icon-field>
+<p><b><a href="http://www.rebol.com/rebol3/index.html">REBOL 3.0 Alpha Test</a></b> 20-Feb-2011</p>
+<p><b>Improved, extended, optimized.</b></p>
+<p>REBOL is now faster and even more powerful. New datatypes, new natives, new ideas, and even Unicode. A lean, extensible platform that spans all operating systems and devices. One language, server and client, no bloat.</p></td>
+</tr>
+<tr><td class=icon-image><img src="/graphics/http.jpg"></td><td class=icon-field>
+<p><b><a href="http://www.rebol.com/article/0456.html">Major Website Revision</a></b> 28-Jan-2010</p>
+<p><b>Better structure, rebuilt pages, better tools.</b></p>
+<p>This website has changed in a big way, reorganizing most of its basic structure, integrating all primary pages into a single wiki engine for a consistent display, and providing greater level of interlinking than before.</p></td></tr>
+</table></td><td width="1%">&nbsp;</td><td valign="top" width=220>
+<table class="boxbar"><tr><td class=side-left></td><td class=side-top width="100%">Learn</td><td class=side-right></td></tr><tr><td colspan=3 class="side-body"><p><b><a href="http://www.rebol.com/what-rebol.html">What is REBOL?</a></b><br>Un-bloat your software.</p><p><b><a href="http://www.rebol.com/tutorials.html">Tutorials, Examples</a></b><br>Many ways to start.</p></td></tr></table><br>
+<table class="boxbar"><tr><td class=side-left></td><td class=side-top width="100%">News</td><td class=side-right></td></tr><tr><td colspan=3 class="side-body"><p><b><a href="http://www.rebol.com/article/0508.html">Needed: Common PARSEs</a></b><br>Why reinvent them each time?</p><p><b><a href="http://www.rebol.net/r3blogs/0351.html">Is Git working for R3?</a></b><br>Time to merge A111 changes.</p><p><b><a href="http://www.rebol.com/article/0506.html">The new SPEED? Function</a></b><br>Something to think about</p><p><b><a href="http://www.rebol.com/docs/changes-2-7.html">REBOL 2.7.8 Released</a></b><br>Including SDK and Command</p><p><b><a href="http://www.rebol.com/article/0497.html">Complexity Pollution</a></b><br>Keep fighting it.</p><p><b><a href="http://www.rebol.com/r3/changes.html">OS X Host Kit</a></b><br>First draft, finally.</p><p><b><a href="http://www.rebol.com/r3/changes.html">R3 A110 Host Kit via Git</a></b><br>Source on GitHub.com</p><p><b><a href="http://www.rebol.net/r3blogs/0345.html">R3 A109 for Amiga OS4</a></b><br>Preliminary release</p><p><b><a href="http://www.rebol.com/r3/changes.html">R3 A109 Core Release</a></b><br>Fixes and improvements</p><p><b><a href="http://www.rebol.com/r3/changes.html">R3 A106 Host-Kit Update</a></b><br>Issues as words</p></td></tr></table><br>
+<p style="text-align: center; font-size: 8pt; margin: 0; margin-bottom: 8px;">A fast powerful REBOL web server:
+<br><a href="http://cheyenne-server.org"><img src="/graphics/powered-by-cheyenne.png" alt="Cheyenne Web Server"></a></p>
+<table class="boxbar"><tr><td class=side-left></td><td class=side-top width="100%">Links</td><td class=side-right></td></tr><tr><td colspan=3 class="side-body"><p><b><a href="http://twitter.com/rebol3">REBOL3 on Twitter</a></b><br>Informal activity log</p><p><b><a href="http://www.facebook.com/group.php?gid=99459740077" target="_blank">REBOL on FaceBook</a></b><br>For those who want it</p><p><b><a href="http://www.rebol.com/cgi-bin/blog.r">Carl's REBOL Blog</a></b><br>Vive la REBOLution!</p><p><b><a href="http://www.rebol.net/cgi-bin/r3blog.r">REBOL 3.0 Blog</a></b><br>Building the future</p><p><b><a href="http://rebolweek.blogspot.com">The REBOL Week</a></b><br>Community news</p><p><b><a href="http://reboltutorial.com">RebolTutorial Website</a></b><br>Articles on REBOL</p></td></tr></table><br>
+<p style="text-align: center; font-size: 8pt; margin: 0;">
+<a href="http://www4.clustrmaps.com/counter/maps.php?url=http://www.rebol.com" id="clustrMapsLink"><img src="http://www4.clustrmaps.com/counter/index2.php?url=http://www.rebol.com" style="border:0px;" alt="Locations of visitors to this page" title="Locations of visitors to this page" id="clustrMapsImg" onError="this.onError=null; this.src='http://www2.clustrmaps.com/images/clustrmaps-back-soon.jpg'; document.getElementById('clustrMapsLink').href='http://www2.clustrmaps.com'" /></p></td></tr></table>
+</div><div class=nav-bar><a href="http://www.rebol.com/wip-wiki.html" class=wip-note>WIP Wiki 3.3.0</a> <a href="http://www.rebol.com/cgi-bin/wip3.cgi?edit=index.txt" class=nav-sym>&#9635;</a> <a href="http://www.rebol.com/cgi-bin/wip3.cgi?admin=1" class=nav-sym>&#9636;</a>&nbsp;</div>
+
+<table class=bot-bar>
+<tr>
+<td><a href="http://www.rebol.com/about.html" class=bot-txt>About</a> | <a href="http://www.rebol.com/cgi-bin/feedback/post2.r" class=bot-txt>Contact</a> | <a href="http://www.rebol.com/support.html" class=bot-txt>Support</a> | <a href="http://www.rebol.com/privacy.html" class=bot-txt>Privacy</a> | <a href="http://www.rebol.com/license.html" class=bot-txt>License</a></td><td class=bot-right><a href="http://www.rebol.com" class=bot-txt>REBOL Technologies 2011</a></td>
+</tr>
+</table>
+
+</body>
+</html>} logic! #[true] string! {method: HEAD
+headers: []
+content: none
+response-line: "HTTP/1.1 200 OK"
+response-parsed: ok
+response-headers: make object! [
+    Content-Type: "text/html"
+    Content-Length: "9379"
+    Transfer-Encoding: none
+    Last-Modified: "Sat, 08 Oct 2011 17:59:49 GMT"
+    Date: "Wed, 13 Jun 2012 20:38:40 GMT"
+    Server: "Apache"
+    Accept-Ranges: "bytes"
+    Connection: "close"
+]
+chunked?: false
+chunked-buffer: none
+} string! "" logic! #[true] string! "" error! 
+{** Access Error: Protocol error HTTP/1.1 405 Method Not Allowed
+** Near: read/custom http://www.colellachiara.com/ [PUT "some content"]
+} string! {<html>
+  <head>
+    <title>ColellaChiara.com</title>
+    <meta name="keywords" content="Ingrosso,Colella Chiara,Acquista,Linea Gattopard,Gattopard,Forza10,Forza 10">
+    <style>
+body {
+  margin: 0px;
+  padding: 0px;
+  background: white;
+}
+div#ingrosso {
+  margin: 0px;
+  padding: 0px;
+  text-align: center;
+  background: #9ABAFE;
+}
+div#soft {
+  margin: 0px;
+  padding: 0px;
+  text-align: center;
+}
+p {
+  margin: 0px;
+  margin-top: 50px;
+  text-align: center;
+}
+img {
+  border: 0;
+}
+    </style>
+  </head>
+  <body>
+    <div id="ingrosso"><img src="ingrosso.png" usemap="#ingrosso"><map name="ingrosso">
+      <area shape="rect" coords="270,275,420,305" href="ingrosso/">
+      <area shape="rect" coords="445,275,625,305" href="dovesiamo.html">
+    </map></div>
+    <div id="soft"><img src="soft.png" usemap="#soft"><map name="soft">
+      <area shape="rect" coords="100,50,615,90" href="soft/">
+    </map></div>
+    <p><a href="ingrosso/">[ Ingrosso ]</a> <a href="dovesiamo.html">[ Come raggiungerci ]</a> <a href="soft/">[ Software division ]</a></p>
+  </body>
+</html>
+} error! 
+{** Access Error: Protocol error HTTP/1.1 405 Method Not Allowed
+** Near: read/custom http://www.colellachiara.com/ [DELETE]
+} string! {method: GET
+headers: [If-None-Match: {"5860b-42e-3f9e8db883e40"}]
+content: none
+response-line: "HTTP/1.1 304 Not Modified"
+response-parsed: not-modified
+response-headers: make object! [
+    Content-Type: none
+    Content-Length: none
+    Transfer-Encoding: none
+    Last-Modified: none
+    Date: "Wed, 13 Jun 2012 20:38:52 GMT"
+    Server: "Apache"
+    Connection: "close"
+    ETag: {"5860b-42e-3f9e8db883e40"}
+    Vary: "Accept-Encoding"
+]
+chunked?: false
+chunked-buffer: none
+} string! "" logic! #[true] string! {method: HEAD
+headers: [If-None-Match: {"5860b-42e-3f9e8db883e40"}]
+content: none
+response-line: "HTTP/1.1 304 Not Modified"
+response-parsed: not-modified
+response-headers: make object! [
+    Content-Type: none
+    Content-Length: none
+    Transfer-Encoding: none
+    Last-Modified: none
+    Date: "Wed, 13 Jun 2012 20:39:24 GMT"
+    Server: "Apache"
+    Connection: "close"
+    ETag: {"5860b-42e-3f9e8db883e40"}
+    Vary: "Accept-Encoding"
+]
+chunked?: false
+chunked-buffer: none
+} string! "" logic! #[true]
