@@ -389,3 +389,35 @@ Continued.<br>} [
     ; more MS bullshit
     filter-html/all {<p class=MsoListParagraph style='text-indent:-.25in;mso-list:l2 level1 lfo2'><![if !supportLists]><span style='font-family:Symbol'><span style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span></span></span><![endif]>Statuses <u>are</u> customizable and can be changed<o:p></o:p></p>}
 ]
+[
+    filter-html {<div class="flowplayer"><video src="video.mp4"></video></div>}
+]
+[
+    filter-html {
+<div class="player" data-engine="flash">
+   <video poster="jeans.jpg">
+      <source type="video/webm" src="http://mydomain.org/intro.webm"/>
+      <source type="video/mp4" src="http://mydomain.org/intro.mp4"/>
+      <source type="video/ogg" src="http://mydomain.org/intro.ogg"/>
+   </video>
+</div>}
+]
+[
+    filter-html {<video autoplay loop poster="image.jpg" preload="auto"></video>}
+]
+[
+    filter-html {<iframe width="560" height="315" src="http://www.youtube.com/embed/n2LCXFcmBd8" frameborder="0" allowfullscreen></iframe>}
+]
+[
+    filter-html {<iframe src="http://player.vimeo.com/video/52906289" width="500" height="281" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>}
+]
+[
+    filter-html/with {<iframe width="560" height="315" src="http://www.youtube.com/embed/n2LCXFcmBd8" frameborder="0" allowfullscreen></iframe>} [
+        filter-uris: func [uri] [uri]
+    ]
+]
+[
+    filter-html/with {<iframe src="http://player.vimeo.com/video/52906289" width="500" height="281" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>} [
+        filter-uris: func [uri] [uri]
+    ]
+]

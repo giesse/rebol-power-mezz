@@ -70,3 +70,25 @@ REBOL [
 [
 	form-html/with load-html/with read %tests/data/13.html [always [ignore meta]] [pretty?: true]
 ]
+[
+    form-html load-html {<div class="flowplayer"><video src="video.mp4"></video></div>}
+]
+[
+    form-html load-html {
+<div class="player" data-engine="flash">
+   <video poster="jeans.jpg">
+      <source type="video/webm" src="http://mydomain.org/intro.webm"/>
+      <source type="video/mp4" src="http://mydomain.org/intro.mp4"/>
+      <source type="video/ogg" src="http://mydomain.org/intro.ogg"/>
+   </video>
+</div>}
+]
+[
+    form-html load-html {<video autoplay loop poster="image.jpg" preload="auto"></video>}
+]
+[
+    form-html load-html {<iframe width="560" height="315" src="http://www.youtube.com/embed/n2LCXFcmBd8" frameborder="0" allowfullscreen></iframe>}
+]
+[
+    form-html load-html {<iframe src="http://player.vimeo.com/video/52906289" width="500" height="281" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe>}
+]

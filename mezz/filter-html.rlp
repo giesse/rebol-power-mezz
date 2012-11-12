@@ -9,14 +9,14 @@ HTML Filter
     Author: "Gabriele Santilli"
     License: {
         =================================
-        A message from Qtask about this source code:
+        A message from Silent Software about this source code:
 
         We have selected the MIT license (as of 2010-Jan-1) because
         it is the closest “standard” license to our intent.  If we had our way,
         we would declare this source as public domain, with absolutely no
         strings attached, not even the string that says you have to have
         strings.  We want to help people, so please feel free to contact us
-        at API@Qtask.com if you have questions.
+        if you have questions.
          
 
         (you only need to include the standard license text below in your
@@ -24,6 +24,7 @@ HTML Filter
         =================================
 
         Copyright 2009 Qtask, Inc.
+        Copyright 2012 Silent Software, Inc.
 
         Permission is hereby granted, free of charge, to any person obtaining
         a copy of this software and associated documentation files
@@ -45,7 +46,7 @@ HTML Filter
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %filter-html.r
-    Version: 4.1.0
+    Version: 4.2.0
     Imports: [
         %parsers/common-rules.r "We need the NAME rule"
         %mezz/load-html.r       "Used to load the HTML text and to form the result"
@@ -309,9 +310,12 @@ form it back to HTML text.
                 ]
             ] [
                 value: pick pos 2
-                poke pos 2 either find [
-                    #[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"
-                ] value/scheme [
+                poke pos 2 either all [
+                    name <> 'iframe
+                    find [
+                        #[none] "http" "https" "ftp" "telnet" "news" "mailto" "nntp" "gopher"
+                    ] value/scheme
+                ] [
                     form-uri value
                 ] [
                     none
@@ -662,6 +666,34 @@ form it back to HTML text.
             size  font-size                    none
             color [style* color "color"]       none
             face  [style* cdata "font-family"] none
+        ]
+        iframe [
+            src         uri                            none
+            name        name*                          none
+            width       [style* lengthpx "width"]      none
+            height      [style* lengthpx "height"]     none
+            frameborder [style* pixels "border-width"] none
+            ; youtube/vimeo iframe tags
+            allowfullscreen       [bool "allowfullscreen"]       none
+            mozallowfullscreen    [bool "mozallowfullscreen"]    none
+            webkitallowfullscreen [bool "webkitallowfullscreen"] none
+        ]
+        video [
+            autoplay   [bool "autoplay"]               none
+            preload    [enum "none" "metadata" "auto"] none
+            controls   [bool "controls"]               none
+            loop       [bool "loop"]                   none
+            poster     uri                             none 
+            width      length                          none
+            height     length                          none
+            mediagroup cdata                           none
+            muted      [bool "muted"]                  none
+            src        uri                             none
+        ]
+        source [
+            src   uri        none
+            type  cdata      none
+            media media-desc none
         ]
     ]
 

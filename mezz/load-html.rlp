@@ -7,14 +7,14 @@ Parse HTML text into a tree
     Author: "Gabriele Santilli"
     License: {
         =================================
-        A message from Qtask about this source code:
+        A message from Silent Software about this source code:
 
         We have selected the MIT license (as of 2010-Jan-1) because
         it is the closest “standard” license to our intent.  If we had our way,
         we would declare this source as public domain, with absolutely no
         strings attached, not even the string that says you have to have
         strings.  We want to help people, so please feel free to contact us
-        at API@Qtask.com if you have questions.
+        if you have questions.
          
 
         (you only need to include the standard license text below in your
@@ -22,6 +22,7 @@ Parse HTML text into a tree
         =================================
 
         Copyright 2010 Qtask, Inc.
+        Copyright 2012 Silent Software, Inc.
 
         Permission is hereby granted, free of charge, to any person obtaining
         a copy of this software and associated documentation files
@@ -43,7 +44,7 @@ Parse HTML text into a tree
         OTHER DEALINGS IN THE SOFTWARE.
     }
     File: %load-html.r
-    Version: 1.1.4
+    Version: 1.1.5
     Imports: [
         %parsers/ml-parser.r
         %mezz/niwashi.r
@@ -107,7 +108,7 @@ This module is a complete HTML parser, supporting HTML 3.2 to 4.1 and XHTML 1.0.
             <body> <legend> <caption> <fieldset> <noscript> <ins> <del> <iframe> <tt> <i> <b> <u>
             <strike> <s> <big> <small> <sub> <sup> <em> <strong> <dfn> <code> <samp> <kbd> <var>
             <cite> <font> <select> <textarea> <button> <optgroup> <label> <span> <abbr>
-            <acronym> <q> <applet> [
+            <acronym> <q> <applet> <video> [
                 attempt [
                     split-branch niwashi 'head
                     leave-child niwashi
@@ -117,7 +118,7 @@ This module is a complete HTML parser, supporting HTML 3.2 to 4.1 and XHTML 1.0.
             <isindex> <isindex/> <base> <base/> <script/> <meta> <meta/> <link> <link/> <param> <param/> [
                 append-child niwashi [type: tag-to-word cmd properties: data]
             ]
-            <col> <col/> <br> <br/> <basefont> <basefont/> <area> <area/> <input> <input/> [
+            <col> <col/> <br> <br/> <basefont> <basefont/> <area> <area/> <input> <input/> <source> <source/> [
                 attempt [
                     split-branch niwashi 'head
                     leave-child niwashi
@@ -191,7 +192,7 @@ This module is a complete HTML parser, supporting HTML 3.2 to 4.1 and XHTML 1.0.
             ]
             ; closing tags
             </head> </title> </script> </style> </object> </legend> </caption>
-            </fieldset> </noscript> </ins> </del> </iframe> 
+            </fieldset> </noscript> </ins> </del> </iframe> </video>
             ; attach-branch?
             </h1> </h2> </h3> </h4> </h5> </h6> </address> </ul> </ol> </li> </dl> </dt>
             </dd> </pre> </div> </center> </blockquote> </form> </table> 
@@ -322,6 +323,9 @@ Flow means both block and inline.
                     inside all but [table thead tbody tfoot tr td th caption colgroup select] [
                         ignore [td th caption tr thead tbody tfoot col colgroup option optgroup]
                     ]
+                    inside all but video [
+                        ignore source
+                    ]
                     inside table [
                         only [thead tfoot tbody tr td caption th col colgroup]
                         on tr force tbody
@@ -352,7 +356,7 @@ Flow means both block and inline.
                     inside [
                         h1 h2 h3 h4 h5 h6 p address dt caption td th
                         tt i b u s strike big small em strong dfn code samp kbd var cite abbr acronym
-                        a applet object font map q sub sup span bdo iframe
+                        a applet object font map q sub sup span bdo iframe video
                         option textarea label button
                     ] inside-flow
                 ]
@@ -484,7 +488,7 @@ Flow means both block and inline.
             ] [
                 either find [
                     base link hr area input img br col isindex script meta
-                    basefont
+                    basefont source
                 ] type [
                     !empty-tag type (!get-node-properties child) encoding
                 ] [
@@ -506,9 +510,9 @@ Flow means both block and inline.
                     pretty?
                     find [
                         html head title script style object body legend caption
-                        fieldset noscript iframe isindex base meta link br basefont
+                        fieldset noscript iframe video isindex base meta link br basefont
                         h1 h2 h3 h4 h5 h6 address p ul ol dl pre dt dd div center blockquote
-                        table li form tr td th thead tfoot tbody hr 
+                        table li form tr td th thead tfoot tbody hr source
                     ] type
                 ] [
                     insert !emit #"^/" indent
